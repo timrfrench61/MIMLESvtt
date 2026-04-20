@@ -1,5 +1,7 @@
 # Vision and Scope
 
+Related: [Design Packet Integration Report](design-packet-integration-report.md)
+
 ## Vision
 
 Build a **Blazor-based Virtual Tabletop (VTT) and tabletop engine** for running:
