@@ -52,134 +52,147 @@ Each item should be small enough to implement independently.
 
 ## Domain
 
-- create TableSession class
-- create Participant model
-- create SurfaceInstance model
-- create PieceInstance model
-- create Location model
-- create Coordinate model
-- create VisibilityState model
-- create TableOptions model
-- create ActionRecord model
-- implement ModuleState structure
-- enforce id uniqueness rules
-- enforce reference validation rules
+- [x] create TableSession class
+- [x] create Participant model
+- [x] create SurfaceInstance model
+- [x] create PieceInstance model
+- [x] create Location model
+- [x] create Coordinate model
+- [x] create VisibilityState model
+- [x] create TableOptions model
+- [x] create ActionRecord model
+- [x] implement ModuleState structure
+- [ ] enforce id uniqueness rules
+- [~] enforce reference validation rules (implemented for key action paths such as piece/surface checks)
 
 ---
 
 ## Action System
 
-- create ActionRequest structure
-- implement action dispatch mechanism
-- implement validation step
-- implement execution step
-- implement ActionLog storage
-- implement core actions:
-  - CreatePiece
-  - DeletePiece
-  - MovePiece
-  - RotatePiece
-  - ChangePieceState
-  - AddMarker
-  - RemoveMarker
-  - SetPieceVisibility
-  - UpdateTableOptions
+- [x] create ActionRequest structure
+- [x] implement action dispatch mechanism
+- [x] implement validation step
+- [x] implement execution step
+- [x] implement ActionLog storage
+- [~] implement core actions:
+  - [ ] CreatePiece
+  - [ ] DeletePiece
+  - [x] MovePiece
+  - [x] RotatePiece
+  - [x] ChangePieceState
+  - [x] AddMarker
+  - [x] RemoveMarker
+  - [ ] SetPieceVisibility
+  - [ ] UpdateTableOptions
 
 ---
 
 ## Table
 
-- create table creation workflow
-- create table load workflow
-- create surface creation
-- create piece creation
-- implement piece placement
-- implement piece movement
-- implement piece rotation
-- implement piece state editing
-- implement selection model
-- implement rendering of surfaces and pieces
+- [ ] create table creation workflow
+- [ ] create table load workflow
+- [ ] create surface creation
+- [ ] create piece creation
+- [ ] implement piece placement
+- [x] implement piece movement
+- [x] implement piece rotation
+- [x] implement piece state editing
+- [ ] implement selection model
+- [ ] implement rendering of surfaces and pieces
 
 ---
 
 ## Persistence
 
-- implement session save
-- implement session load
-- implement scenario export
-- implement scenario import
-- implement content pack export
-- implement content pack import
-- implement action log export
-- implement version field handling
-- implement validation during import
+- [x] implement session save
+- [x] implement session load
+- [x] implement scenario export
+- [x] implement scenario import
+- [x] implement content pack export
+- [x] implement content pack import
+- [x] implement action log export
+- [x] implement version field handling
+- [x] implement validation during import
+- [x] add import dispatcher/orchestration boundary
+- [x] add import apply-intent boundary
+- [x] add runtime apply executor boundary (ReplaceTableSession)
+- [x] add runtime apply policy controls
+- [x] add pending scenario application plan support (non-mutating)
 
 ---
 
 ## Multiplayer
 
-- create SignalR hub
-- implement session join
-- implement session leave
-- send ActionRequest from client to server
-- validate actions on server
-- apply actions on server
-- broadcast updated state
-- handle reconnect scenarios
+- [ ] create SignalR hub
+- [ ] implement session join
+- [ ] implement session leave
+- [ ] send ActionRequest from client to server
+- [ ] validate actions on server
+- [ ] apply actions on server
+- [ ] broadcast updated state
+- [ ] handle reconnect scenarios
 
 ---
 
 ## Tools
 
-- implement marker system
-- implement dice rolling
-- implement note system
-- implement basic turn tracking
-- implement basic visibility controls
+- [~] implement marker system (core add/remove marker actions complete)
+- [ ] implement dice rolling
+- [ ] implement note system
+- [ ] implement basic turn tracking
+- [ ] implement basic visibility controls
 
 ---
 
 ## Modules
 
-- implement module registration
-- implement module activation per session
-- implement module state storage
-- allow modules to define actions
-- allow modules to validate actions
-- enforce module isolation
+- [ ] implement module registration
+- [ ] implement module activation per session
+- [x] implement module state storage
+- [ ] allow modules to define actions
+- [ ] allow modules to validate actions
+- [ ] enforce module isolation
 
 ---
 
 ## Rules
 
-- implement AD&D1 module
-- implement BRP module
-- implement initiative logic
-- implement damage application
-- implement rule-specific state updates
+- [ ] implement AD&D1 module
+- [ ] implement BRP module
+- [ ] implement initiative logic
+- [ ] implement damage application
+- [ ] implement rule-specific state updates
 
 ---
 
 ## UI
 
-- build table view
-- build side panel for piece editing
-- build surface controls
-- build tool controls
-- build module UI hooks
-- build session management UI
+- [ ] build table view
+- [ ] build side panel for piece editing
+- [ ] build surface controls
+- [ ] build tool controls
+- [ ] build module UI hooks
+- [ ] build session management UI
 
 ---
 
 ## Testing
 
-- test action validation
-- test action execution
-- test persistence save/load
-- test import validation
-- test multiplayer synchronization
-- test module behavior
-- test domain invariants
+- [x] test action validation
+- [x] test action execution
+- [x] test persistence save/load
+- [x] test import validation
+- [ ] test multiplayer synchronization
+- [ ] test module behavior
+- [~] test domain invariants (covered for current action/persistence boundaries, full invariant suite pending)
+
+---
+
+## Near-Term Focus (next block)
+
+- [ ] scenario plan apply command boundary (still non-mutating to active TableSession)
+- [ ] complete remaining core actions (CreatePiece, DeletePiece, SetPieceVisibility, UpdateTableOptions)
+- [ ] strengthen cross-entity reference/domain invariant checks beyond current action paths
 
 ---
 
