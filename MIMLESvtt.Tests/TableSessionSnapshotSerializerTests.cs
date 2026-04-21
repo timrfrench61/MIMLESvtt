@@ -62,6 +62,20 @@ public class TableSessionSnapshotSerializerTests
     }
 
     [TestMethod]
+    public void SaveLoad_RoundTrip_PreservesTurnState()
+    {
+        var session = CreateSessionFixture();
+        var serializer = new TableSessionSnapshotSerializer();
+
+        var json = serializer.Save(session);
+        var loaded = serializer.Load(json);
+
+        CollectionAssert.AreEqual(new[] { "participant-1", "participant-2" }, loaded.TurnOrder);
+        Assert.AreEqual(1, loaded.CurrentTurnIndex);
+        Assert.AreEqual("Action", loaded.CurrentPhase);
+    }
+
+    [TestMethod]
     public void SaveLoad_RoundTrip_PreservesModuleState()
     {
         var session = CreateSessionFixture();
@@ -189,6 +203,12 @@ public class TableSessionSnapshotSerializerTests
                     Id = "participant-1",
                     Name = "GM",
                     Role = ParticipantRole.GM
+                },
+                new Participant
+                {
+                    Id = "participant-2",
+                    Name = "Player",
+                    Role = ParticipantRole.Player
                 }
             ],
             Surfaces =
@@ -253,7 +273,10 @@ public class TableSessionSnapshotSerializerTests
             {
                 ["Turn"] = 3,
                 ["Phase"] = "Combat"
-            }
+            },
+            TurnOrder = ["participant-1", "participant-2"],
+            CurrentTurnIndex = 1,
+            CurrentPhase = "Action"
         };
     }
 

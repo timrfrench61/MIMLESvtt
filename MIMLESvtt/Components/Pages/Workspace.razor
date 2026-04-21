@@ -7,21 +7,35 @@
 <h1>Workspace</h1>
 
 <div class="mb-3">
+    <button class="btn btn-outline-secondary me-2" @onclick="UndoLastWorkspaceOperation" disabled="@(!WorkspaceService.State.CanUndo)">Undo</button>
+    <button class="btn btn-outline-secondary" @onclick="RedoLastWorkspaceOperation" disabled="@(!WorkspaceService.State.CanRedo)">Redo</button>
+</div>
+
+<div class="mb-3">
     <button class="btn btn-primary me-2" @onclick="CreateNewSession">Create New Session</button>
-    <button class="btn btn-success me-2" @onclick="OpenSessionFromPath">Open Session</button>
-    <button class="btn btn-outline-success me-2" @onclick="SaveCurrentSession">Save Current Session</button>
-    <button class="btn btn-outline-primary me-2" @onclick="SaveCurrentSessionAs">Save Current Session As</button>
-    <button class="btn btn-warning me-2" @onclick="ImportScenarioToPendingPlan">Import Scenario To Pending Plan</button>
+    <button class="btn btn-success me-2" @onclick="OpenSessionFromPath">Load Game</button>
+    <button class="btn btn-outline-success me-2" @onclick="SaveCurrentSession">Save Game</button>
+    <button class="btn btn-outline-primary me-2" @onclick="SaveCurrentSessionAs">Save Game As</button>
+    <button class="btn btn-outline-info me-2" @onclick="SaveCurrentLayoutAsScenario">Save Current Layout As Scenario</button>
+    <button class="btn btn-warning me-2" @onclick="OpenScenarioForPendingPlan">Open Scenario For Pending Plan</button>
     <button class="btn btn-danger" @onclick="ActivatePendingScenario">Activate Pending Scenario</button>
 </div>
 
 <div class="mb-3">
-    <label class="form-label">Session file path (.session.json)</label>
+    <label class="form-label">Game save file path (.session.json)</label>
     <InputText @bind-Value="sessionPath" class="form-control" />
 </div>
 <div class="mb-3">
     <label class="form-label">Scenario file path (.scenario.json)</label>
     <InputText @bind-Value="scenarioPath" class="form-control" />
+</div>
+<div class="mb-3">
+    <label class="form-label">Scenario title for export</label>
+    <InputText @bind-Value="scenarioTitle" class="form-control" />
+</div>
+<div class="mb-3">
+    <button class="btn btn-outline-info me-2" @onclick="SaveCurrentLayoutAsScenario">Save Current Layout As Scenario</button>
+    <button class="btn btn-warning" @onclick="OpenScenarioForPendingPlan">Open Scenario For Pending Plan</button>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(message))
@@ -38,13 +52,75 @@ else
 {
     <ul>
         <li><strong>Title:</strong> @WorkspaceService.State.CurrentTableSession.Title</li>
+        <li><strong>Mode:</strong> @WorkspaceService.State.Mode</li>
         <li><strong>Current File:</strong> @(WorkspaceService.State.CurrentFilePath ?? "(none)")</li>
         <li><strong>Dirty:</strong> @WorkspaceService.State.IsDirty</li>
+        <li><strong>Participants:</strong> @WorkspaceService.State.CurrentTableSession.Participants.Count</li>
         <li><strong>Surfaces:</strong> @WorkspaceService.State.CurrentTableSession.Surfaces.Count</li>
         <li><strong>Pieces:</strong> @WorkspaceService.State.CurrentTableSession.Pieces.Count</li>
         <li><strong>Pending Scenario:</strong> @(WorkspaceService.State.CurrentPendingScenarioPlan?.ScenarioTitle ?? "(none)")</li>
         <li><strong>Last Operation:</strong> @(WorkspaceService.State.LastOperationMessage ?? "(none)")</li>
     </ul>
+
+    <div class="mb-3 p-2 border rounded bg-light">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <strong>Workspace Mode</strong>
+            <span class="badge @(WorkspaceService.State.Mode == WorkspaceMode.Edit ? "text-bg-secondary" : "text-bg-success")">@WorkspaceService.State.Mode</span>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="SwitchToEditMode" disabled="@(WorkspaceService.State.Mode == WorkspaceMode.Edit)">Edit Mode</button>
+            <button class="btn btn-sm btn-outline-success" @onclick="SwitchToPlayMode" disabled="@(WorkspaceService.State.Mode == WorkspaceMode.Play)">Play Mode</button>
+        </div>
+    </div>
+
+    <div class="mb-3 p-2 border rounded bg-light">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+            <strong>Turn / Phase</strong>
+            <span>Current Player: <strong>@GetCurrentTurnParticipant()</strong></span>
+            <span>Phase: <strong>@(string.IsNullOrWhiteSpace(WorkspaceService.State.CurrentTableSession.CurrentPhase) ? "(none)" : WorkspaceService.State.CurrentTableSession.CurrentPhase)</strong></span>
+            <button class="btn btn-sm btn-outline-primary" @onclick="AdvanceTurn" disabled="@(WorkspaceService.State.CurrentTableSession.TurnOrder.Count == 0)">Next Turn</button>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <InputText @bind-Value="turnOrderInput" class="form-control form-control-sm" style="max-width: 360px;" placeholder="Turn order: p1, p2, p3" />
+            <button class="btn btn-sm btn-outline-secondary" @onclick="InitializeTurnOrderFromInput">Initialize Turn Order</button>
+            <InputText @bind-Value="phaseInput" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Current phase" />
+            <button class="btn btn-sm btn-outline-secondary" @onclick="SetCurrentPhase">Set Phase</button>
+        </div>
+    </div>
+
+    <div class="mb-3 p-2 border rounded bg-light">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+            <strong>Participants</strong>
+            <InputText @bind-Value="participantIdInput" class="form-control form-control-sm" style="max-width: 160px;" placeholder="Id" />
+            <InputText @bind-Value="participantNameInput" class="form-control form-control-sm" style="max-width: 200px;" placeholder="Name" />
+            <button class="btn btn-sm btn-outline-primary" @onclick="AddParticipantToSession">Add Participant</button>
+            <InputText @bind-Value="removeParticipantIdInput" class="form-control form-control-sm" style="max-width: 180px;" placeholder="Remove Id" />
+            <button class="btn btn-sm btn-outline-danger" @onclick="RemoveParticipantFromSession">Remove Participant</button>
+        </div>
+
+        @if (WorkspaceService.State.CurrentTableSession.Participants.Count == 0)
+        {
+            <small class="text-muted">No participants in current session.</small>
+        }
+        else
+        {
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Name</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var participant in WorkspaceService.State.CurrentTableSession.Participants)
+                    {
+                        <tr>
+                            <td>@participant.Id</td>
+                            <td>@participant.Name</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
 }
 
 @if (WorkspaceService.State.CurrentTableSession is not null)
@@ -135,9 +211,87 @@ else
             </tbody>
         </table>
 
+        <div class="mb-3 p-2 border rounded bg-light">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <strong>Surface Workflow Strip</strong>
+                <span class="text-muted">Fast switch, default preset mapping, and bootstrap actions</span>
+            </div>
+
+            <div class="table-responsive mb-2">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Surface</th>
+                            <th>Type / Coordinate</th>
+                            <th>Active</th>
+                            <th>Default Preset</th>
+                            <th>Preset Shortcut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var surface in WorkspaceService.State.CurrentTableSession.Surfaces)
+                        {
+                            var isActiveSurface = string.Equals(board.ActiveSurfaceId, surface.Id, StringComparison.Ordinal);
+                            var defaultPresetName = board.GetDefaultPresetForSurface(surface.Id)?.Name;
+
+                            <tr class="@(isActiveSurface ? "table-primary" : string.Empty)">
+                                <td>@surface.Id</td>
+                                <td>@surface.Type / @surface.CoordinateSystem</td>
+                                <td>@(isActiveSurface ? "Yes" : "No")</td>
+                                <td>@(defaultPresetName ?? "(none)")</td>
+                                <td>
+                                    <select class="form-select form-select-sm"
+                                            value="@GetSurfaceStripPresetValue(surface.Id)"
+                                            @onchange="args => OnSurfaceStripPresetChanged(surface.Id, args)">
+                                        <option value="">(none)</option>
+                                        @foreach (var preset in board.StampPresets)
+                                        {
+                                            <option value="@preset.Name">@preset.Name</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ActivateSurfaceFromStrip(surface.Id)">Activate</button>
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                            @onclick="() => ApplyActivePresetToSurface(surface.Id)"
+                                            disabled="@string.IsNullOrWhiteSpace(board.ActiveStampPresetName)">
+                                        Use Active Preset
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <strong>Quick Add Surface:</strong>
+                <InputText @bind-Value="quickSurfaceId" class="form-control form-control-sm" style="max-width: 160px;" placeholder="Surface Id" />
+                <InputText @bind-Value="quickSurfaceDefinitionId" class="form-control form-control-sm" style="max-width: 200px;" placeholder="Definition Id (optional)" />
+                <InputSelect @bind-Value="quickSurfaceType" class="form-select form-select-sm" style="max-width: 140px;">
+                    @foreach (var type in Enum.GetValues<SurfaceType>())
+                    {
+                        <option value="@type">@type</option>
+                    }
+                </InputSelect>
+                <InputSelect @bind-Value="quickSurfaceCoordinateSystem" class="form-select form-select-sm" style="max-width: 140px;">
+                    @foreach (var system in Enum.GetValues<CoordinateSystem>())
+                    {
+                        <option value="@system">@system</option>
+                    }
+                </InputSelect>
+                <button class="btn btn-sm btn-outline-primary" @onclick="QuickAddSurfaceFromStrip">Add</button>
+
+                <strong class="ms-2">Duplicate Active Surface:</strong>
+                <InputText @bind-Value="duplicateSurfaceId" class="form-control form-control-sm" style="max-width: 180px;" placeholder="New Surface Id" />
+                <button class="btn btn-sm btn-outline-secondary" @onclick="DuplicateActiveSurfaceFromStrip">Duplicate</button>
+            </div>
+        </div>
+
         <div class="mb-3">
             <label class="form-label">Active surface for board</label>
-            <select class="form-select" @bind="board.ActiveSurfaceId">
+            <select class="form-select" value="@board.ActiveSurfaceId" @onchange="OnActiveSurfaceChanged">
                 @foreach (var surface in WorkspaceService.State.CurrentTableSession.Surfaces)
                 {
                     <option value="@surface.Id">@surface.Id (@surface.Type / @surface.CoordinateSystem)</option>
@@ -145,26 +299,363 @@ else
             </select>
         </div>
 
-        <div class="board-panel" @onclick="BoardClicked">
-            @foreach (var piece in board.GetRenderedPiecesForActiveSurface(WorkspaceService.State.CurrentTableSession))
+        <div class="mb-3 p-2 border rounded bg-light">
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <strong>Board Visibility</strong>
+                <div class="form-check mb-0">
+                    <input id="show-surfaces-toggle" class="form-check-input" type="checkbox" @bind="boardVisibility.ShowSurfaces" @bind:after="ApplyBoardVisibilityRules" />
+                    <label class="form-check-label" for="show-surfaces-toggle">Show Surfaces</label>
+                </div>
+                <div class="form-check mb-0">
+                    <input id="show-pieces-toggle" class="form-check-input" type="checkbox" @bind="boardVisibility.ShowPieces" @bind:after="ApplyBoardVisibilityRules" />
+                    <label class="form-check-label" for="show-pieces-toggle">Show Pieces</label>
+                </div>
+                <div class="form-check mb-0">
+                    <input id="show-markers-toggle" class="form-check-input" type="checkbox" @bind="boardVisibility.ShowMarkers" @bind:after="ApplyBoardVisibilityRules" />
+                    <label class="form-check-label" for="show-markers-toggle">Show Markers</label>
+                </div>
+                <div class="form-check mb-0">
+                    <input id="active-surface-only-toggle" class="form-check-input" type="checkbox" @bind="boardVisibility.ActiveSurfaceOnly" @bind:after="ApplyBoardVisibilityRules" />
+                    <label class="form-check-label" for="active-surface-only-toggle">Active Surface Only</label>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <InputText @bind-Value="boardVisibilityDefinitionFilter" @bind-Value:after="OnDefinitionFilterChanged" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Filter DefinitionId" />
+                <InputText @bind-Value="boardVisibilityOwnerFilter" @bind-Value:after="OnOwnerFilterChanged" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Filter OwnerParticipantId" />
+            </div>
+        </div>
+
+        <div class="mb-3 p-2 border rounded bg-light">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                <strong>Piece Palette</strong>
+                <span class="text-muted">Built from stamp presets</span>
+            </div>
+
+            @if (board.GetPiecePaletteEntries().Count == 0)
             {
-                <div class="@GetPieceCss(piece)"
-                     style="@GetPieceStyle(piece)"
-                     @onclick:stopPropagation="true"
-                     @onclick="() => OnBoardPieceClicked(piece.Id)">
-                    @piece.Id
+                <small class="text-muted">No palette entries yet. Save a stamp preset to populate this sidebar list.</small>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>DefinitionId</th>
+                                <th>Owner</th>
+                                <th>Rotation</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var paletteEntry in board.GetPiecePaletteEntries())
+                            {
+                                var isActivePaletteEntry = string.Equals(paletteEntry.Name, board.ActiveStampPresetName, StringComparison.Ordinal);
+                                <tr class="@(isActivePaletteEntry ? "table-primary" : string.Empty)">
+                                    <td>@paletteEntry.Name</td>
+                                    <td>@paletteEntry.DefinitionId</td>
+                                    <td>@(string.IsNullOrWhiteSpace(paletteEntry.OwnerParticipantId) ? "(none)" : paletteEntry.OwnerParticipantId)</td>
+                                    <td>@paletteEntry.InitialRotation</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ArmPlacementFromPalette(paletteEntry.Name)">Arm Placement</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
             }
         </div>
 
+        <div class="board-panel @(isBoardFocused ? "focused" : string.Empty)"
+             tabindex="0"
+             @onfocusin="OnBoardFocused"
+             @onfocusout="OnBoardBlurred"
+             @onkeydown="OnBoardKeyDown"
+             @onclick="BoardClicked">
+            @if (board.ShouldRenderSurfaceVisuals(boardVisibility.ShowSurfaces))
+            {
+                <div class="board-grid-overlay"></div>
+            }
+            @foreach (var piece in board.GetRenderedPiecesForBoard(WorkspaceService.State.CurrentTableSession, boardVisibility))
+            {
+                <div class="@GetPieceCss(piece)"
+                     style="@GetPieceStyle(piece)"
+                     @onclick:stopPropagation="true"
+                     @onclick="args => OnBoardPieceClicked(piece.Id, args)">
+                    @(boardVisibility.ShowMarkers && piece.MarkerIds.Count > 0 ? $"{piece.Id} [{piece.MarkerIds.Count}]" : piece.Id)
+                </div>
+            }
+        </div>
+
+        <div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearBoardSelection">Clear Selection</button>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="SelectAllOnActiveSurface">Select All On Active Surface</button>
+            <span><strong>@board.GetSelectionSummary()</strong></span>
+            @if (!string.IsNullOrWhiteSpace(board.SelectedPieceId))
+            {
+                <span>Primary: <strong>@board.SelectedPieceId</strong></span>
+            }
+        </div>
+
+        <div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+            <span><strong>Group Move Δ</strong></span>
+            <InputNumber @bind-Value="groupMoveDeltaX" class="form-control form-control-sm" style="max-width: 120px;" />
+            <InputNumber @bind-Value="groupMoveDeltaY" class="form-control form-control-sm" style="max-width: 120px;" />
+            <button class="btn btn-sm btn-outline-primary" @onclick="MoveSelectedGroupByDelta">Move Selected Group</button>
+        </div>
+
         <div class="row g-2 mb-3">
+            <div class="col-auto align-self-end">
+                <div class="form-check">
+                    <input id="add-at-click-toggle" class="form-check-input" type="checkbox" @bind="addPieceAtBoardClickMode" />
+                    <label class="form-check-label" for="add-at-click-toggle">Add Piece At Board Click</label>
+                </div>
+            </div>
+            @if (addPieceAtBoardClickMode)
+            {
+                <div class="col-auto align-self-end">
+                    <div class="form-check">
+                        <input id="stamp-mode-toggle" class="form-check-input" type="checkbox" @bind="stampModeEnabled" />
+                        <label class="form-check-label" for="stamp-mode-toggle">Stamp Mode (repeat placement)</label>
+                    </div>
+                </div>
+                <div class="col">
+                    <InputText @bind-Value="quickCreatePieceId" @bind-Value:after="OnQuickCreatePieceIdEdited" class="form-control" placeholder="Quick Piece Id" />
+                </div>
+                <div class="col">
+                    <InputText @bind-Value="quickCreateDefinitionId" @bind-Value:after="OnQuickCreateDefinitionEdited" class="form-control" placeholder="Quick Definition Id" />
+                </div>
+                <div class="col">
+                    <InputText @bind-Value="quickCreateOwnerParticipantId" class="form-control" placeholder="Owner (optional)" />
+                </div>
+                <div class="col">
+                    <InputNumber @bind-Value="quickCreateRotation" class="form-control" />
+                </div>
+                <div class="col-12">
+                    <small>Next Id Preview (editable): <strong>@quickCreatePieceId</strong></small>
+                </div>
+            }
             <div class="col-auto">
-                <button class="btn btn-outline-dark" @onclick="MoveFromBoardPanel">Move Selected On Board</button>
+                <label class="form-label mb-0">Nudge Step</label>
+                <select class="form-select" @bind="selectedNudgeStep">
+                    <option value="1">1</option>
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                </select>
+            </div>
+            <div class="col-auto align-self-end">
+                <div class="form-check">
+                    <input id="clamp-toggle" class="form-check-input" type="checkbox" @bind="clampToBoard" />
+                    <label class="form-check-label" for="clamp-toggle">Clamp Movement To Board</label>
+                </div>
             </div>
             <div class="col-auto">
-                <button class="btn btn-outline-dark" @onclick="RotateFromBoardPanel">Rotate Selected On Board</button>
+                <button class="btn btn-outline-dark" @onclick="MoveFromBoardPanel">Move Selected To Clicked Position</button>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-dark" @onclick="CenterSelected">Center Selected</button>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-dark" @onclick="RotateLeftQuick">Rotate Left</button>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-dark" @onclick="RotateRightQuick">Rotate Right</button>
+            </div>
+            <div class="col-auto align-self-center">
+                <small>Last board click: (@lastBoardClickX, @lastBoardClickY)</small>
             </div>
         </div>
+
+        @if (addPieceAtBoardClickMode)
+        {
+            <div class="mb-3 p-2 border rounded bg-light">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <span><strong>Stamp Session:</strong></span>
+                    <span>Add-at-click: <strong>@(addPieceAtBoardClickMode ? "On" : "Off")</strong></span>
+                    <span>Stamp: <strong>@(stampModeEnabled ? "On" : "Off")</strong></span>
+                    <span>Surface: <strong>@(board.ActiveSurfaceId ?? "(none)")</strong></span>
+                    <span>Next Id: <strong>@(string.IsNullOrWhiteSpace(quickCreatePieceId) ? "(empty)" : quickCreatePieceId)</strong></span>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="NudgeNextIdDown" disabled="@string.IsNullOrWhiteSpace(quickCreatePieceId)">Id -1</button>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="NudgeNextIdUp" disabled="@string.IsNullOrWhiteSpace(quickCreatePieceId)">Id +1</button>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="ResetNextIdPreviewToBase">Reset Id To Base</button>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="ClearNextIdPreview">Clear Id Preview</button>
+                </div>
+                <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
+                    <span>Base Id: <strong>@(string.IsNullOrWhiteSpace(quickCreateBasePieceId) ? "(empty)" : quickCreateBasePieceId)</strong></span>
+                    <div class="form-check mb-0">
+                        <input id="remember-definition-by-surface" class="form-check-input" type="checkbox" @bind="rememberDefinitionPerSurface" />
+                        <label class="form-check-label" for="remember-definition-by-surface">Remember DefinitionId Per Surface</label>
+                    </div>
+                </div>
+                <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
+                    <span><strong>Stamp Presets:</strong></span>
+                    <InputText @bind-Value="stampPresetNameInput" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Preset name (optional)" />
+                    <button class="btn btn-sm btn-outline-primary" @onclick="SaveStampPreset">Save Preset</button>
+                    <select class="form-select form-select-sm" style="max-width: 260px;" value="@selectedStampPresetName" @onchange="OnStampPresetSelected">
+                        <option value="">(select preset)</option>
+                        @foreach (var preset in board.StampPresets)
+                        {
+                            <option value="@preset.Name">@preset.Name (@preset.DefinitionId)</option>
+                        }
+                    </select>
+                    <button class="btn btn-sm btn-outline-primary" @onclick="UseSelectedStampPreset" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName)">Use Preset</button>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="ClearPresetSelection">Clear Selection</button>
+                    <InputText @bind-Value="stampPresetRenameInput" class="form-control form-control-sm" style="max-width: 200px;" placeholder="Rename selected to" />
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="RenameSelectedStampPreset" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName)">Rename</button>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="DuplicateSelectedStampPreset" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName)">Duplicate</button>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="SetSelectedPresetAsDefaultForSurface" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName) || string.IsNullOrWhiteSpace(board.ActiveSurfaceId)">Set Default For Surface</button>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="ClearDefaultPresetForSurface" disabled="@string.IsNullOrWhiteSpace(board.ActiveSurfaceId)">Clear Surface Default</button>
+                    <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelectedStampPreset" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName)">Delete Preset</button>
+                </div>
+                <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
+                    <span>Active preset: <strong>@(board.ActiveStampPresetName ?? "(none)")</strong></span>
+                    <span>Surface default: <strong>@(GetSurfaceDefaultPresetName() ?? "(none)")</strong></span>
+                    <span>Active is surface default: <strong>@(IsActivePresetSurfaceDefault() ? "Yes" : "No")</strong></span>
+                </div>
+            </div>
+
+            <div class="mb-3 p-2 border rounded bg-light">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                    <strong>Cross-Surface Stamp Queue</strong>
+                    <InputText @bind-Value="stampQueueNote" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Optional label" />
+                    <button class="btn btn-sm btn-outline-primary" @onclick="AddCurrentSetupToStampQueue">Add Current Setup To Queue</button>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="ApplyNextQueueItem" disabled="@(board.StampQueue.Count == 0)">Next Queue Item</button>
+                    <span>Active Queue Index: <strong>@(board.ActiveStampQueueIndex >= 0 ? (board.ActiveStampQueueIndex + 1).ToString() : "(none)")</strong></span>
+                </div>
+
+                @if (board.StampQueue.Count == 0)
+                {
+                    <small class="text-muted">Queue is empty. Add current surface/preset/id context to build a stamping sequence.</small>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Surface</th>
+                                    <th>Preset</th>
+                                    <th>Next Id</th>
+                                    <th>Label</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (var i = 0; i < board.StampQueue.Count; i++)
+                                {
+                                    var queueItem = board.StampQueue[i];
+                                    var rowIsActive = i == board.ActiveStampQueueIndex;
+
+                                    <tr class="@(rowIsActive ? "table-primary" : string.Empty)">
+                                        <td>@(i + 1)</td>
+                                        <td>@queueItem.SurfaceId</td>
+                                        <td>@(queueItem.PresetName ?? "(none)")</td>
+                                        <td>
+                                            <input class="form-control form-control-sm"
+                                                   value="@queueItem.NextPieceId"
+                                                   @onchange="args => UpdateQueueItemNextId(i, args)" />
+                                        </td>
+                                        <td>@(string.IsNullOrWhiteSpace(queueItem.Label) ? "(none)" : queueItem.Label)</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ApplyQueueItem(i)">Apply</button>
+                                            <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => MoveQueueItemUp(i)" disabled="@(i == 0)">↑</button>
+                                            <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => MoveQueueItemDown(i)" disabled="@(i == board.StampQueue.Count - 1)">↓</button>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveQueueItem(i)">Remove</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <div class="mt-3 d-flex flex-wrap gap-2 align-items-center">
+                    <strong>Queue Templates</strong>
+                    <InputText @bind-Value="queueTemplateNameInput" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Template name" />
+                    <button class="btn btn-sm btn-outline-primary" @onclick="SaveQueueAsTemplate">Save Current Queue As Template</button>
+                    <span>Selected Template: <strong>@(selectedQueueTemplateName ?? "(none)")</strong></span>
+                </div>
+
+                @if (board.StampQueueTemplates.Count == 0)
+                {
+                    <small class="text-muted">No templates yet. Save current queue to reuse this workflow in the session.</small>
+                }
+                else
+                {
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Template</th>
+                                    <th>Steps</th>
+                                    <th>Rename To</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var template in board.StampQueueTemplates)
+                                {
+                                    var isActiveTemplate = string.Equals(template.TemplateName, selectedQueueTemplateName, StringComparison.Ordinal);
+                                    <tr class="@(isActiveTemplate ? "table-primary" : string.Empty)">
+                                        <td>@template.TemplateName</td>
+                                        <td>@template.Items.Count</td>
+                                        <td>
+                                            <input class="form-control form-control-sm"
+                                                   value="@GetTemplateRenameValue(template.TemplateName)"
+                                                   @onchange="args => SetTemplateRenameValue(template.TemplateName, args)" />
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ApplyQueueTemplate(template.TemplateName)">Apply</button>
+                                            <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => RenameQueueTemplate(template.TemplateName)">Rename</button>
+                                            <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => DuplicateQueueTemplate(template.TemplateName)">Duplicate</button>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteQueueTemplate(template.TemplateName)">Delete</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="mb-3">
+            <small>
+                Board keyboard: click board or tab into it to focus. Arrow keys nudge selected piece by @selectedNudgeStep.
+                Q rotates left and E rotates right by @QuickRotateIncrement°.
+                Keyboard active: <strong>@(isBoardFocused ? "Yes" : "No")</strong>.
+            </small>
+        </div>
+
+        <div class="mb-3 board-hud">
+            <strong>Board HUD:</strong>
+            @if (TryGetSelectedPiece(out var hudPiece))
+            {
+                <span> Piece: @hudPiece.Id | Surface: @hudPiece.Location.SurfaceId | X:@hudPiece.Location.Coordinate.X Y:@hudPiece.Location.Coordinate.Y | Rot:@hudPiece.Rotation.Degrees° </span>
+            }
+            else
+            {
+                <span> Piece: (none selected) </span>
+            }
+            <span> | Nudge: @selectedNudgeStep | Clamp: @(clampToBoard ? "On" : "Off")</span>
+            <span> | Add-at-click: @(addPieceAtBoardClickMode ? "On" : "Off")</span>
+            @if (addPieceAtBoardClickMode)
+            {
+                <span> | Stamp Mode: @(stampModeEnabled ? "On" : "Off")</span>
+                <span> | Next Piece: @quickCreatePieceId / @quickCreateDefinitionId</span>
+            }
+        </div>
+
+        @if (TryGetSelectedPiece(out var selectedPiece))
+        {
+            <div class="mb-3">
+                <strong>Selected Piece:</strong>
+                @selectedPiece.Id on @selectedPiece.Location.SurfaceId at (@selectedPiece.Location.Coordinate.X, @selectedPiece.Location.Coordinate.Y), rotation @selectedPiece.Rotation.Degrees°, owner @GetOwnerDisplayForPiece(selectedPiece)
+            </div>
+        }
     }
 
     <h3>Pieces</h3>
@@ -194,6 +685,7 @@ else
                     <th>X</th>
                     <th>Y</th>
                     <th>Rotation</th>
+                    <th>Owner</th>
                     <th>Markers</th>
                     <th>State Keys</th>
                 </tr>
@@ -207,6 +699,7 @@ else
                         <td>@piece.Location.Coordinate.X</td>
                         <td>@piece.Location.Coordinate.Y</td>
                         <td>@piece.Rotation.Degrees</td>
+                        <td>@GetOwnerDisplayForPiece(piece)</td>
                         <td>@piece.MarkerIds.Count</td>
                         <td>@piece.State.Count</td>
                     </tr>
@@ -291,6 +784,12 @@ else
 
     private string? sessionPath;
     private string? scenarioPath;
+    private string scenarioTitle = "Current Workspace Layout";
+    private string turnOrderInput = "player-1, player-2";
+    private string phaseInput = "Setup";
+    private string participantIdInput = "player-1";
+    private string participantNameInput = "Player 1";
+    private string removeParticipantIdInput = string.Empty;
 
     private string? selectedPieceId;
 
@@ -311,9 +810,45 @@ else
     private float moveX;
     private float moveY;
     private float rotateDegrees;
+    private const float QuickRotateIncrement = 45f;
+    private int selectedNudgeStep = 10;
+    private bool clampToBoard;
+    private bool addPieceAtBoardClickMode;
+    private bool stampModeEnabled;
+    private string quickCreatePieceId = "piece-quick-1";
+    private string quickCreateBasePieceId = "piece-quick-1";
+    private string quickCreateDefinitionId = "def-piece-quick-1";
+    private string quickCreateOwnerParticipantId = string.Empty;
+    private float quickCreateRotation;
+    private bool rememberDefinitionPerSurface;
+    private string? previousActiveSurfaceId;
+    private string stampPresetNameInput = string.Empty;
+    private string stampPresetRenameInput = string.Empty;
+    private string? selectedStampPresetName;
+    private string quickSurfaceId = "surface-2";
+    private string quickSurfaceDefinitionId = "";
+    private SurfaceType quickSurfaceType = SurfaceType.Map;
+    private CoordinateSystem quickSurfaceCoordinateSystem = CoordinateSystem.Square;
+    private string duplicateSurfaceId = "surface-2-copy";
+    private string stampQueueNote = string.Empty;
+    private string queueTemplateNameInput = string.Empty;
+    private string? selectedQueueTemplateName;
+    private readonly Dictionary<string, string> queueTemplateRenameBufferByName = new(StringComparer.Ordinal);
+
+    private const float BoardMaxX = 620f;
+    private const float BoardMaxY = 360f;
+
+    private float lastBoardClickX;
+    private float lastBoardClickY;
+    private bool isBoardFocused;
     private string markerId = "marker-1";
     private string stateKey = "Status";
     private string stateValue = "Active";
+    private float groupMoveDeltaX = 10;
+    private float groupMoveDeltaY;
+    private readonly BoardVisibilityOptions boardVisibility = new();
+    private string boardVisibilityDefinitionFilter = string.Empty;
+    private string boardVisibilityOwnerFilter = string.Empty;
 
     private string? message;
     private bool isError;
@@ -332,6 +867,9 @@ else
             selectedPieceId = WorkspaceService.State.CurrentTableSession.Pieces[0].Id;
             board.SelectedPieceId = selectedPieceId;
         }
+
+        previousActiveSurfaceId = board.ActiveSurfaceId;
+        phaseInput = WorkspaceService.State.CurrentTableSession.CurrentPhase;
     }
 
     private void AddSurface()
@@ -375,6 +913,7 @@ else
             board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
             selectedPieceId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.Id;
             board.SelectedPieceId = selectedPieceId;
+            phaseInput = WorkspaceService.State.CurrentTableSession?.CurrentPhase ?? string.Empty;
         }, "Created new session.");
     }
 
@@ -386,6 +925,7 @@ else
             board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
             selectedPieceId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.Id;
             board.SelectedPieceId = selectedPieceId;
+            phaseInput = WorkspaceService.State.CurrentTableSession?.CurrentPhase ?? string.Empty;
         }, "Opened session from file.");
     }
 
@@ -399,9 +939,14 @@ else
         Execute(() => WorkspaceService.SaveCurrentSessionAs(sessionPath ?? string.Empty), "Saved current session as file.");
     }
 
-    private void ImportScenarioToPendingPlan()
+    private void SaveCurrentLayoutAsScenario()
     {
-        Execute(() => WorkspaceService.ImportScenarioToPendingPlanFromFile(scenarioPath ?? string.Empty), "Imported scenario to pending plan.");
+        Execute(() => WorkspaceService.SaveCurrentLayoutAsScenario(scenarioTitle, scenarioPath ?? string.Empty), "Saved current layout as scenario file.");
+    }
+
+    private void OpenScenarioForPendingPlan()
+    {
+        Execute(() => WorkspaceService.ImportScenarioToPendingPlanFromFile(scenarioPath ?? string.Empty), "Opened scenario for pending plan workflow.");
     }
 
     private void ActivatePendingScenario()
@@ -412,13 +957,170 @@ else
             board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
             selectedPieceId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.Id;
             board.SelectedPieceId = selectedPieceId;
+            phaseInput = WorkspaceService.State.CurrentTableSession?.CurrentPhase ?? string.Empty;
         }, "Activated pending scenario.");
     }
 
-    private void OnBoardPieceClicked(string pieceId)
+    private void InitializeTurnOrderFromInput()
     {
-        selectedPieceId = pieceId;
-        board.SelectPiece(pieceId);
+        Execute(() =>
+        {
+            var ids = turnOrderInput
+                .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .ToList();
+
+            WorkspaceService.InitializeTurnOrder(ids);
+        }, "Initialized turn order.");
+    }
+
+    private void AdvanceTurn()
+    {
+        Execute(() => WorkspaceService.AdvanceTurn(), "Advanced to next turn.");
+    }
+
+    private void SetCurrentPhase()
+    {
+        Execute(() => WorkspaceService.SetPhase(phaseInput), "Updated current phase.");
+    }
+
+    private void SwitchToEditMode()
+    {
+        Execute(() => WorkspaceService.SetWorkspaceMode(WorkspaceMode.Edit), "Switched workspace mode to Edit.");
+    }
+
+    private void SwitchToPlayMode()
+    {
+        Execute(() => WorkspaceService.SetWorkspaceMode(WorkspaceMode.Play), "Switched workspace mode to Play.");
+    }
+
+    private void AddParticipantToSession()
+    {
+        Execute(() =>
+        {
+            WorkspaceService.AddParticipant(participantIdInput, participantNameInput);
+            removeParticipantIdInput = participantIdInput;
+            if (!string.IsNullOrWhiteSpace(turnOrderInput))
+            {
+                turnOrderInput += ", ";
+            }
+
+            turnOrderInput += participantIdInput;
+        }, "Added participant.");
+    }
+
+    private void RemoveParticipantFromSession()
+    {
+        Execute(() => WorkspaceService.RemoveParticipant(removeParticipantIdInput), "Removed participant.");
+    }
+
+    private string GetCurrentTurnParticipant()
+    {
+        var session = WorkspaceService.State.CurrentTableSession;
+        if (session is null || session.TurnOrder.Count == 0)
+        {
+            return "(none)";
+        }
+
+        if (session.CurrentTurnIndex < 0 || session.CurrentTurnIndex >= session.TurnOrder.Count)
+        {
+            return "(invalid index)";
+        }
+
+        var currentParticipantId = session.TurnOrder[session.CurrentTurnIndex];
+        return GetParticipantDisplayById(currentParticipantId);
+    }
+
+    private string GetOwnerDisplayForPiece(PieceInstance piece)
+    {
+        if (string.IsNullOrWhiteSpace(piece.OwnerParticipantId))
+        {
+            return "(none)";
+        }
+
+        return GetParticipantDisplayById(piece.OwnerParticipantId);
+    }
+
+    private string GetParticipantDisplayById(string participantId)
+    {
+        var session = WorkspaceService.State.CurrentTableSession;
+        if (session is null)
+        {
+            return participantId;
+        }
+
+        var participant = session.Participants.FirstOrDefault(p => string.Equals(p.Id, participantId, StringComparison.Ordinal));
+        if (participant is null)
+        {
+            return participantId;
+        }
+
+        return $"{participant.Name} ({participant.Id})";
+    }
+
+    private void UndoLastWorkspaceOperation()
+    {
+        try
+        {
+            WorkspaceService.UndoLastOperation();
+            message = WorkspaceService.State.LastOperationMessage;
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void OnDefinitionFilterChanged()
+    {
+        boardVisibility.DefinitionIdFilter = boardVisibilityDefinitionFilter;
+        ApplyBoardVisibilityRules();
+    }
+
+    private void OnOwnerFilterChanged()
+    {
+        boardVisibility.OwnerParticipantIdFilter = boardVisibilityOwnerFilter;
+        ApplyBoardVisibilityRules();
+    }
+
+    private void ApplyBoardVisibilityRules()
+    {
+        if (board.ClearHiddenSelections(WorkspaceService.State.CurrentTableSession, boardVisibility))
+        {
+            selectedPieceId = board.SelectedPieceId;
+            message = "Cleared selection for pieces hidden by current board visibility filters.";
+            isError = false;
+        }
+    }
+
+    private void RedoLastWorkspaceOperation()
+    {
+        try
+        {
+            WorkspaceService.RedoLastOperation();
+            message = WorkspaceService.State.LastOperationMessage;
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void OnBoardPieceClicked(string pieceId, MouseEventArgs args)
+    {
+        if (args.CtrlKey || args.MetaKey)
+        {
+            board.TogglePieceSelection(pieceId);
+            selectedPieceId = board.SelectedPieceId;
+        }
+        else
+        {
+            selectedPieceId = pieceId;
+            board.SelectSinglePiece(pieceId);
+        }
 
         var piece = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault(p => p.Id == pieceId);
         if (piece is not null)
@@ -430,20 +1132,890 @@ else
         }
     }
 
+    private void ClearBoardSelection()
+    {
+        board.ClearSelection();
+        selectedPieceId = null;
+        message = "Cleared board selection.";
+        isError = false;
+    }
+
+    private void SelectAllOnActiveSurface()
+    {
+        var selectedCount = board.SelectAllPiecesOnActiveSurface(WorkspaceService.State.CurrentTableSession);
+        selectedPieceId = board.SelectedPieceId;
+        message = $"Selected {selectedCount} piece(s) on active surface.";
+        isError = false;
+    }
+
+    private void MoveSelectedGroupByDelta()
+    {
+        try
+        {
+            var moved = board.MoveSelectedPiecesByDelta(
+                WorkspaceService,
+                groupMoveDeltaX,
+                groupMoveDeltaY,
+                clampToBoard,
+                BoardMaxX,
+                BoardMaxY);
+
+            message = $"Moved {moved} selected piece(s) by ΔX={groupMoveDeltaX}, ΔY={groupMoveDeltaY}.";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void SaveStampPreset()
+    {
+        try
+        {
+            var preset = board.AddPreset(
+                stampPresetNameInput,
+                quickCreateDefinitionId,
+                quickCreateOwnerParticipantId,
+                quickCreateRotation);
+
+            selectedStampPresetName = preset.Name;
+            board.ApplyPreset(preset.Name);
+            stampPresetNameInput = string.Empty;
+            message = $"Saved stamp preset '{preset.Name}'.";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void OnStampPresetSelected(ChangeEventArgs args)
+    {
+        selectedStampPresetName = args.Value?.ToString();
+
+        if (string.IsNullOrWhiteSpace(selectedStampPresetName))
+        {
+            board.ClearActivePresetSelection();
+            return;
+        }
+
+        try
+        {
+            var preset = board.ApplyPreset(selectedStampPresetName);
+            ApplyPresetToQuickCreate(preset, setMessage: true);
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void UseSelectedStampPreset()
+    {
+        if (string.IsNullOrWhiteSpace(selectedStampPresetName))
+        {
+            message = "Select a preset first.";
+            isError = true;
+            return;
+        }
+
+        try
+        {
+            var preset = board.ApplyPreset(selectedStampPresetName);
+            ApplyPresetToQuickCreate(preset, setMessage: true);
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void ArmPlacementFromPalette(string presetName)
+    {
+        try
+        {
+            var preset = board.SelectPiecePaletteEntry(presetName);
+            ApplyPresetToQuickCreate(preset, setMessage: false);
+            selectedStampPresetName = preset.Name;
+            addPieceAtBoardClickMode = true;
+            message = $"Armed placement from palette entry '{preset.Name}'.";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void ClearPresetSelection()
+    {
+        selectedStampPresetName = string.Empty;
+        board.ClearActivePresetSelection();
+        message = "Cleared active preset selection.";
+        isError = false;
+    }
+
+    private void RenameSelectedStampPreset()
+    {
+        if (string.IsNullOrWhiteSpace(selectedStampPresetName))
+        {
+            message = "Select a preset first.";
+            isError = true;
+            return;
+        }
+
+        try
+        {
+            var renamed = board.RenamePreset(selectedStampPresetName, stampPresetRenameInput);
+            selectedStampPresetName = renamed.Name;
+            stampPresetRenameInput = string.Empty;
+            message = $"Renamed preset to '{renamed.Name}'.";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void DuplicateSelectedStampPreset()
+    {
+        if (string.IsNullOrWhiteSpace(selectedStampPresetName))
+        {
+            message = "Select a preset first.";
+            isError = true;
+            return;
+        }
+
+        try
+        {
+            var duplicated = board.DuplicatePreset(selectedStampPresetName);
+            selectedStampPresetName = duplicated.Name;
+            ApplyPresetToQuickCreate(duplicated, setMessage: false);
+            message = $"Duplicated preset as '{duplicated.Name}'.";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void SetSelectedPresetAsDefaultForSurface()
+    {
+        if (string.IsNullOrWhiteSpace(selectedStampPresetName) || string.IsNullOrWhiteSpace(board.ActiveSurfaceId))
+        {
+            message = "Select a preset and active surface first.";
+            isError = true;
+            return;
+        }
+
+        try
+        {
+            board.SetDefaultPresetForSurface(board.ActiveSurfaceId, selectedStampPresetName);
+            message = $"Set '{selectedStampPresetName}' as default for surface '{board.ActiveSurfaceId}'.";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void ClearDefaultPresetForSurface()
+    {
+        if (string.IsNullOrWhiteSpace(board.ActiveSurfaceId))
+        {
+            message = "Select an active surface first.";
+            isError = true;
+            return;
+        }
+
+        board.ClearDefaultPresetForSurface(board.ActiveSurfaceId);
+        message = $"Cleared default preset for surface '{board.ActiveSurfaceId}'.";
+        isError = false;
+    }
+
+    private void DeleteSelectedStampPreset()
+    {
+        var deletedPresetName = selectedStampPresetName;
+        if (!board.RemovePreset(selectedStampPresetName))
+        {
+            message = "Select a preset to delete.";
+            isError = true;
+            return;
+        }
+
+        message = $"Deleted stamp preset '{deletedPresetName}'.";
+        isError = false;
+        selectedStampPresetName = string.Empty;
+    }
+
+    private string? GetSurfaceDefaultPresetName()
+    {
+        return board.GetDefaultPresetForSurface(board.ActiveSurfaceId)?.Name;
+    }
+
+    private bool IsActivePresetSurfaceDefault()
+    {
+        var surfaceDefaultName = GetSurfaceDefaultPresetName();
+        return !string.IsNullOrWhiteSpace(board.ActiveStampPresetName) &&
+               !string.IsNullOrWhiteSpace(surfaceDefaultName) &&
+               string.Equals(board.ActiveStampPresetName, surfaceDefaultName, StringComparison.Ordinal);
+    }
+
+    private void ApplyPresetToQuickCreate(StampPreset preset, bool setMessage)
+    {
+        quickCreateDefinitionId = preset.DefinitionId;
+        quickCreateOwnerParticipantId = preset.OwnerParticipantId;
+        quickCreateRotation = preset.InitialRotation;
+
+        if (rememberDefinitionPerSurface && !string.IsNullOrWhiteSpace(board.ActiveSurfaceId) && !string.IsNullOrWhiteSpace(quickCreateDefinitionId))
+        {
+            board.RememberDefinitionForSurface(board.ActiveSurfaceId, quickCreateDefinitionId);
+        }
+
+        if (setMessage)
+        {
+            message = $"Applied stamp preset '{preset.Name}'.";
+            isError = false;
+        }
+    }
+
+    private void AddCurrentSetupToStampQueue()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(board.ActiveSurfaceId))
+            {
+                message = "Select an active surface first.";
+                isError = true;
+                return;
+            }
+
+            var queueItem = board.AddQueueItem(
+                board.ActiveSurfaceId,
+                board.ActiveStampPresetName,
+                quickCreatePieceId,
+                stampQueueNote);
+
+            message = $"Added queue item for surface '{queueItem.SurfaceId}' with next id '{queueItem.NextPieceId}'.";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void ApplyQueueItem(int index)
+    {
+        var session = WorkspaceService.State.CurrentTableSession;
+        if (!board.TryApplyQueueItemToBoardContext(
+            index,
+            session,
+            clearSelectionWhenSwitchingSurfaces: true,
+            out var queueItem,
+            out var appliedPreset,
+            out var clearedSelection,
+            out var statusMessage))
+        {
+            message = statusMessage;
+            isError = true;
+            return;
+        }
+
+        if (appliedPreset is not null)
+        {
+            ApplyPresetToQuickCreate(appliedPreset, setMessage: false);
+            selectedStampPresetName = appliedPreset.Name;
+        }
+
+        quickCreatePieceId = queueItem!.NextPieceId;
+        quickCreateBasePieceId = queueItem.NextPieceId;
+        selectedPieceId = board.SelectedPieceId;
+        previousActiveSurfaceId = board.ActiveSurfaceId;
+        addPieceAtBoardClickMode = true;
+
+        message = clearedSelection
+            ? $"Applied queue item {index + 1} and cleared off-surface selection."
+            : $"Applied queue item {index + 1} to board context.";
+        isError = false;
+    }
+
+    private void ApplyNextQueueItem()
+    {
+        var session = WorkspaceService.State.CurrentTableSession;
+        if (!board.TryApplyNextQueueItemToBoardContext(
+            session,
+            clearSelectionWhenSwitchingSurfaces: true,
+            out var queueItem,
+            out var appliedPreset,
+            out var clearedSelection,
+            out var statusMessage))
+        {
+            message = statusMessage;
+            isError = true;
+            return;
+        }
+
+        if (appliedPreset is not null)
+        {
+            ApplyPresetToQuickCreate(appliedPreset, setMessage: false);
+            selectedStampPresetName = appliedPreset.Name;
+        }
+
+        quickCreatePieceId = queueItem!.NextPieceId;
+        quickCreateBasePieceId = queueItem.NextPieceId;
+        selectedPieceId = board.SelectedPieceId;
+        previousActiveSurfaceId = board.ActiveSurfaceId;
+        addPieceAtBoardClickMode = true;
+
+        message = clearedSelection
+            ? "Applied next queue item and cleared off-surface selection."
+            : "Applied next queue item to board context.";
+        isError = false;
+    }
+
+    private void RemoveQueueItem(int index)
+    {
+        if (!board.RemoveQueueItem(index))
+        {
+            message = "Queue item was not found.";
+            isError = true;
+            return;
+        }
+
+        message = $"Removed queue item {index + 1}.";
+        isError = false;
+    }
+
+    private void MoveQueueItemUp(int index)
+    {
+        if (!board.MoveQueueItemUp(index))
+        {
+            message = "Queue item cannot move up.";
+            isError = true;
+            return;
+        }
+
+        message = $"Moved queue item {index + 1} up.";
+        isError = false;
+    }
+
+    private void MoveQueueItemDown(int index)
+    {
+        if (!board.MoveQueueItemDown(index))
+        {
+            message = "Queue item cannot move down.";
+            isError = true;
+            return;
+        }
+
+        message = $"Moved queue item {index + 1} down.";
+        isError = false;
+    }
+
+    private void UpdateQueueItemNextId(int index, ChangeEventArgs args)
+    {
+        var nextId = args.Value?.ToString();
+        if (!board.UpdateQueueItemNextId(index, nextId ?? string.Empty))
+        {
+            message = "Next id must be provided for queue item.";
+            isError = true;
+            return;
+        }
+
+        if (index == board.ActiveStampQueueIndex)
+        {
+            quickCreatePieceId = nextId ?? string.Empty;
+            quickCreateBasePieceId = nextId ?? string.Empty;
+        }
+
+        message = $"Updated queue item {index + 1} next id to '{nextId}'.";
+        isError = false;
+    }
+
+    private void SaveQueueAsTemplate()
+    {
+        try
+        {
+            var template = board.SaveQueueAsTemplate(queueTemplateNameInput);
+            selectedQueueTemplateName = template.TemplateName;
+            queueTemplateRenameBufferByName[template.TemplateName] = template.TemplateName;
+            queueTemplateNameInput = string.Empty;
+            message = $"Saved queue template '{template.TemplateName}'.";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void ApplyQueueTemplate(string templateName)
+    {
+        try
+        {
+            var template = board.ApplyTemplateToQueue(templateName);
+            selectedQueueTemplateName = template.TemplateName;
+            message = $"Applied queue template '{template.TemplateName}' to current queue.";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void DeleteQueueTemplate(string templateName)
+    {
+        if (!board.DeleteQueueTemplate(templateName))
+        {
+            message = "Template was not found.";
+            isError = true;
+            return;
+        }
+
+        queueTemplateRenameBufferByName.Remove(templateName);
+        if (string.Equals(selectedQueueTemplateName, templateName, StringComparison.Ordinal))
+        {
+            selectedQueueTemplateName = null;
+        }
+
+        message = $"Deleted queue template '{templateName}'.";
+        isError = false;
+    }
+
+    private void RenameQueueTemplate(string templateName)
+    {
+        if (!queueTemplateRenameBufferByName.TryGetValue(templateName, out var targetName))
+        {
+            targetName = templateName;
+        }
+
+        try
+        {
+            var renamed = board.RenameQueueTemplate(templateName, targetName);
+            queueTemplateRenameBufferByName.Remove(templateName);
+            queueTemplateRenameBufferByName[renamed.TemplateName] = renamed.TemplateName;
+            selectedQueueTemplateName = renamed.TemplateName;
+            message = $"Renamed queue template to '{renamed.TemplateName}'.";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void DuplicateQueueTemplate(string templateName)
+    {
+        try
+        {
+            var duplicated = board.DuplicateQueueTemplate(templateName);
+            selectedQueueTemplateName = duplicated.TemplateName;
+            queueTemplateRenameBufferByName[duplicated.TemplateName] = duplicated.TemplateName;
+            message = $"Duplicated queue template as '{duplicated.TemplateName}'.";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private string GetTemplateRenameValue(string templateName)
+    {
+        if (!queueTemplateRenameBufferByName.TryGetValue(templateName, out var value))
+        {
+            value = templateName;
+            queueTemplateRenameBufferByName[templateName] = value;
+        }
+
+        return value;
+    }
+
+    private void SetTemplateRenameValue(string templateName, ChangeEventArgs args)
+    {
+        queueTemplateRenameBufferByName[templateName] = args.Value?.ToString() ?? string.Empty;
+    }
+
+    private void OnActiveSurfaceChanged(ChangeEventArgs args)
+    {
+        ActivateSurfaceWorkflow(args.Value?.ToString(), includeSuccessMessage: true);
+    }
+
+    private void ActivateSurfaceFromStrip(string surfaceId)
+    {
+        ActivateSurfaceWorkflow(surfaceId, includeSuccessMessage: true);
+    }
+
+    private void ActivateSurfaceWorkflow(string? surfaceId, bool includeSuccessMessage)
+    {
+        var session = WorkspaceService.State.CurrentTableSession;
+        if (session is null)
+        {
+            message = "Current session is required before switching surfaces.";
+            isError = true;
+            return;
+        }
+
+        if (rememberDefinitionPerSurface &&
+            !string.IsNullOrWhiteSpace(previousActiveSurfaceId) &&
+            !string.IsNullOrWhiteSpace(quickCreateDefinitionId))
+        {
+            board.RememberDefinitionForSurface(previousActiveSurfaceId, quickCreateDefinitionId);
+        }
+
+        if (!board.TrySwitchActiveSurface(session, surfaceId, clearSelectionWhenSwitchingSurfaces: true, out var clearedSelection, out var switchMessage))
+        {
+            message = switchMessage;
+            isError = true;
+            return;
+        }
+
+        previousActiveSurfaceId = board.ActiveSurfaceId;
+        selectedPieceId = board.SelectedPieceId;
+
+        if (rememberDefinitionPerSurface &&
+            !string.IsNullOrWhiteSpace(board.ActiveSurfaceId) &&
+            board.TryGetRememberedDefinitionForSurface(board.ActiveSurfaceId) is { } rememberedDefinition)
+        {
+            quickCreateDefinitionId = rememberedDefinition;
+        }
+
+        ApplyBoardVisibilityRules();
+
+        if (board.GetDefaultPresetForSurface(board.ActiveSurfaceId) is { } defaultPreset)
+        {
+            ApplyPresetToQuickCreate(defaultPreset, setMessage: false);
+            selectedStampPresetName = defaultPreset.Name;
+
+            if (includeSuccessMessage)
+            {
+                message = $"Switched to '{board.ActiveSurfaceId}' and applied default preset '{defaultPreset.Name}'.";
+                isError = false;
+            }
+
+            return;
+        }
+
+        if (includeSuccessMessage)
+        {
+            message = clearedSelection
+                ? $"Switched to '{board.ActiveSurfaceId}'. Cleared selected piece because it was on another surface."
+                : $"Switched to '{board.ActiveSurfaceId}'.";
+            isError = false;
+        }
+    }
+
+    private string GetSurfaceStripPresetValue(string surfaceId)
+    {
+        return board.GetDefaultPresetForSurface(surfaceId)?.Name ?? string.Empty;
+    }
+
+    private void OnSurfaceStripPresetChanged(string surfaceId, ChangeEventArgs args)
+    {
+        var presetName = args.Value?.ToString();
+
+        if (string.IsNullOrWhiteSpace(presetName))
+        {
+            board.ClearDefaultPresetForSurface(surfaceId);
+            message = $"Cleared default preset for surface '{surfaceId}'.";
+            isError = false;
+            return;
+        }
+
+        try
+        {
+            board.SetDefaultPresetForSurface(surfaceId, presetName);
+
+            if (string.Equals(surfaceId, board.ActiveSurfaceId, StringComparison.Ordinal))
+            {
+                var preset = board.ApplyPreset(presetName);
+                ApplyPresetToQuickCreate(preset, setMessage: false);
+                selectedStampPresetName = preset.Name;
+            }
+
+            message = $"Set '{presetName}' as default preset for surface '{surfaceId}'.";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void ApplyActivePresetToSurface(string surfaceId)
+    {
+        if (string.IsNullOrWhiteSpace(board.ActiveStampPresetName))
+        {
+            message = "Select or apply a preset first.";
+            isError = true;
+            return;
+        }
+
+        try
+        {
+            board.SetDefaultPresetForSurface(surfaceId, board.ActiveStampPresetName);
+            message = $"Applied active preset '{board.ActiveStampPresetName}' to surface '{surfaceId}' default.";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private void QuickAddSurfaceFromStrip()
+    {
+        Execute(() =>
+        {
+            var surfaceId = quickSurfaceId.Trim();
+            var definitionId = string.IsNullOrWhiteSpace(quickSurfaceDefinitionId)
+                ? $"def-{surfaceId}"
+                : quickSurfaceDefinitionId.Trim();
+
+            WorkspaceService.AddSurface(surfaceId, definitionId, quickSurfaceType, quickSurfaceCoordinateSystem);
+            duplicateSurfaceId = $"{surfaceId}-copy";
+            ActivateSurfaceWorkflow(surfaceId, includeSuccessMessage: false);
+        }, "Added surface from surface workflow strip.");
+    }
+
+    private void DuplicateActiveSurfaceFromStrip()
+    {
+        Execute(() =>
+        {
+            var session = WorkspaceService.State.CurrentTableSession ?? throw new InvalidOperationException("Current session is required.");
+            if (string.IsNullOrWhiteSpace(board.ActiveSurfaceId))
+            {
+                throw new InvalidOperationException("Select an active surface first.");
+            }
+
+            var sourceSurface = session.Surfaces.FirstOrDefault(s => s.Id == board.ActiveSurfaceId)
+                ?? throw new InvalidOperationException("Active surface was not found.");
+
+            var newSurfaceId = duplicateSurfaceId.Trim();
+            WorkspaceService.AddSurface(newSurfaceId, sourceSurface.DefinitionId, sourceSurface.Type, sourceSurface.CoordinateSystem);
+            ActivateSurfaceWorkflow(newSurfaceId, includeSuccessMessage: false);
+        }, "Duplicated active surface configuration to new surface id.");
+    }
+
+    private void OnQuickCreatePieceIdEdited()
+    {
+        quickCreateBasePieceId = quickCreatePieceId;
+    }
+
+    private void OnQuickCreateDefinitionEdited()
+    {
+        if (!rememberDefinitionPerSurface || string.IsNullOrWhiteSpace(board.ActiveSurfaceId) || string.IsNullOrWhiteSpace(quickCreateDefinitionId))
+        {
+            return;
+        }
+
+        board.RememberDefinitionForSurface(board.ActiveSurfaceId, quickCreateDefinitionId);
+    }
+
+    private void ClearNextIdPreview()
+    {
+        quickCreatePieceId = string.Empty;
+        message = "Cleared next id preview.";
+        isError = false;
+    }
+
+    private void ResetNextIdPreviewToBase()
+    {
+        quickCreatePieceId = board.ResetPieceIdPreview(quickCreateBasePieceId);
+        message = "Reset next id preview to base id.";
+        isError = false;
+    }
+
+    private void NudgeNextIdUp()
+    {
+        NudgeNextId(1);
+    }
+
+    private void NudgeNextIdDown()
+    {
+        NudgeNextId(-1);
+    }
+
+    private void NudgeNextId(int delta)
+    {
+        try
+        {
+            quickCreatePieceId = board.NudgePieceIdPreview(quickCreatePieceId, delta);
+            message = delta > 0 ? "Advanced next id preview by +1." : "Decremented next id preview by -1.";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
     private void BoardClicked(MouseEventArgs args)
     {
-        var offsetX = (float)args.OffsetX;
-        var offsetY = (float)args.OffsetY;
+        var offsetX = (float)Math.Clamp(args.OffsetX, 0, BoardMaxX);
+        var offsetY = (float)Math.Clamp(args.OffsetY, 0, BoardMaxY);
+        lastBoardClickX = offsetX;
+        lastBoardClickY = offsetY;
         moveX = offsetX;
         moveY = offsetY;
+
+        try
+        {
+            if (board.TryHandleBoardClick(
+                WorkspaceService,
+                moveX,
+                moveY,
+                addPieceAtBoardClickMode,
+                stampModeEnabled,
+                quickCreatePieceId,
+                quickCreateDefinitionId,
+                quickCreateOwnerParticipantId,
+                quickCreateRotation,
+                clampToBoard,
+                BoardMaxX,
+                BoardMaxY,
+                out var statusMessage,
+                out var createdPieceId,
+                out var keepAddPieceAtBoardClickMode,
+                out var nextSuggestedPieceId))
+            {
+                if (!string.IsNullOrWhiteSpace(createdPieceId))
+                {
+                    selectedPieceId = createdPieceId;
+                    board.SelectedPieceId = createdPieceId;
+
+                    if (!string.IsNullOrWhiteSpace(nextSuggestedPieceId))
+                    {
+                        quickCreatePieceId = nextSuggestedPieceId;
+                        quickCreateBasePieceId = nextSuggestedPieceId;
+                        _ = board.TryUpdateActiveQueueItemNextId(nextSuggestedPieceId);
+                    }
+
+                    if (rememberDefinitionPerSurface && !string.IsNullOrWhiteSpace(board.ActiveSurfaceId) && !string.IsNullOrWhiteSpace(quickCreateDefinitionId))
+                    {
+                        board.RememberDefinitionForSurface(board.ActiveSurfaceId, quickCreateDefinitionId);
+                    }
+
+                    addPieceAtBoardClickMode = keepAddPieceAtBoardClickMode;
+                }
+
+                message = statusMessage;
+                isError = false;
+            }
+            else
+            {
+                message = statusMessage;
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+
+    }
+
+    private void OnBoardFocused(FocusEventArgs _)
+    {
+        isBoardFocused = true;
+    }
+
+    private void OnBoardBlurred(FocusEventArgs _)
+    {
+        isBoardFocused = false;
+    }
+
+    private void OnBoardKeyDown(KeyboardEventArgs args)
+    {
+        try
+        {
+            if (board.TryHandleKeyboardInput(
+                WorkspaceService,
+                args.Key,
+                isBoardFocused,
+                selectedNudgeStep,
+                QuickRotateIncrement,
+                clampToBoard,
+                BoardMaxX,
+                BoardMaxY,
+                out var statusMessage))
+            {
+                message = statusMessage;
+                isError = false;
+            }
+            else if (!string.IsNullOrWhiteSpace(statusMessage))
+            {
+                message = statusMessage;
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
     }
 
     private void MoveFromBoardPanel()
     {
         Execute(() =>
         {
-            board.MoveSelectedPiece(WorkspaceService, moveX, moveY);
+            board.MoveSelectedPiece(WorkspaceService, moveX, moveY, clampToBoard, BoardMaxX, BoardMaxY);
+            board.SelectedPieceId = selectedPieceId;
         }, "Moved piece from board panel.");
+    }
+
+    private void CenterSelected()
+    {
+        try
+        {
+            if (board.TryCenterSelectedPiece(
+                WorkspaceService,
+                BoardMaxX / 2,
+                BoardMaxY / 2,
+                clampToBoard,
+                BoardMaxX,
+                BoardMaxY,
+                out var statusMessage))
+            {
+                message = statusMessage;
+                isError = false;
+            }
+            else
+            {
+                message = statusMessage;
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
     }
 
     private void RotateFromBoardPanel()
@@ -451,7 +2023,30 @@ else
         Execute(() =>
         {
             board.RotateSelectedPiece(WorkspaceService, rotateDegrees);
+            board.SelectedPieceId = selectedPieceId;
         }, "Rotated piece from board panel.");
+    }
+
+    private void RotateLeftQuick()
+    {
+        Execute(() =>
+        {
+            var selectedPiece = board.GetSelectedPieceOrThrow(WorkspaceService.State.CurrentTableSession);
+            rotateDegrees = selectedPiece.Rotation.Degrees - QuickRotateIncrement;
+            board.RotateSelectedPiece(WorkspaceService, rotateDegrees);
+            board.SelectedPieceId = selectedPieceId;
+        }, "Rotated selected piece left.");
+    }
+
+    private void RotateRightQuick()
+    {
+        Execute(() =>
+        {
+            var selectedPiece = board.GetSelectedPieceOrThrow(WorkspaceService.State.CurrentTableSession);
+            rotateDegrees = selectedPiece.Rotation.Degrees + QuickRotateIncrement;
+            board.RotateSelectedPiece(WorkspaceService, rotateDegrees);
+            board.SelectedPieceId = selectedPieceId;
+        }, "Rotated selected piece right.");
     }
 
     private void MovePiece()
@@ -577,9 +2172,14 @@ else
     private string GetPieceCss(PieceInstance piece)
     {
         var css = "board-piece";
-        if (piece.Id == selectedPieceId)
+        if (board.IsPieceSelected(piece.Id))
         {
             css += " selected";
+        }
+
+        if (board.IsPrimarySelectedPiece(piece.Id))
+        {
+            css += " primary";
         }
 
         return css;
@@ -590,6 +2190,25 @@ else
         var left = Math.Clamp(piece.Location.Coordinate.X, 0, 620);
         var top = Math.Clamp(piece.Location.Coordinate.Y, 0, 360);
         return $"left: {left}px; top: {top}px; transform: rotate({piece.Rotation.Degrees}deg);";
+    }
+
+    private bool TryGetSelectedPiece(out PieceInstance selectedPiece)
+    {
+        selectedPiece = null!;
+        var session = WorkspaceService.State.CurrentTableSession;
+        if (session is null || string.IsNullOrWhiteSpace(selectedPieceId))
+        {
+            return false;
+        }
+
+        var piece = session.Pieces.FirstOrDefault(p => p.Id == selectedPieceId);
+        if (piece is null)
+        {
+            return false;
+        }
+
+        selectedPiece = piece;
+        return true;
     }
 
 }

@@ -12,6 +12,12 @@ namespace MIMLESvtt.src
 
         public List<PieceInstance> Pieces { get; set; } = [];
 
+        public List<string> TurnOrder { get; set; } = [];
+
+        public int CurrentTurnIndex { get; set; }
+
+        public string CurrentPhase { get; set; } = string.Empty;
+
         public TableOptions Options { get; set; } = new();
 
         public VisibilityState Visibility { get; set; } = new();

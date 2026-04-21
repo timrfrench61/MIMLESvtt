@@ -32,6 +32,35 @@ No task should bypass:
 
 ---
 
+## Recent Vertical Slice Update
+
+- Stamp mode add-at-click now includes a compact stamp-session control strip on Workspace.
+- Next id preview supports explicit reset and +/- nudge controls for fast repeated placement.
+- Id control remains visible and conservative; conflicts still fail without hidden auto-renumbering.
+- Stamp presets now allow quick reuse of DefinitionId/owner/rotation for repeated placement workflows.
+- Stamp presets are local to workspace UI state and are not persisted.
+- Piece ids remain explicit and controlled separately from preset selection.
+- Workspace now includes a compact multi-surface workflow strip for faster per-surface setup.
+- Surface switching and default-preset assignment are now quicker and clearer across multiple surfaces.
+- Per-surface default presets auto-apply on surface switch while remaining UI-only state.
+- Workspace now supports a compact cross-surface stamping queue for rapid setup sequences.
+- Queue items keep surface, preset, and next-id explicit and editable.
+- Conflict handling remains conservative; queue ids are not silently auto-skipped.
+- Queue templates now allow saving/reapplying multi-surface queue sequences within the same session.
+- Queue templates are UI-only in-memory snapshots (not persisted to disk).
+- Workspace now supports undo/redo for a conservative safe operation set.
+- Undo/redo scope is intentionally limited to supported operations in current single-user workspace flow.
+- Workspace board now supports conservative multi-select and group move operations for setup workflows.
+- Multi-select/group move remains action-driven and intentionally avoids drag-selection/advanced transform frameworks.
+- Workspace board now includes lightweight visibility/filter controls for readability as complexity grows.
+- Visibility/filter controls are intentionally not fog-of-war or LOS systems.
+- Workspace now supports saving current layout as a scenario for practical authoring/reuse flow.
+- Scenario pending-plan pipeline is now connected to this authoring save/open workflow.
+- Workspace now includes a lightweight piece palette sidebar driven by stamp presets for faster placement setup.
+- Piece palette entries arm add-at-click placement but are not a full authored-definition editor.
+
+---
+
 ## Backlog Structure
 
 Backlog items are grouped by category:
@@ -182,12 +211,12 @@ Each item should be small enough to implement independently.
 
 ## UI
 
-- [ ] build table view
+- [~] build table view (board panel renders per-active-surface pieces with click/keyboard interactions; broader UX polish pending)
 - [ ] build side panel for piece editing
-- [ ] build surface controls
-- [ ] build tool controls
+- [~] build surface controls (active surface switch, compact surface workflow strip, quick add/duplicate surface)
+- [~] build tool controls (stamp mode, preset lifecycle/defaults, cross-surface stamp queue)
 - [ ] build module UI hooks
-- [ ] build session management UI
+- [~] build session management UI (create/open/save/save-as/import/activate flows wired; production UX polish pending)
 
 ---
 
@@ -206,6 +235,7 @@ Each item should be small enough to implement independently.
 - [x] test workspace save/restore recovery state round-trip and rehydration behavior
 - [x] test workspace-state file safety behavior (temp replace, backup fallback, corruption handling)
 - [x] test restore diagnostics flags and strict vs best-effort restore options behavior
+- [x] test board interaction vertical slices (movement/rotation/keyboard, stamp mode, preset lifecycle/defaults, surface strip, cross-surface queue)
 - [ ] test multiplayer synchronization
 - [ ] test module behavior
 - [~] test domain invariants (covered for current action/persistence boundaries, full invariant suite pending)
@@ -217,6 +247,7 @@ Each item should be small enough to implement independently.
 - [ ] expand domain invariant enforcement (id uniqueness + broader reference checks)
 - [ ] complete remaining core actions (CreatePiece, DeletePiece, SetPieceVisibility, UpdateTableOptions)
 - [ ] add current-session missing-file restore option (strict default, optional best-effort) with matrix tests
+- [ ] add queue templates (UI-only snapshot/reapply of short surface+preset+next-id sequences)
 
 ---
 
@@ -236,3 +267,7 @@ Each item should be small enough to implement independently.
 - work grouped by system area
 - all work aligns to domain model
 - actions and TableSession remain central
+
+- Workspace board add-at-click now supports **Stamp Mode** for repeated placement on the active surface.
+- Piece ids remain explicit and visible through an editable next-id preview that auto-advances after successful placement.
+- Id conflicts remain conservative: duplicate ids fail clearly and do not create a piece.

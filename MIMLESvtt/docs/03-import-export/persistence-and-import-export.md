@@ -392,3 +392,11 @@ All data is versioned.
 Imports are validated before acceptance.
 
 Exports include only domain state.
+
+## Workspace Authoring Flow
+
+The Workspace setup flow now supports practical scenario authoring using existing persistence and import/apply services.
+
+- Save Current Layout As Scenario writes a `.scenario.json` file from the current session layout.
+- Open Scenario For Pending Plan reuses the existing scenario import path to populate a pending plan.
+- Activation remains unchanged and continues through the existing pending-plan activation workflow.

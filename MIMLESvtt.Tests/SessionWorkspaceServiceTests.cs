@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MIMLESvtt.src;
 
@@ -523,6 +524,415 @@ public class SessionWorkspaceServiceTests
 
         var entry = service.State.OperationHistory.Last();
         Assert.AreEqual(WorkspaceOperationKind.ActivatePendingScenario, entry.OperationKind);
+        Assert.IsFalse(entry.Success);
+    }
+
+    [TestMethod]
+    public void Workspace_SaveCurrentLayoutAsScenario_WritesScenarioFileWithExpectedContent()
+    {
+        var service = new SessionWorkspaceService();
+        var path = CreateTempFilePath("workspace-layout-scenario", SnapshotFileExtensions.Scenario);
+
+        try
+        {
+            service.CreateNewSession();
+            service.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+            service.AddPiece("piece-1", "def-piece-1", "surface-1", 12, 22, "owner-a", 45);
+            service.State.CurrentTableSession!.Options.EnableFog = true;
+            service.State.CurrentTableSession.Options.Options["GridColor"] = "Blue";
+
+            service.SaveCurrentLayoutAsScenario("Authored Scenario", path);
+
+            var loaded = new ScenarioFilePersistenceService().LoadFromFile(path);
+            Assert.AreEqual("Authored Scenario", loaded.Title);
+            Assert.AreEqual(1, loaded.Surfaces.Count);
+            Assert.AreEqual(1, loaded.Pieces.Count);
+            Assert.IsTrue(loaded.Options.EnableFog);
+            Assert.IsTrue(loaded.Options.Options.TryGetValue("GridColor", out var gridColorRaw));
+            Assert.AreEqual("Blue", gridColorRaw is JsonElement gridColorElement ? gridColorElement.GetString() : gridColorRaw?.ToString());
+        }
+        finally
+        {
+            DeleteFileIfExists(path);
+        }
+    }
+
+    [TestMethod]
+    public void Workspace_SaveCurrentLayoutAsScenario_ThenOpenScenario_RehydratesPendingPlan()
+    {
+        var service = new SessionWorkspaceService();
+        var path = CreateTempFilePath("workspace-layout-open-scenario", SnapshotFileExtensions.Scenario);
+
+        try
+        {
+            service.CreateNewSession();
+            service.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+            service.AddPiece("piece-1", "def-piece-1", "surface-1", 1, 2, string.Empty, 0);
+
+            service.SaveCurrentLayoutAsScenario("Pending Plan Scenario", path);
+            service.ImportScenarioToPendingPlanFromFile(path);
+
+            Assert.IsNotNull(service.State.CurrentPendingScenarioPlan);
+            Assert.AreEqual("Pending Plan Scenario", service.State.CurrentPendingScenarioPlan!.ScenarioTitle);
+        }
+        finally
+        {
+            DeleteFileIfExists(path);
+        }
+    }
+
+    [TestMethod]
+    public void Workspace_SaveCurrentLayoutAsScenario_DoesNotPersistRuntimeOnlyFields()
+    {
+        var service = new SessionWorkspaceService();
+        var path = CreateTempFilePath("workspace-layout-runtime-only", SnapshotFileExtensions.Scenario);
+
+        try
+        {
+            service.CreateNewSession();
+            service.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+            service.AddPiece("piece-1", "def-piece-1", "surface-1", 1, 2, string.Empty, 0);
+            service.State.CurrentTableSession!.Participants.Add(new Participant { Id = "p1", Name = "GM" });
+            service.State.CurrentTableSession.ActionLog.Add(new ActionRecord { Id = "a1", ActionType = "MovePiece", ActorParticipantId = "gm" });
+            service.State.CurrentTableSession.ModuleState["Runtime"] = "Only";
+
+            service.SaveCurrentLayoutAsScenario("Runtime Scope Test", path);
+
+            var raw = File.ReadAllText(path);
+            Assert.IsFalse(raw.Contains("Participants", StringComparison.Ordinal));
+            Assert.IsFalse(raw.Contains("ActionLog", StringComparison.Ordinal));
+            Assert.IsFalse(raw.Contains("ModuleState", StringComparison.Ordinal));
+        }
+        finally
+        {
+            DeleteFileIfExists(path);
+        }
+    }
+
+    [TestMethod]
+    public void Workspace_SaveCurrentLayoutAsScenario_WithNoCurrentSession_FailsClearly()
+    {
+        var service = new SessionWorkspaceService();
+        var path = CreateTempFilePath("workspace-layout-no-session", SnapshotFileExtensions.Scenario);
+
+        try
+        {
+            var ex = Assert.ThrowsException<InvalidOperationException>(() =>
+                service.SaveCurrentLayoutAsScenario("No Session", path));
+
+            StringAssert.Contains(ex.Message, "CurrentTableSession");
+        }
+        finally
+        {
+            DeleteFileIfExists(path);
+        }
+    }
+
+    [TestMethod]
+    public void SaveLoad_GameState_PreservesTurnAndParticipants()
+    {
+        var service = new SessionWorkspaceService();
+        var path = CreateTempFilePath("workspace-game-state-roundtrip", SnapshotFileExtensions.TableSession);
+
+        try
+        {
+            service.CreateNewSession();
+            service.AddParticipant("gm", "Game Master");
+            service.AddParticipant("p1", "Player One");
+            service.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+            service.AddPiece("piece-1", "def-piece-1", "surface-1", 1, 1, "gm", 0);
+            service.InitializeTurnOrder(["gm", "p1"]);
+            service.SetPhase("Action");
+            service.AdvanceTurn();
+
+            service.ProcessAction(new ActionRequest
+            {
+                ActionType = "MovePiece",
+                ActorParticipantId = "gm",
+                Payload = new MovePiecePayload
+                {
+                    PieceId = "piece-1",
+                    NewLocation = new Location
+                    {
+                        SurfaceId = "surface-1",
+                        Coordinate = new Coordinate { X = 3, Y = 4 }
+                    }
+                }
+            });
+
+            service.SaveCurrentSessionAs(path);
+
+            var loadedService = new SessionWorkspaceService();
+            loadedService.OpenTableSessionFromFile(path);
+
+            Assert.AreEqual(2, loadedService.State.CurrentTableSession!.Participants.Count);
+            CollectionAssert.AreEqual(new[] { "gm", "p1" }, loadedService.State.CurrentTableSession.TurnOrder);
+            Assert.AreEqual(1, loadedService.State.CurrentTableSession.CurrentTurnIndex);
+            Assert.AreEqual("Action", loadedService.State.CurrentTableSession.CurrentPhase);
+            Assert.AreEqual(1, loadedService.State.CurrentTableSession.ActionLog.Count);
+        }
+        finally
+        {
+            DeleteFileIfExists(path);
+        }
+    }
+
+    [TestMethod]
+    public void ScenarioLoad_DoesNotIncludeGameProgress()
+    {
+        var service = new SessionWorkspaceService();
+        var path = CreateTempFilePath("workspace-scenario-no-progress", SnapshotFileExtensions.Scenario);
+
+        try
+        {
+            service.CreateNewSession();
+            service.AddParticipant("gm", "Game Master");
+            service.AddParticipant("p1", "Player One");
+            service.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+            service.AddPiece("piece-1", "def-piece-1", "surface-1", 1, 1, "gm", 0);
+            service.InitializeTurnOrder(["gm", "p1"]);
+            service.SetPhase("Action");
+
+            service.ProcessAction(new ActionRequest
+            {
+                ActionType = "MovePiece",
+                ActorParticipantId = "gm",
+                Payload = new MovePiecePayload
+                {
+                    PieceId = "piece-1",
+                    NewLocation = new Location
+                    {
+                        SurfaceId = "surface-1",
+                        Coordinate = new Coordinate { X = 2, Y = 2 }
+                    }
+                }
+            });
+
+            service.SaveCurrentLayoutAsScenario("Scenario Start", path);
+            service.ImportScenarioToPendingPlanFromFile(path);
+            service.ActivatePendingScenario();
+
+            Assert.IsNotNull(service.State.CurrentTableSession);
+            Assert.AreEqual(0, service.State.CurrentTableSession!.Participants.Count);
+            Assert.AreEqual(0, service.State.CurrentTableSession.ActionLog.Count);
+            Assert.AreEqual(0, service.State.CurrentTableSession.TurnOrder.Count);
+            Assert.AreEqual(0, service.State.CurrentTableSession.CurrentTurnIndex);
+            Assert.AreEqual(string.Empty, service.State.CurrentTableSession.CurrentPhase);
+        }
+        finally
+        {
+            DeleteFileIfExists(path);
+        }
+    }
+
+    [TestMethod]
+    public void TurnSystem_Initialize_SetsOrderAndIndex()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+
+        service.InitializeTurnOrder(["p1", "p2", "p3"]);
+
+        Assert.AreEqual(3, service.State.CurrentTableSession!.TurnOrder.Count);
+        CollectionAssert.AreEqual(new[] { "p1", "p2", "p3" }, service.State.CurrentTableSession.TurnOrder);
+        Assert.AreEqual(0, service.State.CurrentTableSession.CurrentTurnIndex);
+    }
+
+    [TestMethod]
+    public void TurnSystem_AdvanceTurn_CyclesCorrectly()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.InitializeTurnOrder(["p1", "p2", "p3"]);
+
+        service.AdvanceTurn();
+        Assert.AreEqual(1, service.State.CurrentTableSession!.CurrentTurnIndex);
+
+        service.AdvanceTurn();
+        Assert.AreEqual(2, service.State.CurrentTableSession.CurrentTurnIndex);
+
+        service.AdvanceTurn();
+        Assert.AreEqual(0, service.State.CurrentTableSession.CurrentTurnIndex);
+    }
+
+    [TestMethod]
+    public void TurnSystem_SetPhase_UpdatesPhase()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+
+        service.SetPhase("Action");
+
+        Assert.AreEqual("Action", service.State.CurrentTableSession!.CurrentPhase);
+    }
+
+    [TestMethod]
+    public void Workspace_TurnSystem_IntegratedWithSessionState()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+
+        service.InitializeTurnOrder(["gm", "player-1", "player-2"]);
+        service.SetPhase("Movement");
+        service.AdvanceTurn();
+
+        Assert.IsNotNull(service.State.CurrentTableSession);
+        Assert.AreEqual("Movement", service.State.CurrentTableSession!.CurrentPhase);
+        Assert.AreEqual(1, service.State.CurrentTableSession.CurrentTurnIndex);
+        Assert.AreEqual("player-1", service.State.CurrentTableSession.TurnOrder[service.State.CurrentTableSession.CurrentTurnIndex]);
+        Assert.IsTrue(service.State.IsDirty);
+    }
+
+    [TestMethod]
+    public void Participant_Add_Works()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+
+        service.AddParticipant("p1", "Alice");
+
+        Assert.AreEqual(1, service.State.CurrentTableSession!.Participants.Count);
+        Assert.AreEqual("p1", service.State.CurrentTableSession.Participants[0].Id);
+        Assert.AreEqual("Alice", service.State.CurrentTableSession.Participants[0].Name);
+    }
+
+    [TestMethod]
+    public void Participant_Remove_Works()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.AddParticipant("p1", "Alice");
+
+        service.RemoveParticipant("p1");
+
+        Assert.AreEqual(0, service.State.CurrentTableSession!.Participants.Count);
+    }
+
+    [TestMethod]
+    public void PieceOwnership_RemainsConsistent()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        service.AddParticipant("owner-1", "Owner One");
+        service.AddPiece("piece-1", "def-piece-1", "surface-1", 1, 2, "owner-1", 0);
+
+        Assert.AreEqual("owner-1", service.State.CurrentTableSession!.Pieces[0].OwnerParticipantId);
+
+        service.RemoveParticipant("owner-1");
+
+        Assert.AreEqual(string.Empty, service.State.CurrentTableSession.Pieces[0].OwnerParticipantId);
+    }
+
+    [TestMethod]
+    public void TurnOrder_UsesParticipants()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.AddParticipant("p1", "Alice");
+        service.AddParticipant("p2", "Bob");
+
+        service.InitializeTurnOrder(["p1", "p2"]);
+
+        var participantIds = service.State.CurrentTableSession!.Participants.Select(p => p.Id).ToHashSet(StringComparer.Ordinal);
+        Assert.IsTrue(service.State.CurrentTableSession.TurnOrder.All(participantIds.Contains));
+    }
+
+    [TestMethod]
+    public void Mode_Default_IsEdit()
+    {
+        var service = new SessionWorkspaceService();
+
+        Assert.AreEqual(WorkspaceMode.Edit, service.State.Mode);
+    }
+
+    [TestMethod]
+    public void Mode_SwitchToPlay_ChangesBehavior()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        service.AddPiece("piece-1", "def-piece-1", "surface-1", 1, 1, "owner-1", 0);
+
+        service.ProcessAction(new ActionRequest
+        {
+            ActionType = "MovePiece",
+            ActorParticipantId = "other-actor",
+            Payload = new MovePiecePayload
+            {
+                PieceId = "piece-1",
+                NewLocation = new Location { SurfaceId = "surface-1", Coordinate = new Coordinate { X = 3, Y = 4 } }
+            }
+        });
+
+        Assert.AreEqual(3, service.State.CurrentTableSession!.Pieces.Single(p => p.Id == "piece-1").Location.Coordinate.X);
+
+        service.SetWorkspaceMode(WorkspaceMode.Play);
+
+        var ex = Assert.ThrowsException<InvalidOperationException>(() => service.ProcessAction(new ActionRequest
+        {
+            ActionType = "MovePiece",
+            ActorParticipantId = "other-actor",
+            Payload = new MovePiecePayload
+            {
+                PieceId = "piece-1",
+                NewLocation = new Location { SurfaceId = "surface-1", Coordinate = new Coordinate { X = 8, Y = 9 } }
+            }
+        }));
+
+        StringAssert.Contains(ex.Message, "piece owner");
+        Assert.AreEqual(3, service.State.CurrentTableSession.Pieces.Single(p => p.Id == "piece-1").Location.Coordinate.X);
+    }
+
+    [TestMethod]
+    public void PlayMode_RestrictsInvalidActions()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        service.AddPiece("piece-1", "def-piece-1", "surface-1", 0, 0, string.Empty, 0);
+        service.SetWorkspaceMode(WorkspaceMode.Play);
+
+        var ex = Assert.ThrowsException<InvalidOperationException>(() => service.ProcessAction(new ActionRequest
+        {
+            ActionType = "MovePiece",
+            ActorParticipantId = "gm",
+            Payload = new MovePiecePayload
+            {
+                PieceId = "piece-1",
+                NewLocation = new Location { SurfaceId = "missing-surface", Coordinate = new Coordinate { X = 4, Y = 4 } }
+            }
+        }));
+
+        StringAssert.Contains(ex.Message, "target surface");
+        Assert.AreEqual(0, service.State.CurrentTableSession!.ActionLog.Count);
+    }
+
+    [TestMethod]
+    public void Workspace_ProcessAction_RespectsValidation()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.State.CurrentTableSession!.Surfaces.Add(new SurfaceInstance { Id = "surface-1", DefinitionId = "def-surface-1" });
+        service.SetWorkspaceMode(WorkspaceMode.Play);
+
+        var exception = Assert.ThrowsException<InvalidOperationException>(() => service.ProcessAction(new ActionRequest
+        {
+            ActionType = "MovePiece",
+            ActorParticipantId = "participant-1",
+            Payload = new MovePiecePayload
+            {
+                PieceId = "missing-piece",
+                NewLocation = new Location { SurfaceId = "surface-1", Coordinate = new Coordinate { X = 2, Y = 2 } }
+            }
+        }));
+
+        StringAssert.Contains(exception.Message, "target piece");
+        Assert.IsFalse(service.State.IsDirty);
+        Assert.AreEqual(0, service.State.CurrentTableSession.ActionLog.Count);
+
+        var entry = service.State.OperationHistory.Last();
+        Assert.AreEqual(WorkspaceOperationKind.ProcessAction, entry.OperationKind);
         Assert.IsFalse(entry.Success);
     }
 

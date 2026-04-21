@@ -8,10 +8,19 @@ namespace MIMLESvtt.src
         OpenTableSessionFromFile,
         SaveCurrentSession,
         SaveCurrentSessionAs,
+        SaveCurrentLayoutAsScenario,
         ImportScenarioToPendingPlanFromFile,
         ActivatePendingScenario,
         SaveWorkspaceState,
         RestoreWorkspaceState,
-        ProcessAction
+        InitializeTurnOrder,
+        AdvanceTurn,
+        SetPhase,
+        AddParticipant,
+        RemoveParticipant,
+        SetWorkspaceMode,
+        ProcessAction,
+        UndoLastOperation,
+        RedoLastOperation
     }
 }

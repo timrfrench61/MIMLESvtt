@@ -16,6 +16,16 @@ namespace MIMLESvtt.src
 
         public string? PendingScenarioSourcePath { get; internal set; }
 
+        public WorkspaceMode Mode { get; internal set; } = WorkspaceMode.Edit;
+
         public List<WorkspaceOperationEntry> OperationHistory { get; } = [];
+
+        public List<WorkspaceUndoEntry> UndoStack { get; } = [];
+
+        public List<WorkspaceUndoEntry> RedoStack { get; } = [];
+
+        public bool CanUndo => UndoStack.Count > 0;
+
+        public bool CanRedo => RedoStack.Count > 0;
     }
 }
