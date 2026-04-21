@@ -8,6 +8,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddScoped<SessionWorkspaceService>();
+builder.Services.AddScoped<ITableSessionCommandService>(sp => sp.GetRequiredService<SessionWorkspaceService>());
 
 var app = builder.Build();
 

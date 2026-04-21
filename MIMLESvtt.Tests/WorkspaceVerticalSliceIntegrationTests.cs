@@ -62,6 +62,63 @@ public class WorkspaceVerticalSliceIntegrationTests
     }
 
     [TestMethod]
+    public void Workspace_UsesCommandBoundary_ForActions()
+    {
+        var commandService = new RecordingCommandService();
+        commandService.CurrentTableSession!.Surfaces.Add(new SurfaceInstance { Id = "surface-1", DefinitionId = "def-surface-1" });
+        commandService.CurrentTableSession.Pieces.Add(new PieceInstance
+        {
+            Id = "piece-1",
+            DefinitionId = "def-piece-1",
+            Location = new Location { SurfaceId = "surface-1", Coordinate = new Coordinate { X = 1, Y = 1 } },
+            Rotation = new Rotation { Degrees = 0 }
+        });
+
+        var board = new MIMLESvtt.Components.Pages.WorkspaceBoardState
+        {
+            ActiveSurfaceId = "surface-1"
+        };
+        board.SelectSinglePiece("piece-1");
+
+        board.MoveSelectedPiece(commandService, 4, 5);
+
+        Assert.AreEqual(1, commandService.Requests.Count);
+        Assert.AreEqual("MovePiece", commandService.Requests[0].ActionType);
+    }
+
+    [TestMethod]
+    public void SingleUserCommandBoundary_PreservesCurrentBehavior()
+    {
+        var workspace = new SessionWorkspaceService();
+        workspace.CreateNewSession();
+        workspace.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        workspace.AddPiece("piece-1", "def-piece-1", "surface-1", 0, 0, string.Empty, 0);
+
+        ITableSessionCommandService commandService = workspace;
+
+        commandService.ProcessAction(new ActionRequest
+        {
+            ActionType = "MovePiece",
+            ActorParticipantId = "gm",
+            Payload = new MovePiecePayload
+            {
+                PieceId = "piece-1",
+                NewLocation = new Location
+                {
+                    SurfaceId = "surface-1",
+                    Coordinate = new Coordinate { X = 7, Y = 8 }
+                }
+            }
+        });
+
+        var piece = workspace.State.CurrentTableSession!.Pieces.Single(p => p.Id == "piece-1");
+        Assert.AreEqual(7, piece.Location.Coordinate.X);
+        Assert.AreEqual(8, piece.Location.Coordinate.Y);
+        Assert.AreEqual(1, workspace.State.CurrentTableSession.ActionLog.Count);
+        Assert.AreEqual("MovePiece", workspace.State.CurrentTableSession.ActionLog[0].ActionType);
+    }
+
+    [TestMethod]
     public void WorkspaceBoard_RotateSelectedPiece_UsesActionFlowAndUpdatesRenderedState()
     {
         var workspace = new SessionWorkspaceService();
@@ -77,6 +134,27 @@ public class WorkspaceVerticalSliceIntegrationTests
         var piece = workspace.State.CurrentTableSession!.Pieces.Single(p => p.Id == "piece-1");
         Assert.AreEqual(180, piece.Rotation.Degrees);
         Assert.IsTrue(workspace.State.CurrentTableSession.ActionLog.Any(a => a.ActionType == "RotatePiece"));
+    }
+
+    private sealed class RecordingCommandService : ITableSessionCommandService
+    {
+        public TableSession? CurrentTableSession { get; } = new();
+
+        public List<ActionRequest> Requests { get; } = [];
+
+        public ActionRecord ProcessAction(ActionRequest request)
+        {
+            Requests.Add(request);
+
+            return new ActionRecord
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                ActionType = request.ActionType,
+                ActorParticipantId = request.ActorParticipantId,
+                TimestampUtc = DateTime.UtcNow,
+                Payload = request.Payload
+            };
+        }
     }
 
     [TestMethod]
@@ -201,6 +279,155 @@ public class WorkspaceVerticalSliceIntegrationTests
     }
 
     [TestMethod]
+    public void ActionFeed_ShowsRecentActions()
+    {
+        var workspace = new SessionWorkspaceService();
+        workspace.CreateNewSession();
+        workspace.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        workspace.AddPiece("piece-1", "def-piece-1", "surface-1", 0, 0, string.Empty, 0);
+
+        workspace.ProcessAction(new ActionRequest
+        {
+            ActionType = "MovePiece",
+            ActorParticipantId = "gm",
+            Payload = new MovePiecePayload
+            {
+                PieceId = "piece-1",
+                NewLocation = new Location
+                {
+                    SurfaceId = "surface-1",
+                    Coordinate = new Coordinate { X = 2, Y = 3 }
+                }
+            }
+        });
+
+        var recent = workspace.State.CurrentTableSession!.ActionLog.TakeLast(20).ToList();
+        Assert.AreEqual(1, recent.Count);
+        Assert.AreEqual("MovePiece", recent[0].ActionType);
+    }
+
+    [TestMethod]
+    public void ActionFeed_SummarizesSupportedActionsClearly()
+    {
+        var moveSummary = ActionFeedSummaryFormatter.SummarizeActionPayload(new ActionRecord
+        {
+            ActionType = "MovePiece",
+            ActorParticipantId = "gm",
+            Payload = new MovePiecePayload
+            {
+                PieceId = "piece-1",
+                NewLocation = new Location
+                {
+                    SurfaceId = "surface-1",
+                    Coordinate = new Coordinate { X = 4, Y = 5 }
+                }
+            }
+        });
+
+        var rotateSummary = ActionFeedSummaryFormatter.SummarizeActionPayload(new ActionRecord
+        {
+            ActionType = "RotatePiece",
+            ActorParticipantId = "gm",
+            Payload = new RotatePiecePayload
+            {
+                PieceId = "piece-1",
+                NewRotation = new Rotation { Degrees = 90 }
+            }
+        });
+
+        var addMarkerSummary = ActionFeedSummaryFormatter.SummarizeActionPayload(new ActionRecord
+        {
+            ActionType = "AddMarker",
+            ActorParticipantId = "gm",
+            Payload = new AddMarkerPayload
+            {
+                PieceId = "piece-1",
+                MarkerId = "Stunned"
+            }
+        });
+
+        var removeMarkerSummary = ActionFeedSummaryFormatter.SummarizeActionPayload(new ActionRecord
+        {
+            ActionType = "RemoveMarker",
+            ActorParticipantId = "gm",
+            Payload = new RemoveMarkerPayload
+            {
+                PieceId = "piece-1",
+                MarkerId = "Stunned"
+            }
+        });
+
+        var changeStateSummary = ActionFeedSummaryFormatter.SummarizeActionPayload(new ActionRecord
+        {
+            ActionType = "ChangePieceState",
+            ActorParticipantId = "gm",
+            Payload = new ChangePieceStatePayload
+            {
+                PieceId = "piece-1",
+                Key = "HP",
+                Value = 12
+            }
+        });
+
+        var addPieceSummary = ActionFeedSummaryFormatter.SummarizeActionPayload(new ActionRecord
+        {
+            ActionType = "AddPiece",
+            ActorParticipantId = "gm",
+            Payload = new PieceInstance
+            {
+                Id = "piece-2",
+                Location = new Location { SurfaceId = "surface-2", Coordinate = new Coordinate { X = 1, Y = 1 } }
+            }
+        });
+
+        var addSurfaceSummary = ActionFeedSummaryFormatter.SummarizeActionPayload(new ActionRecord
+        {
+            ActionType = "AddSurface",
+            ActorParticipantId = "gm",
+            Payload = new SurfaceInstance
+            {
+                Id = "surface-2",
+                Type = SurfaceType.Map,
+                CoordinateSystem = CoordinateSystem.Square
+            }
+        });
+
+        StringAssert.Contains(moveSummary, "piece-1 -> surface-1");
+        StringAssert.Contains(rotateSummary, "piece-1 -> 90");
+        StringAssert.Contains(addMarkerSummary, "piece-1 + Stunned");
+        StringAssert.Contains(removeMarkerSummary, "piece-1 - Stunned");
+        StringAssert.Contains(changeStateSummary, "piece-1 HP=12");
+        StringAssert.Contains(addPieceSummary, "piece-2 on surface-2");
+        StringAssert.Contains(addSurfaceSummary, "surface-2 (Map/Square)");
+    }
+
+    [TestMethod]
+    public void ActionFeed_UpdatesAfterWorkspaceAction()
+    {
+        var workspace = new SessionWorkspaceService();
+        workspace.CreateNewSession();
+        workspace.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        workspace.AddPiece("piece-1", "def-piece-1", "surface-1", 0, 0, string.Empty, 0);
+
+        var before = workspace.State.CurrentTableSession!.ActionLog.Count;
+
+        workspace.ProcessAction(new ActionRequest
+        {
+            ActionType = "RotatePiece",
+            ActorParticipantId = "gm",
+            Payload = new RotatePiecePayload
+            {
+                PieceId = "piece-1",
+                NewRotation = new Rotation { Degrees = 45 }
+            }
+        });
+
+        var after = workspace.State.CurrentTableSession.ActionLog.Count;
+        Assert.AreEqual(before + 1, after);
+        Assert.AreEqual("RotatePiece", workspace.State.CurrentTableSession.ActionLog.Last().ActionType);
+    }
+
+    [TestMethod]
     public void WorkspaceBoard_ShowsSelectedPieceSummaryAlignedWithBoardSelection()
     {
         var workspace = new SessionWorkspaceService();
@@ -217,6 +444,116 @@ public class WorkspaceVerticalSliceIntegrationTests
         Assert.AreEqual(8, selected.Location.Coordinate.X);
         Assert.AreEqual(9, selected.Location.Coordinate.Y);
         Assert.AreEqual(10, selected.Rotation.Degrees);
+    }
+
+    [TestMethod]
+    public void SelectedPiecePanel_ShowsCurrentState()
+    {
+        var workspace = new SessionWorkspaceService();
+        workspace.CreateNewSession();
+        workspace.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        workspace.AddPiece("piece-1", "def-piece-1", "surface-1", 8, 9, string.Empty, 10);
+
+        var piece = workspace.State.CurrentTableSession!.Pieces.Single(p => p.Id == "piece-1");
+        piece.State["Label"] = "Goblin Scout";
+        piece.State["HP"] = 7;
+        piece.State["Notes"] = "Hidden behind crate";
+        piece.MarkerIds.Add("Poisoned");
+
+        var board = new MIMLESvtt.Components.Pages.WorkspaceBoardState();
+        board.SelectPiece("piece-1");
+        var selected = board.GetSelectedPieceOrThrow(workspace.State.CurrentTableSession);
+
+        Assert.AreEqual("Goblin Scout", selected.State["Label"]);
+        Assert.AreEqual(7, selected.State["HP"]);
+        Assert.AreEqual("Hidden behind crate", selected.State["Notes"]);
+        Assert.AreEqual(1, selected.MarkerIds.Count);
+        Assert.AreEqual("Poisoned", selected.MarkerIds[0]);
+    }
+
+    [TestMethod]
+    public void SelectedPiecePanel_EditState_UsesChangePieceStatePath()
+    {
+        var workspace = new SessionWorkspaceService();
+        workspace.CreateNewSession();
+        workspace.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        workspace.AddPiece("piece-1", "def-piece-1", "surface-1", 0, 0, string.Empty, 0);
+
+        workspace.ProcessAction(new ActionRequest
+        {
+            ActionType = "ChangePieceState",
+            ActorParticipantId = "gm",
+            Payload = new ChangePieceStatePayload
+            {
+                PieceId = "piece-1",
+                Key = "HP",
+                Value = 12
+            }
+        });
+
+        var piece = workspace.State.CurrentTableSession!.Pieces.Single(p => p.Id == "piece-1");
+        Assert.AreEqual(12, piece.State["HP"]);
+        Assert.AreEqual("ChangePieceState", workspace.State.CurrentTableSession.ActionLog.Last().ActionType);
+    }
+
+    [TestMethod]
+    public void SelectedPiecePanel_StateUpdate_ReflectsImmediately()
+    {
+        var workspace = new SessionWorkspaceService();
+        workspace.CreateNewSession();
+        workspace.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        workspace.AddPiece("piece-1", "def-piece-1", "surface-1", 0, 0, string.Empty, 0);
+
+        workspace.ProcessAction(new ActionRequest
+        {
+            ActionType = "ChangePieceState",
+            ActorParticipantId = "gm",
+            Payload = new ChangePieceStatePayload
+            {
+                PieceId = "piece-1",
+                Key = "Notes",
+                Value = "Ready"
+            }
+        });
+
+        var updated = workspace.State.CurrentTableSession!.Pieces.Single(p => p.Id == "piece-1");
+        Assert.AreEqual("Ready", updated.State["Notes"]);
+    }
+
+    [TestMethod]
+    public void SelectedPiecePanel_RemoveState_WorksIfImplemented()
+    {
+        var workspace = new SessionWorkspaceService();
+        workspace.CreateNewSession();
+        workspace.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        workspace.AddPiece("piece-1", "def-piece-1", "surface-1", 0, 0, string.Empty, 0);
+
+        workspace.ProcessAction(new ActionRequest
+        {
+            ActionType = "ChangePieceState",
+            ActorParticipantId = "gm",
+            Payload = new ChangePieceStatePayload
+            {
+                PieceId = "piece-1",
+                Key = "Tags",
+                Value = "Boss"
+            }
+        });
+
+        workspace.ProcessAction(new ActionRequest
+        {
+            ActionType = "ChangePieceState",
+            ActorParticipantId = "gm",
+            Payload = new ChangePieceStatePayload
+            {
+                PieceId = "piece-1",
+                Key = "Tags",
+                Value = null
+            }
+        });
+
+        var piece = workspace.State.CurrentTableSession!.Pieces.Single(p => p.Id == "piece-1");
+        Assert.IsFalse(piece.State.ContainsKey("Tags"));
     }
 
     [TestMethod]
@@ -2309,6 +2646,80 @@ public class WorkspaceVerticalSliceIntegrationTests
     }
 
     [TestMethod]
+    public void Grouping_CreateFromSelection_Works()
+    {
+        var workspace = new SessionWorkspaceService();
+        workspace.CreateNewSession();
+        workspace.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        workspace.AddPiece("piece-1", "def-piece-1", "surface-1", 0, 0, string.Empty, 0);
+        workspace.AddPiece("piece-2", "def-piece-2", "surface-1", 5, 5, string.Empty, 0);
+
+        var board = new MIMLESvtt.Components.Pages.WorkspaceBoardState();
+        board.SelectSinglePiece("piece-1");
+        board.TogglePieceSelection("piece-2");
+
+        var group = board.CreateGroupFromSelection("Frontline");
+
+        Assert.AreEqual("Frontline", group.Label);
+        Assert.AreEqual(2, group.MemberPieceIds.Count);
+        CollectionAssert.AreEquivalent(new[] { "piece-1", "piece-2" }, group.MemberPieceIds.ToArray());
+    }
+
+    [TestMethod]
+    public void Grouping_MoveGroup_UpdatesAllMemberPositions()
+    {
+        var workspace = new SessionWorkspaceService();
+        workspace.CreateNewSession();
+        workspace.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        workspace.AddPiece("piece-1", "def-piece-1", "surface-1", 0, 0, string.Empty, 0);
+        workspace.AddPiece("piece-2", "def-piece-2", "surface-1", 5, 5, string.Empty, 0);
+
+        var board = new MIMLESvtt.Components.Pages.WorkspaceBoardState();
+        board.SelectSinglePiece("piece-1");
+        board.TogglePieceSelection("piece-2");
+        var group = board.CreateGroupFromSelection("Squad A");
+
+        var moved = board.MoveGroupByDelta(workspace, group.GroupId, 2, 3, clampToBoard: false, maxX: 620, maxY: 360);
+
+        Assert.AreEqual(2, moved);
+        var piece1 = workspace.State.CurrentTableSession!.Pieces.Single(p => p.Id == "piece-1");
+        var piece2 = workspace.State.CurrentTableSession.Pieces.Single(p => p.Id == "piece-2");
+        Assert.AreEqual(2, piece1.Location.Coordinate.X);
+        Assert.AreEqual(3, piece1.Location.Coordinate.Y);
+        Assert.AreEqual(7, piece2.Location.Coordinate.X);
+        Assert.AreEqual(8, piece2.Location.Coordinate.Y);
+    }
+
+    [TestMethod]
+    public void Grouping_DisbandGroup_Works()
+    {
+        var board = new MIMLESvtt.Components.Pages.WorkspaceBoardState();
+        board.SelectSinglePiece("piece-1");
+        board.TogglePieceSelection("piece-2");
+        var group = board.CreateGroupFromSelection("Temporary");
+
+        var removed = board.DisbandGroup(group.GroupId);
+
+        Assert.IsTrue(removed);
+        Assert.AreEqual(0, board.PieceGroups.Count);
+    }
+
+    [TestMethod]
+    public void Grouping_SelectGroup_SelectsMembers()
+    {
+        var board = new MIMLESvtt.Components.Pages.WorkspaceBoardState();
+        board.SelectSinglePiece("piece-1");
+        board.TogglePieceSelection("piece-2");
+        var group = board.CreateGroupFromSelection("Selection Test");
+        board.ClearSelection();
+
+        var selectedCount = board.SelectGroup(group.GroupId);
+
+        Assert.AreEqual(2, selectedCount);
+        CollectionAssert.AreEquivalent(new[] { "piece-1", "piece-2" }, board.SelectedPieceIds.ToArray());
+    }
+
+    [TestMethod]
     public void WorkspaceBoard_MultiSelect_SelectionSummaryReflectsCurrentSelection()
     {
         var board = new MIMLESvtt.Components.Pages.WorkspaceBoardState();
@@ -2860,6 +3271,130 @@ public class WorkspaceVerticalSliceIntegrationTests
             Assert.IsNotNull(workspace.State.CurrentTableSession);
             Assert.AreEqual("Imported Scenario", workspace.State.CurrentTableSession!.Title);
             Assert.IsNull(workspace.State.CurrentPendingScenarioPlan);
+        }
+        finally
+        {
+            DeleteFileIfExists(scenarioPath);
+        }
+    }
+
+    [TestMethod]
+    public void Workflow_BasicSetup_ProducesUsableBoard()
+    {
+        var workspace = new SessionWorkspaceService();
+        workspace.CreateNewSession();
+        workspace.AddSurface("surface-setup", "def-surface-setup", SurfaceType.Map, CoordinateSystem.Square);
+        workspace.AddPiece("piece-setup", "def-piece-setup", "surface-setup", 3, 4, string.Empty, 0);
+
+        var board = new MIMLESvtt.Components.Pages.WorkspaceBoardState();
+        board.EnsureActiveSurface(workspace.State.CurrentTableSession);
+        board.SelectSinglePiece("piece-setup");
+
+        var rendered = board.GetRenderedPiecesForActiveSurface(workspace.State.CurrentTableSession);
+
+        Assert.IsNotNull(workspace.State.CurrentTableSession);
+        Assert.IsTrue(workspace.State.IsDirty);
+        Assert.AreEqual("surface-setup", board.ActiveSurfaceId);
+        Assert.AreEqual("piece-setup", board.SelectedPieceId);
+        Assert.AreEqual(1, rendered.Count);
+        Assert.AreEqual("piece-setup", rendered[0].Id);
+    }
+
+    [TestMethod]
+    public void Workflow_MovePiece_ChangesPosition()
+    {
+        var workspace = new SessionWorkspaceService();
+        workspace.CreateNewSession();
+        workspace.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        workspace.AddPiece("piece-1", "def-piece-1", "surface-1", 0, 0, string.Empty, 0);
+
+        workspace.ProcessAction(new ActionRequest
+        {
+            ActionType = "MovePiece",
+            ActorParticipantId = "gm",
+            Payload = new MovePiecePayload
+            {
+                PieceId = "piece-1",
+                NewLocation = new Location
+                {
+                    SurfaceId = "surface-1",
+                    Coordinate = new Coordinate { X = 9, Y = 11 }
+                }
+            }
+        });
+
+        var piece = workspace.State.CurrentTableSession!.Pieces.Single(p => p.Id == "piece-1");
+        Assert.AreEqual(9, piece.Location.Coordinate.X);
+        Assert.AreEqual(11, piece.Location.Coordinate.Y);
+        Assert.AreEqual(1, workspace.State.CurrentTableSession.ActionLog.Count);
+        Assert.AreEqual("MovePiece", workspace.State.CurrentTableSession.ActionLog.Last().ActionType);
+        Assert.IsTrue(workspace.State.IsDirty);
+    }
+
+    [TestMethod]
+    public void Workflow_InvalidMove_DoesNotMutate()
+    {
+        var workspace = new SessionWorkspaceService();
+        workspace.CreateNewSession();
+        workspace.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        workspace.AddPiece("piece-1", "def-piece-1", "surface-1", 1, 1, string.Empty, 0);
+        workspace.SetWorkspaceMode(WorkspaceMode.Play);
+
+        var before = workspace.State.CurrentTableSession!.Pieces.Single(p => p.Id == "piece-1").Location.Coordinate;
+        var logCountBefore = workspace.State.CurrentTableSession.ActionLog.Count;
+
+        Assert.ThrowsException<InvalidOperationException>(() => workspace.ProcessAction(new ActionRequest
+        {
+            ActionType = "MovePiece",
+            ActorParticipantId = "gm",
+            Payload = new MovePiecePayload
+            {
+                PieceId = "piece-1",
+                NewLocation = new Location
+                {
+                    SurfaceId = "missing-surface",
+                    Coordinate = new Coordinate { X = 50, Y = 50 }
+                }
+            }
+        }));
+
+        var after = workspace.State.CurrentTableSession.Pieces.Single(p => p.Id == "piece-1").Location.Coordinate;
+        Assert.AreEqual(before.X, after.X);
+        Assert.AreEqual(before.Y, after.Y);
+        Assert.AreEqual(logCountBefore, workspace.State.CurrentTableSession.ActionLog.Count);
+        Assert.AreEqual(WorkspaceMessageSeverity.Error, workspace.State.LastOperationSeverity);
+        StringAssert.Contains(workspace.State.LastOperationMessage ?? string.Empty, "surface");
+    }
+
+    [TestMethod]
+    public void Workflow_ScenarioImport_EndToEnd()
+    {
+        var workspace = new SessionWorkspaceService();
+        var scenarioPath = CreateTempFilePath("workflow-scenario-import", SnapshotFileExtensions.Scenario);
+
+        try
+        {
+            workspace.CreateNewSession();
+
+            var serializer = new ScenarioSnapshotSerializer();
+            File.WriteAllText(scenarioPath, serializer.SerializeScenario(CreateScenarioFixture()), Encoding.UTF8);
+
+            workspace.ImportScenarioToPendingPlanFromFile(scenarioPath);
+            Assert.IsNotNull(workspace.State.CurrentPendingScenarioPlan);
+
+            workspace.ActivatePendingScenario();
+
+            var board = new MIMLESvtt.Components.Pages.WorkspaceBoardState();
+            board.EnsureActiveSurface(workspace.State.CurrentTableSession);
+            var rendered = board.GetRenderedPiecesForActiveSurface(workspace.State.CurrentTableSession);
+
+            Assert.IsNotNull(workspace.State.CurrentTableSession);
+            Assert.IsNull(workspace.State.CurrentPendingScenarioPlan);
+            Assert.IsTrue(workspace.State.IsDirty);
+            Assert.AreEqual("surface-1", board.ActiveSurfaceId);
+            Assert.AreEqual(1, rendered.Count);
+            Assert.AreEqual("piece-1", rendered[0].Id);
+            Assert.AreEqual(0, workspace.State.CurrentTableSession.ActionLog.Count);
         }
         finally
         {

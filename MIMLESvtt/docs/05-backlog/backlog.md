@@ -58,6 +58,17 @@ No task should bypass:
 - Scenario pending-plan pipeline is now connected to this authoring save/open workflow.
 - Workspace now includes a lightweight piece palette sidebar driven by stamp presets for faster placement setup.
 - Piece palette entries arm add-at-click placement but are not a full authored-definition editor.
+- Workspace now includes a minimal turn/phase system (turn order, current turn index, current phase) for practical gameplay state.
+- Turn tracking now includes turn number and previous-turn support for a fuller minimal gameplay loop.
+- Workspace now includes a minimal participant/player system with add/remove operations and owner-aware display wiring.
+- Participant workflows now include rename plus selected-piece owner assignment from participant list.
+- Action processing now includes a lightweight pre-execution validation layer for conditional allow/block behavior.
+- Validation checks now explicitly cover piece reference, surface reference, and payload-shape coherence for supported actions.
+- Workspace now supports explicit Edit vs Play modes so authoring and gameplay constraints are separated.
+- Play mode now enforces action validation before execution while Edit mode preserves permissive authoring workflows.
+- Session controls now clearly represent game-state save/load flow, separate from scenario authoring/import flow.
+- Game-state save/load now explicitly preserves live progress fields (participants, turn state, action log).
+- Scenario load remains starting-layout focused and does not carry live game progress state.
 
 ---
 
@@ -183,7 +194,7 @@ Each item should be small enough to implement independently.
 - [~] implement marker system (core add/remove marker actions complete)
 - [ ] implement dice rolling
 - [ ] implement note system
-- [ ] implement basic turn tracking
+- [~] implement basic turn tracking (minimal turn/phase + next/previous-turn + turn number implemented; richer tracker UX/rules pending)
 - [ ] implement basic visibility controls
 
 ---
@@ -215,6 +226,8 @@ Each item should be small enough to implement independently.
 - [ ] build side panel for piece editing
 - [~] build surface controls (active surface switch, compact surface workflow strip, quick add/duplicate surface)
 - [~] build tool controls (stamp mode, preset lifecycle/defaults, cross-surface stamp queue)
+- [~] build participant controls (add/remove/rename panel and selected-piece owner assignment wired; broader UX/validation pending)
+- [~] build gameplay mode controls (Edit/Play toggle and indicator wired; policy depth pending)
 - [ ] build module UI hooks
 - [~] build session management UI (create/open/save/save-as/import/activate flows wired; production UX polish pending)
 
@@ -236,6 +249,10 @@ Each item should be small enough to implement independently.
 - [x] test workspace-state file safety behavior (temp replace, backup fallback, corruption handling)
 - [x] test restore diagnostics flags and strict vs best-effort restore options behavior
 - [x] test board interaction vertical slices (movement/rotation/keyboard, stamp mode, preset lifecycle/defaults, surface strip, cross-surface queue)
+- [x] test participant workflows and ownership consistency
+- [x] test turn/phase system and workspace mode behavior
+- [x] test game-state save/load vs scenario-start separation behavior
+- [x] test action validation payload-shape failures and no-mutation failure behavior
 - [ ] test multiplayer synchronization
 - [ ] test module behavior
 - [~] test domain invariants (covered for current action/persistence boundaries, full invariant suite pending)
@@ -247,7 +264,8 @@ Each item should be small enough to implement independently.
 - [ ] expand domain invariant enforcement (id uniqueness + broader reference checks)
 - [ ] complete remaining core actions (CreatePiece, DeletePiece, SetPieceVisibility, UpdateTableOptions)
 - [ ] add current-session missing-file restore option (strict default, optional best-effort) with matrix tests
-- [ ] add queue templates (UI-only snapshot/reapply of short surface+preset+next-id sequences)
+- [ ] persist workspace mode in workspace recovery state round-trip
+- [ ] tighten owner-reference rules for all piece create/update paths (optionally gated to Play mode)
 
 ---
 

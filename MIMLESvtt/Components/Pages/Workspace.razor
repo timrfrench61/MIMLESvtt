@@ -1,6 +1,7 @@
 @page "/workspace"
 @using MIMLESvtt.src
 @inject SessionWorkspaceService WorkspaceService
+@inject ITableSessionCommandService CommandService
 
 <PageTitle>Workspace</PageTitle>
 
@@ -38,9 +39,9 @@
     <button class="btn btn-warning" @onclick="OpenScenarioForPendingPlan">Open Scenario For Pending Plan</button>
 </div>
 
-@if (!string.IsNullOrWhiteSpace(message))
+@if (!string.IsNullOrWhiteSpace(WorkspaceService.State.LastOperationMessage))
 {
-    <div class="alert @(isError ? "alert-danger" : "alert-info")">@message</div>
+    <div class="alert @GetLastOperationAlertClass()">@WorkspaceService.State.LastOperationMessage</div>
 }
 
 <h3>Session Summary</h3>
@@ -50,6 +51,15 @@
 }
 else
 {
+    <div class="mb-3 p-2 border rounded bg-light">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <strong>Session Details</strong>
+            <span class="text-muted">Id: @WorkspaceService.State.CurrentTableSession.Id</span>
+            <InputText @bind-Value="sessionTitleInput" @bind-Value:event="oninput" class="form-control form-control-sm" style="max-width: 320px;" placeholder="Session title" />
+            <button class="btn btn-sm btn-outline-secondary" @onclick="UpdateSessionTitle">Update Title</button>
+        </div>
+    </div>
+
     <ul>
         <li><strong>Title:</strong> @WorkspaceService.State.CurrentTableSession.Title</li>
         <li><strong>Mode:</strong> @WorkspaceService.State.Mode</li>
@@ -73,9 +83,37 @@ else
 
     <div class="mb-3 p-2 border rounded bg-light">
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+            <strong>Developer Settings</strong>
+            <span class="badge text-bg-warning">Pre-alpha</span>
+        </div>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <div class="form-check mb-0">
+                <input id="dev-enable-multiplayer" class="form-check-input" type="checkbox" @bind="WorkspaceService.State.Settings.EnableMultiplayer" @bind:after="OnDeveloperSettingsChanged" />
+                <label class="form-check-label" for="dev-enable-multiplayer">Enable Multiplayer</label>
+            </div>
+            <div class="form-check mb-0">
+                <input id="dev-enable-rules-validation" class="form-check-input" type="checkbox" @bind="WorkspaceService.State.Settings.EnableRulesValidation" @bind:after="OnDeveloperSettingsChanged" />
+                <label class="form-check-label" for="dev-enable-rules-validation">Enable Rules Validation</label>
+            </div>
+            <div class="form-check mb-0">
+                <input id="dev-enable-stamp-mode" class="form-check-input" type="checkbox" @bind="WorkspaceService.State.Settings.EnableStampMode" @bind:after="OnDeveloperSettingsChanged" />
+                <label class="form-check-label" for="dev-enable-stamp-mode">Enable Stamp Mode</label>
+            </div>
+            <div class="form-check mb-0">
+                <input id="dev-enable-board-interaction" class="form-check-input" type="checkbox" @bind="WorkspaceService.State.Settings.EnableBoardInteraction" @bind:after="OnDeveloperSettingsChanged" />
+                <label class="form-check-label" for="dev-enable-board-interaction">Enable Board Interaction</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3 p-2 border rounded bg-light">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
             <strong>Turn / Phase</strong>
+            <span>Turn: <strong>@WorkspaceService.State.CurrentTableSession.TurnNumber</strong></span>
+            <span>Index: <strong>@WorkspaceService.State.CurrentTableSession.CurrentTurnIndex</strong></span>
             <span>Current Player: <strong>@GetCurrentTurnParticipant()</strong></span>
             <span>Phase: <strong>@(string.IsNullOrWhiteSpace(WorkspaceService.State.CurrentTableSession.CurrentPhase) ? "(none)" : WorkspaceService.State.CurrentTableSession.CurrentPhase)</strong></span>
+            <button class="btn btn-sm btn-outline-primary" @onclick="PreviousTurn" disabled="@(WorkspaceService.State.CurrentTableSession.TurnOrder.Count == 0)">Previous Turn</button>
             <button class="btn btn-sm btn-outline-primary" @onclick="AdvanceTurn" disabled="@(WorkspaceService.State.CurrentTableSession.TurnOrder.Count == 0)">Next Turn</button>
         </div>
         <div class="d-flex flex-wrap gap-2 align-items-center">
@@ -88,12 +126,60 @@ else
 
     <div class="mb-3 p-2 border rounded bg-light">
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+            <strong>Initiative / Roster</strong>
+            <span>Current: <strong>@GetCurrentTurnParticipant()</strong></span>
+            <span>Turn: <strong>@WorkspaceService.State.CurrentTableSession.TurnNumber</strong></span>
+            <span>Phase: <strong>@(string.IsNullOrWhiteSpace(WorkspaceService.State.CurrentTableSession.CurrentPhase) ? "(none)" : WorkspaceService.State.CurrentTableSession.CurrentPhase)</strong></span>
+        </div>
+
+        @if (WorkspaceService.State.CurrentTableSession.TurnOrder.Count == 0)
+        {
+            <small class="text-muted">No turn order initialized yet.</small>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Participant</th>
+                            <th>Owned Pieces</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < WorkspaceService.State.CurrentTableSession.TurnOrder.Count; i++)
+                        {
+                            var participantId = WorkspaceService.State.CurrentTableSession.TurnOrder[i];
+                            var isActive = i == WorkspaceService.State.CurrentTableSession.CurrentTurnIndex;
+                            <tr class="@(isActive ? "table-primary" : string.Empty)">
+                                <td>@(i + 1)</td>
+                                <td>@GetParticipantDisplayById(participantId)</td>
+                                <td>@GetOwnedPiecesSummary(participantId)</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => MoveTurnParticipantUp(participantId)" disabled="@(i == 0)">↑</button>
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => MoveTurnParticipantDown(participantId)" disabled="@(i == WorkspaceService.State.CurrentTableSession.TurnOrder.Count - 1)">↓</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="mb-3 p-2 border rounded bg-light">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
             <strong>Participants</strong>
             <InputText @bind-Value="participantIdInput" class="form-control form-control-sm" style="max-width: 160px;" placeholder="Id" />
             <InputText @bind-Value="participantNameInput" class="form-control form-control-sm" style="max-width: 200px;" placeholder="Name" />
             <button class="btn btn-sm btn-outline-primary" @onclick="AddParticipantToSession">Add Participant</button>
             <InputText @bind-Value="removeParticipantIdInput" class="form-control form-control-sm" style="max-width: 180px;" placeholder="Remove Id" />
             <button class="btn btn-sm btn-outline-danger" @onclick="RemoveParticipantFromSession">Remove Participant</button>
+            <InputText @bind-Value="renameParticipantIdInput" class="form-control form-control-sm" style="max-width: 160px;" placeholder="Rename Id" />
+            <InputText @bind-Value="renameParticipantNameInput" class="form-control form-control-sm" style="max-width: 200px;" placeholder="New Name" />
+            <button class="btn btn-sm btn-outline-secondary" @onclick="RenameParticipantInSession">Rename Participant</button>
         </div>
 
         @if (WorkspaceService.State.CurrentTableSession.Participants.Count == 0)
@@ -406,6 +492,51 @@ else
             <button class="btn btn-sm btn-outline-primary" @onclick="MoveSelectedGroupByDelta">Move Selected Group</button>
         </div>
 
+        <div class="mb-3 p-2 border rounded bg-light">
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <strong>Piece Groups (Stack-lite)</strong>
+                <InputText @bind-Value="groupLabelInput" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Group label (optional)" />
+                <button class="btn btn-sm btn-outline-primary" @onclick="CreateGroupFromSelection">Create From Selection</button>
+                <InputNumber @bind-Value="groupMoveDeltaX" class="form-control form-control-sm" style="max-width: 110px;" />
+                <InputNumber @bind-Value="groupMoveDeltaY" class="form-control form-control-sm" style="max-width: 110px;" />
+                <button class="btn btn-sm btn-outline-secondary" @onclick="MoveSelectedGroupByDeltaControl" disabled="@string.IsNullOrWhiteSpace(selectedGroupId)">Move Group By Δ</button>
+            </div>
+
+            @if (board.PieceGroups.Count == 0)
+            {
+                <small class="text-muted">No groups yet. Select multiple pieces and create a temporary group.</small>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Label</th>
+                                <th>Members</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var group in board.PieceGroups)
+                            {
+                                var isActiveGroup = string.Equals(selectedGroupId, group.GroupId, StringComparison.Ordinal);
+                                <tr class="@(isActiveGroup ? "table-primary" : string.Empty)">
+                                    <td>@group.Label</td>
+                                    <td>@board.GetGroupMembersSummary(group.GroupId)</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => SelectGroup(group.GroupId)">Select Group</button>
+                                        <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => MoveGroupByDelta(group.GroupId)">Move</button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DisbandGroup(group.GroupId)">Disband</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
         <div class="row g-2 mb-3">
             <div class="col-auto align-self-end">
                 <div class="form-check">
@@ -417,7 +548,7 @@ else
             {
                 <div class="col-auto align-self-end">
                     <div class="form-check">
-                        <input id="stamp-mode-toggle" class="form-check-input" type="checkbox" @bind="stampModeEnabled" />
+                        <input id="stamp-mode-toggle" class="form-check-input" type="checkbox" @bind="stampModeEnabled" disabled="@(!WorkspaceService.State.Settings.EnableStampMode)" />
                         <label class="form-check-label" for="stamp-mode-toggle">Stamp Mode (repeat placement)</label>
                     </div>
                 </div>
@@ -655,6 +786,70 @@ else
                 <strong>Selected Piece:</strong>
                 @selectedPiece.Id on @selectedPiece.Location.SurfaceId at (@selectedPiece.Location.Coordinate.X, @selectedPiece.Location.Coordinate.Y), rotation @selectedPiece.Rotation.Degrees°, owner @GetOwnerDisplayForPiece(selectedPiece)
             </div>
+
+            <div class="mb-3 p-2 border rounded bg-light">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                    <strong>Selected Piece Data</strong>
+                    <span>Label: <strong>@GetPieceLabel(selectedPiece)</strong></span>
+                    <span>HP: <strong>@GetPieceStateDisplayValue(selectedPiece, "HP")</strong></span>
+                    <span>Notes: <strong>@GetPieceStateDisplayValue(selectedPiece, "Notes")</strong></span>
+                    <span>Tags: <strong>@GetPieceStateDisplayValue(selectedPiece, "Tags")</strong></span>
+                    <span>Markers: <strong>@GetMarkerSummary(selectedPiece)</strong></span>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                    <InputText @bind-Value="stateKey" class="form-control form-control-sm" style="max-width: 180px;" placeholder="State Key" />
+                    <InputText @bind-Value="stateValue" class="form-control form-control-sm" style="max-width: 220px;" placeholder="State Value" />
+                    <button class="btn btn-sm btn-outline-primary" @onclick="ChangePieceState">Add/Update State</button>
+                    <InputText @bind-Value="removeStateKey" class="form-control form-control-sm" style="max-width: 180px;" placeholder="Key to remove" />
+                    <button class="btn btn-sm btn-outline-danger" @onclick="RemovePieceState">Remove Key</button>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                    <span><strong>HP Quick Update:</strong></span>
+                    <InputNumber @bind-Value="quickHpValue" class="form-control form-control-sm" style="max-width: 120px;" />
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="SetPieceHpState">Set HP</button>
+                </div>
+
+                @if (selectedPiece.State.Count == 0)
+                {
+                    <small class="text-muted">No state keys on selected piece.</small>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Key</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var entry in selectedPiece.State.OrderBy(kvp => kvp.Key, StringComparer.Ordinal))
+                                {
+                                    <tr>
+                                        <td>@entry.Key</td>
+                                        <td>@FormatStateValue(entry.Value)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+
+            <div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+                <strong>Assign Owner</strong>
+                <select class="form-select form-select-sm" style="max-width: 280px;" @bind="selectedPieceOwnerParticipantId">
+                    <option value="">(none)</option>
+                    @foreach (var participant in WorkspaceService.State.CurrentTableSession.Participants)
+                    {
+                        <option value="@participant.Id">@participant.Name (@participant.Id)</option>
+                    }
+                </select>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="AssignOwnerToSelectedPiece">Apply Owner</button>
+            </div>
         }
     }
 
@@ -668,7 +863,7 @@ else
     {
         <div class="mb-3">
             <label class="form-label">Select piece</label>
-            <select class="form-select" @bind="selectedPieceId">
+            <select class="form-select" @bind="selectedPieceId" @bind:after="OnSelectedPieceChangedFromList">
                 <option value="">(select piece)</option>
                 @foreach (var piece in WorkspaceService.State.CurrentTableSession.Pieces)
                 {
@@ -779,17 +974,58 @@ else
     </ul>
 }
 
+@if (WorkspaceService.State.CurrentTableSession is not null)
+{
+    <h3>Play Log</h3>
+    @if (WorkspaceService.State.CurrentTableSession.ActionLog.Count == 0)
+    {
+        <p>No actions recorded yet.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Time (UTC)</th>
+                        <th>Action</th>
+                        <th>Actor</th>
+                        <th>Summary</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var action in WorkspaceService.State.CurrentTableSession.ActionLog.TakeLast(20).Reverse())
+                    {
+                        <tr>
+                            <td>@action.TimestampUtc.ToString("u")</td>
+                            <td>@action.ActionType</td>
+                            <td>@action.ActorParticipantId</td>
+                            <td>@ActionFeedSummaryFormatter.SummarizeActionPayload(action)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
 @code {
     private readonly WorkspaceBoardState board = new();
 
     private string? sessionPath;
     private string? scenarioPath;
     private string scenarioTitle = "Current Workspace Layout";
+    private string sessionTitleInput = string.Empty;
     private string turnOrderInput = "player-1, player-2";
     private string phaseInput = "Setup";
     private string participantIdInput = "player-1";
     private string participantNameInput = "Player 1";
     private string removeParticipantIdInput = string.Empty;
+    private string renameParticipantIdInput = string.Empty;
+    private string renameParticipantNameInput = string.Empty;
+    private string selectedPieceOwnerParticipantId = string.Empty;
+    private string removeStateKey = string.Empty;
+    private int quickHpValue;
 
     private string? selectedPieceId;
 
@@ -834,6 +1070,8 @@ else
     private string queueTemplateNameInput = string.Empty;
     private string? selectedQueueTemplateName;
     private readonly Dictionary<string, string> queueTemplateRenameBufferByName = new(StringComparer.Ordinal);
+    private string groupLabelInput = string.Empty;
+    private string? selectedGroupId;
 
     private const float BoardMaxX = 620f;
     private const float BoardMaxY = 360f;
@@ -849,10 +1087,6 @@ else
     private readonly BoardVisibilityOptions boardVisibility = new();
     private string boardVisibilityDefinitionFilter = string.Empty;
     private string boardVisibilityOwnerFilter = string.Empty;
-
-    private string? message;
-    private bool isError;
-
     protected override void OnInitialized()
     {
         if (WorkspaceService.State.CurrentTableSession is null)
@@ -866,10 +1100,12 @@ else
         {
             selectedPieceId = WorkspaceService.State.CurrentTableSession.Pieces[0].Id;
             board.SelectedPieceId = selectedPieceId;
+            selectedPieceOwnerParticipantId = WorkspaceService.State.CurrentTableSession.Pieces[0].OwnerParticipantId;
         }
 
         previousActiveSurfaceId = board.ActiveSurfaceId;
         phaseInput = WorkspaceService.State.CurrentTableSession.CurrentPhase;
+        sessionTitleInput = WorkspaceService.State.CurrentTableSession.Title;
     }
 
     private void AddSurface()
@@ -901,6 +1137,7 @@ else
 
             selectedPieceId = newPieceId;
             board.SelectedPieceId = selectedPieceId;
+            selectedPieceOwnerParticipantId = newPieceOwnerParticipantId;
             board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
         }, "Added piece.");
     }
@@ -913,7 +1150,16 @@ else
             board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
             selectedPieceId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.Id;
             board.SelectedPieceId = selectedPieceId;
+            selectedPieceOwnerParticipantId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.OwnerParticipantId ?? string.Empty;
             phaseInput = WorkspaceService.State.CurrentTableSession?.CurrentPhase ?? string.Empty;
+            sessionTitleInput = WorkspaceService.State.CurrentTableSession?.Title ?? string.Empty;
+
+            var sessionId = WorkspaceService.State.CurrentTableSession?.Id;
+            var shortId = !string.IsNullOrWhiteSpace(sessionId) && sessionId.Length >= 8 ? sessionId[..8] : sessionId;
+            WorkspaceService.State.LastOperationMessage = $"Created new workspace session ({shortId}) at {DateTime.Now:T}.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
+
+            StateHasChanged();
         }, "Created new session.");
     }
 
@@ -925,7 +1171,9 @@ else
             board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
             selectedPieceId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.Id;
             board.SelectedPieceId = selectedPieceId;
+            selectedPieceOwnerParticipantId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.OwnerParticipantId ?? string.Empty;
             phaseInput = WorkspaceService.State.CurrentTableSession?.CurrentPhase ?? string.Empty;
+            sessionTitleInput = WorkspaceService.State.CurrentTableSession?.Title ?? string.Empty;
         }, "Opened session from file.");
     }
 
@@ -957,8 +1205,27 @@ else
             board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
             selectedPieceId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.Id;
             board.SelectedPieceId = selectedPieceId;
+            selectedPieceOwnerParticipantId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.OwnerParticipantId ?? string.Empty;
             phaseInput = WorkspaceService.State.CurrentTableSession?.CurrentPhase ?? string.Empty;
+            sessionTitleInput = WorkspaceService.State.CurrentTableSession?.Title ?? string.Empty;
         }, "Activated pending scenario.");
+    }
+
+    private void UpdateSessionTitle()
+    {
+        try
+        {
+            WorkspaceService.UpdateSessionTitle(sessionTitleInput);
+            sessionTitleInput = WorkspaceService.State.CurrentTableSession?.Title ?? sessionTitleInput;
+            WorkspaceService.State.LastOperationMessage = $"Updated session title to '{sessionTitleInput}'.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
+        }
     }
 
     private void InitializeTurnOrderFromInput()
@@ -976,6 +1243,21 @@ else
     private void AdvanceTurn()
     {
         Execute(() => WorkspaceService.AdvanceTurn(), "Advanced to next turn.");
+    }
+
+    private void PreviousTurn()
+    {
+        Execute(() => WorkspaceService.PreviousTurn(), "Moved to previous turn.");
+    }
+
+    private void MoveTurnParticipantUp(string participantId)
+    {
+        Execute(() => WorkspaceService.MoveTurnParticipantUp(participantId), "Moved turn participant up.");
+    }
+
+    private void MoveTurnParticipantDown(string participantId)
+    {
+        Execute(() => WorkspaceService.MoveTurnParticipantDown(participantId), "Moved turn participant down.");
     }
 
     private void SetCurrentPhase()
@@ -999,6 +1281,8 @@ else
         {
             WorkspaceService.AddParticipant(participantIdInput, participantNameInput);
             removeParticipantIdInput = participantIdInput;
+            renameParticipantIdInput = participantIdInput;
+            renameParticipantNameInput = participantNameInput;
             if (!string.IsNullOrWhiteSpace(turnOrderInput))
             {
                 turnOrderInput += ", ";
@@ -1010,7 +1294,35 @@ else
 
     private void RemoveParticipantFromSession()
     {
-        Execute(() => WorkspaceService.RemoveParticipant(removeParticipantIdInput), "Removed participant.");
+        Execute(() =>
+        {
+            WorkspaceService.RemoveParticipant(removeParticipantIdInput);
+            if (string.Equals(selectedPieceOwnerParticipantId, removeParticipantIdInput, StringComparison.Ordinal))
+            {
+                selectedPieceOwnerParticipantId = string.Empty;
+            }
+        }, "Removed participant.");
+    }
+
+    private void RenameParticipantInSession()
+    {
+        Execute(() => WorkspaceService.RenameParticipant(renameParticipantIdInput, renameParticipantNameInput), "Renamed participant.");
+    }
+
+    private void AssignOwnerToSelectedPiece()
+    {
+        Execute(() =>
+        {
+            var pieceId = RequireSelectedPiece();
+            WorkspaceService.AssignPieceOwner(pieceId, selectedPieceOwnerParticipantId);
+        }, "Updated selected piece owner.");
+    }
+
+    private void OnSelectedPieceChangedFromList()
+    {
+        var piece = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault(p => p.Id == selectedPieceId);
+        selectedPieceOwnerParticipantId = piece?.OwnerParticipantId ?? string.Empty;
+        board.SelectedPieceId = selectedPieceId;
     }
 
     private string GetCurrentTurnParticipant()
@@ -1057,19 +1369,96 @@ else
         return $"{participant.Name} ({participant.Id})";
     }
 
+    private string GetOwnedPiecesSummary(string participantId)
+    {
+        var session = WorkspaceService.State.CurrentTableSession;
+        if (session is null)
+        {
+            return "0";
+        }
+
+        var ownedPieceIds = session.Pieces
+            .Where(p => string.Equals(p.OwnerParticipantId, participantId, StringComparison.Ordinal))
+            .Select(p => p.Id)
+            .ToList();
+
+        if (ownedPieceIds.Count == 0)
+        {
+            return "0";
+        }
+
+        return $"{ownedPieceIds.Count} ({string.Join(", ", ownedPieceIds)})";
+    }
+
     private void UndoLastWorkspaceOperation()
     {
         try
         {
             WorkspaceService.UndoLastOperation();
-            message = WorkspaceService.State.LastOperationMessage;
-            isError = false;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
+    }
+
+    private void CreateGroupFromSelection()
+    {
+        Execute(() =>
+        {
+            var group = board.CreateGroupFromSelection(groupLabelInput);
+            selectedGroupId = group.GroupId;
+        }, "Created piece group from selection.");
+    }
+
+    private void DisbandGroup(string groupId)
+    {
+        Execute(() =>
+        {
+            if (!board.DisbandGroup(groupId))
+            {
+                throw new InvalidOperationException("Selected group was not found.");
+            }
+
+            if (string.Equals(selectedGroupId, groupId, StringComparison.Ordinal))
+            {
+                selectedGroupId = null;
+            }
+        }, "Disbanded piece group.");
+    }
+
+    private void SelectGroup(string groupId)
+    {
+        var selectedCount = board.SelectGroup(groupId);
+        selectedPieceId = board.SelectedPieceId;
+        selectedGroupId = groupId;
+        WorkspaceService.State.LastOperationMessage = $"Selected {selectedCount} piece(s) in group.";
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
+    }
+
+    private void MoveGroupByDelta(string groupId)
+    {
+        Execute(() =>
+        {
+            selectedGroupId = groupId;
+            board.MoveGroupByDelta(WorkspaceService, groupId, groupMoveDeltaX, groupMoveDeltaY, clampToBoard, BoardMaxX, BoardMaxY);
+            selectedPieceId = board.SelectedPieceId;
+        }, "Moved group by delta.");
+    }
+
+    private void MoveSelectedGroupByDeltaControl()
+    {
+        Execute(() =>
+        {
+            if (string.IsNullOrWhiteSpace(selectedGroupId))
+            {
+                throw new InvalidOperationException("Select a group first.");
+            }
+
+            board.MoveGroupByDelta(WorkspaceService, selectedGroupId, groupMoveDeltaX, groupMoveDeltaY, clampToBoard, BoardMaxX, BoardMaxY);
+            selectedPieceId = board.SelectedPieceId;
+        }, "Moved selected group by delta.");
     }
 
     private void OnDefinitionFilterChanged()
@@ -1089,8 +1478,8 @@ else
         if (board.ClearHiddenSelections(WorkspaceService.State.CurrentTableSession, boardVisibility))
         {
             selectedPieceId = board.SelectedPieceId;
-            message = "Cleared selection for pieces hidden by current board visibility filters.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = "Cleared selection for pieces hidden by current board visibility filters.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
         }
     }
 
@@ -1099,13 +1488,11 @@ else
         try
         {
             WorkspaceService.RedoLastOperation();
-            message = WorkspaceService.State.LastOperationMessage;
-            isError = false;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1129,6 +1516,7 @@ else
             moveX = piece.Location.Coordinate.X;
             moveY = piece.Location.Coordinate.Y;
             rotateDegrees = piece.Rotation.Degrees;
+            selectedPieceOwnerParticipantId = piece.OwnerParticipantId;
         }
     }
 
@@ -1136,16 +1524,16 @@ else
     {
         board.ClearSelection();
         selectedPieceId = null;
-        message = "Cleared board selection.";
-        isError = false;
+        WorkspaceService.State.LastOperationMessage = "Cleared board selection.";
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
     }
 
     private void SelectAllOnActiveSurface()
     {
         var selectedCount = board.SelectAllPiecesOnActiveSurface(WorkspaceService.State.CurrentTableSession);
         selectedPieceId = board.SelectedPieceId;
-        message = $"Selected {selectedCount} piece(s) on active surface.";
-        isError = false;
+        WorkspaceService.State.LastOperationMessage = $"Selected {selectedCount} piece(s) on active surface.";
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
     }
 
     private void MoveSelectedGroupByDelta()
@@ -1153,20 +1541,20 @@ else
         try
         {
             var moved = board.MoveSelectedPiecesByDelta(
-                WorkspaceService,
+                CommandService,
                 groupMoveDeltaX,
                 groupMoveDeltaY,
                 clampToBoard,
                 BoardMaxX,
                 BoardMaxY);
 
-            message = $"Moved {moved} selected piece(s) by ΔX={groupMoveDeltaX}, ΔY={groupMoveDeltaY}.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Moved {moved} selected piece(s) by ΔX={groupMoveDeltaX}, ΔY={groupMoveDeltaY}.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1183,13 +1571,13 @@ else
             selectedStampPresetName = preset.Name;
             board.ApplyPreset(preset.Name);
             stampPresetNameInput = string.Empty;
-            message = $"Saved stamp preset '{preset.Name}'.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Saved stamp preset '{preset.Name}'.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1210,8 +1598,8 @@ else
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1219,8 +1607,8 @@ else
     {
         if (string.IsNullOrWhiteSpace(selectedStampPresetName))
         {
-            message = "Select a preset first.";
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = "Select a preset first.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
@@ -1231,8 +1619,8 @@ else
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1244,13 +1632,13 @@ else
             ApplyPresetToQuickCreate(preset, setMessage: false);
             selectedStampPresetName = preset.Name;
             addPieceAtBoardClickMode = true;
-            message = $"Armed placement from palette entry '{preset.Name}'.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Armed placement from palette entry '{preset.Name}'.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1258,16 +1646,16 @@ else
     {
         selectedStampPresetName = string.Empty;
         board.ClearActivePresetSelection();
-        message = "Cleared active preset selection.";
-        isError = false;
+        WorkspaceService.State.LastOperationMessage = "Cleared active preset selection.";
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
     }
 
     private void RenameSelectedStampPreset()
     {
         if (string.IsNullOrWhiteSpace(selectedStampPresetName))
         {
-            message = "Select a preset first.";
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = "Select a preset first.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
@@ -1276,13 +1664,13 @@ else
             var renamed = board.RenamePreset(selectedStampPresetName, stampPresetRenameInput);
             selectedStampPresetName = renamed.Name;
             stampPresetRenameInput = string.Empty;
-            message = $"Renamed preset to '{renamed.Name}'.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Renamed preset to '{renamed.Name}'.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1290,8 +1678,8 @@ else
     {
         if (string.IsNullOrWhiteSpace(selectedStampPresetName))
         {
-            message = "Select a preset first.";
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = "Select a preset first.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
@@ -1300,13 +1688,13 @@ else
             var duplicated = board.DuplicatePreset(selectedStampPresetName);
             selectedStampPresetName = duplicated.Name;
             ApplyPresetToQuickCreate(duplicated, setMessage: false);
-            message = $"Duplicated preset as '{duplicated.Name}'.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Duplicated preset as '{duplicated.Name}'.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1314,21 +1702,21 @@ else
     {
         if (string.IsNullOrWhiteSpace(selectedStampPresetName) || string.IsNullOrWhiteSpace(board.ActiveSurfaceId))
         {
-            message = "Select a preset and active surface first.";
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = "Select a preset and active surface first.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
         try
         {
             board.SetDefaultPresetForSurface(board.ActiveSurfaceId, selectedStampPresetName);
-            message = $"Set '{selectedStampPresetName}' as default for surface '{board.ActiveSurfaceId}'.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Set '{selectedStampPresetName}' as default for surface '{board.ActiveSurfaceId}'.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1336,14 +1724,14 @@ else
     {
         if (string.IsNullOrWhiteSpace(board.ActiveSurfaceId))
         {
-            message = "Select an active surface first.";
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = "Select an active surface first.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
         board.ClearDefaultPresetForSurface(board.ActiveSurfaceId);
-        message = $"Cleared default preset for surface '{board.ActiveSurfaceId}'.";
-        isError = false;
+        WorkspaceService.State.LastOperationMessage = $"Cleared default preset for surface '{board.ActiveSurfaceId}'.";
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
     }
 
     private void DeleteSelectedStampPreset()
@@ -1351,13 +1739,13 @@ else
         var deletedPresetName = selectedStampPresetName;
         if (!board.RemovePreset(selectedStampPresetName))
         {
-            message = "Select a preset to delete.";
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = "Select a preset to delete.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
-        message = $"Deleted stamp preset '{deletedPresetName}'.";
-        isError = false;
+        WorkspaceService.State.LastOperationMessage = $"Deleted stamp preset '{deletedPresetName}'.";
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         selectedStampPresetName = string.Empty;
     }
 
@@ -1387,8 +1775,8 @@ else
 
         if (setMessage)
         {
-            message = $"Applied stamp preset '{preset.Name}'.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Applied stamp preset '{preset.Name}'.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
     }
 
@@ -1398,8 +1786,8 @@ else
         {
             if (string.IsNullOrWhiteSpace(board.ActiveSurfaceId))
             {
-                message = "Select an active surface first.";
-                isError = true;
+                WorkspaceService.State.LastOperationMessage = "Select an active surface first.";
+                WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
                 return;
             }
 
@@ -1409,13 +1797,13 @@ else
                 quickCreatePieceId,
                 stampQueueNote);
 
-            message = $"Added queue item for surface '{queueItem.SurfaceId}' with next id '{queueItem.NextPieceId}'.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Added queue item for surface '{queueItem.SurfaceId}' with next id '{queueItem.NextPieceId}'.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1431,8 +1819,8 @@ else
             out var clearedSelection,
             out var statusMessage))
         {
-            message = statusMessage;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = statusMessage;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
@@ -1448,10 +1836,10 @@ else
         previousActiveSurfaceId = board.ActiveSurfaceId;
         addPieceAtBoardClickMode = true;
 
-        message = clearedSelection
+        WorkspaceService.State.LastOperationMessage = clearedSelection
             ? $"Applied queue item {index + 1} and cleared off-surface selection."
             : $"Applied queue item {index + 1} to board context.";
-        isError = false;
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
     }
 
     private void ApplyNextQueueItem()
@@ -1465,8 +1853,8 @@ else
             out var clearedSelection,
             out var statusMessage))
         {
-            message = statusMessage;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = statusMessage;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
@@ -1482,49 +1870,49 @@ else
         previousActiveSurfaceId = board.ActiveSurfaceId;
         addPieceAtBoardClickMode = true;
 
-        message = clearedSelection
+        WorkspaceService.State.LastOperationMessage = clearedSelection
             ? "Applied next queue item and cleared off-surface selection."
             : "Applied next queue item to board context.";
-        isError = false;
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
     }
 
     private void RemoveQueueItem(int index)
     {
         if (!board.RemoveQueueItem(index))
         {
-            message = "Queue item was not found.";
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = "Queue item was not found.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
-        message = $"Removed queue item {index + 1}.";
-        isError = false;
+        WorkspaceService.State.LastOperationMessage = $"Removed queue item {index + 1}.";
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
     }
 
     private void MoveQueueItemUp(int index)
     {
         if (!board.MoveQueueItemUp(index))
         {
-            message = "Queue item cannot move up.";
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = "Queue item cannot move up.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
-        message = $"Moved queue item {index + 1} up.";
-        isError = false;
+        WorkspaceService.State.LastOperationMessage = $"Moved queue item {index + 1} up.";
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
     }
 
     private void MoveQueueItemDown(int index)
     {
         if (!board.MoveQueueItemDown(index))
         {
-            message = "Queue item cannot move down.";
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = "Queue item cannot move down.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
-        message = $"Moved queue item {index + 1} down.";
-        isError = false;
+        WorkspaceService.State.LastOperationMessage = $"Moved queue item {index + 1} down.";
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
     }
 
     private void UpdateQueueItemNextId(int index, ChangeEventArgs args)
@@ -1532,8 +1920,8 @@ else
         var nextId = args.Value?.ToString();
         if (!board.UpdateQueueItemNextId(index, nextId ?? string.Empty))
         {
-            message = "Next id must be provided for queue item.";
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = "Next id must be provided for queue item.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
@@ -1543,8 +1931,8 @@ else
             quickCreateBasePieceId = nextId ?? string.Empty;
         }
 
-        message = $"Updated queue item {index + 1} next id to '{nextId}'.";
-        isError = false;
+        WorkspaceService.State.LastOperationMessage = $"Updated queue item {index + 1} next id to '{nextId}'.";
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
     }
 
     private void SaveQueueAsTemplate()
@@ -1555,13 +1943,13 @@ else
             selectedQueueTemplateName = template.TemplateName;
             queueTemplateRenameBufferByName[template.TemplateName] = template.TemplateName;
             queueTemplateNameInput = string.Empty;
-            message = $"Saved queue template '{template.TemplateName}'.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Saved queue template '{template.TemplateName}'.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1571,13 +1959,13 @@ else
         {
             var template = board.ApplyTemplateToQueue(templateName);
             selectedQueueTemplateName = template.TemplateName;
-            message = $"Applied queue template '{template.TemplateName}' to current queue.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Applied queue template '{template.TemplateName}' to current queue.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1585,8 +1973,8 @@ else
     {
         if (!board.DeleteQueueTemplate(templateName))
         {
-            message = "Template was not found.";
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = "Template was not found.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
@@ -1596,8 +1984,8 @@ else
             selectedQueueTemplateName = null;
         }
 
-        message = $"Deleted queue template '{templateName}'.";
-        isError = false;
+        WorkspaceService.State.LastOperationMessage = $"Deleted queue template '{templateName}'.";
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
     }
 
     private void RenameQueueTemplate(string templateName)
@@ -1613,13 +2001,13 @@ else
             queueTemplateRenameBufferByName.Remove(templateName);
             queueTemplateRenameBufferByName[renamed.TemplateName] = renamed.TemplateName;
             selectedQueueTemplateName = renamed.TemplateName;
-            message = $"Renamed queue template to '{renamed.TemplateName}'.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Renamed queue template to '{renamed.TemplateName}'.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1630,13 +2018,13 @@ else
             var duplicated = board.DuplicateQueueTemplate(templateName);
             selectedQueueTemplateName = duplicated.TemplateName;
             queueTemplateRenameBufferByName[duplicated.TemplateName] = duplicated.TemplateName;
-            message = $"Duplicated queue template as '{duplicated.TemplateName}'.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Duplicated queue template as '{duplicated.TemplateName}'.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1671,8 +2059,8 @@ else
         var session = WorkspaceService.State.CurrentTableSession;
         if (session is null)
         {
-            message = "Current session is required before switching surfaces.";
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = "Current session is required before switching surfaces.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
@@ -1685,8 +2073,8 @@ else
 
         if (!board.TrySwitchActiveSurface(session, surfaceId, clearSelectionWhenSwitchingSurfaces: true, out var clearedSelection, out var switchMessage))
         {
-            message = switchMessage;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = switchMessage;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
@@ -1709,8 +2097,8 @@ else
 
             if (includeSuccessMessage)
             {
-                message = $"Switched to '{board.ActiveSurfaceId}' and applied default preset '{defaultPreset.Name}'.";
-                isError = false;
+                WorkspaceService.State.LastOperationMessage = $"Switched to '{board.ActiveSurfaceId}' and applied default preset '{defaultPreset.Name}'.";
+                WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
             }
 
             return;
@@ -1718,10 +2106,10 @@ else
 
         if (includeSuccessMessage)
         {
-            message = clearedSelection
+            WorkspaceService.State.LastOperationMessage = clearedSelection
                 ? $"Switched to '{board.ActiveSurfaceId}'. Cleared selected piece because it was on another surface."
                 : $"Switched to '{board.ActiveSurfaceId}'.";
-            isError = false;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
     }
 
@@ -1737,8 +2125,8 @@ else
         if (string.IsNullOrWhiteSpace(presetName))
         {
             board.ClearDefaultPresetForSurface(surfaceId);
-            message = $"Cleared default preset for surface '{surfaceId}'.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Cleared default preset for surface '{surfaceId}'.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
             return;
         }
 
@@ -1753,13 +2141,13 @@ else
                 selectedStampPresetName = preset.Name;
             }
 
-            message = $"Set '{presetName}' as default preset for surface '{surfaceId}'.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Set '{presetName}' as default preset for surface '{surfaceId}'.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1767,21 +2155,21 @@ else
     {
         if (string.IsNullOrWhiteSpace(board.ActiveStampPresetName))
         {
-            message = "Select or apply a preset first.";
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = "Select or apply a preset first.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             return;
         }
 
         try
         {
             board.SetDefaultPresetForSurface(surfaceId, board.ActiveStampPresetName);
-            message = $"Applied active preset '{board.ActiveStampPresetName}' to surface '{surfaceId}' default.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = $"Applied active preset '{board.ActiveStampPresetName}' to surface '{surfaceId}' default.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1837,15 +2225,15 @@ else
     private void ClearNextIdPreview()
     {
         quickCreatePieceId = string.Empty;
-        message = "Cleared next id preview.";
-        isError = false;
+        WorkspaceService.State.LastOperationMessage = "Cleared next id preview.";
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
     }
 
     private void ResetNextIdPreviewToBase()
     {
         quickCreatePieceId = board.ResetPieceIdPreview(quickCreateBasePieceId);
-        message = "Reset next id preview to base id.";
-        isError = false;
+        WorkspaceService.State.LastOperationMessage = "Reset next id preview to base id.";
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
     }
 
     private void NudgeNextIdUp()
@@ -1863,18 +2251,24 @@ else
         try
         {
             quickCreatePieceId = board.NudgePieceIdPreview(quickCreatePieceId, delta);
-            message = delta > 0 ? "Advanced next id preview by +1." : "Decremented next id preview by -1.";
-            isError = false;
+            WorkspaceService.State.LastOperationMessage = delta > 0 ? "Advanced next id preview by +1." : "Decremented next id preview by -1.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
     private void BoardClicked(MouseEventArgs args)
     {
+        if (!WorkspaceService.State.Settings.EnableBoardInteraction)
+        {
+            WorkspaceService.ReportFeatureNotEnabled();
+            return;
+        }
+
         var offsetX = (float)Math.Clamp(args.OffsetX, 0, BoardMaxX);
         var offsetY = (float)Math.Clamp(args.OffsetY, 0, BoardMaxY);
         lastBoardClickX = offsetX;
@@ -1885,7 +2279,7 @@ else
         try
         {
             if (board.TryHandleBoardClick(
-                WorkspaceService,
+                CommandService,
                 moveX,
                 moveY,
                 addPieceAtBoardClickMode,
@@ -1922,19 +2316,19 @@ else
                     addPieceAtBoardClickMode = keepAddPieceAtBoardClickMode;
                 }
 
-                message = statusMessage;
-                isError = false;
+                WorkspaceService.State.LastOperationMessage = statusMessage;
+                WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
             }
             else
             {
-                message = statusMessage;
-                isError = true;
+                WorkspaceService.State.LastOperationMessage = statusMessage;
+                WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             }
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
 
     }
@@ -1951,10 +2345,16 @@ else
 
     private void OnBoardKeyDown(KeyboardEventArgs args)
     {
+        if (!WorkspaceService.State.Settings.EnableBoardInteraction)
+        {
+            WorkspaceService.ReportFeatureNotEnabled();
+            return;
+        }
+
         try
         {
             if (board.TryHandleKeyboardInput(
-                WorkspaceService,
+                CommandService,
                 args.Key,
                 isBoardFocused,
                 selectedNudgeStep,
@@ -1964,19 +2364,19 @@ else
                 BoardMaxY,
                 out var statusMessage))
             {
-                message = statusMessage;
-                isError = false;
+                WorkspaceService.State.LastOperationMessage = statusMessage;
+                WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
             }
             else if (!string.IsNullOrWhiteSpace(statusMessage))
             {
-                message = statusMessage;
-                isError = true;
+                WorkspaceService.State.LastOperationMessage = statusMessage;
+                WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             }
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -1984,7 +2384,7 @@ else
     {
         Execute(() =>
         {
-            board.MoveSelectedPiece(WorkspaceService, moveX, moveY, clampToBoard, BoardMaxX, BoardMaxY);
+            board.MoveSelectedPiece(CommandService, moveX, moveY, clampToBoard, BoardMaxX, BoardMaxY);
             board.SelectedPieceId = selectedPieceId;
         }, "Moved piece from board panel.");
     }
@@ -1994,7 +2394,7 @@ else
         try
         {
             if (board.TryCenterSelectedPiece(
-                WorkspaceService,
+                CommandService,
                 BoardMaxX / 2,
                 BoardMaxY / 2,
                 clampToBoard,
@@ -2002,19 +2402,19 @@ else
                 BoardMaxY,
                 out var statusMessage))
             {
-                message = statusMessage;
-                isError = false;
+                WorkspaceService.State.LastOperationMessage = statusMessage;
+                WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
             }
             else
             {
-                message = statusMessage;
-                isError = true;
+                WorkspaceService.State.LastOperationMessage = statusMessage;
+                WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
             }
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
     }
 
@@ -2022,7 +2422,7 @@ else
     {
         Execute(() =>
         {
-            board.RotateSelectedPiece(WorkspaceService, rotateDegrees);
+            board.RotateSelectedPiece(CommandService, rotateDegrees);
             board.SelectedPieceId = selectedPieceId;
         }, "Rotated piece from board panel.");
     }
@@ -2031,9 +2431,9 @@ else
     {
         Execute(() =>
         {
-            var selectedPiece = board.GetSelectedPieceOrThrow(WorkspaceService.State.CurrentTableSession);
+            var selectedPiece = board.GetSelectedPieceOrThrow(CommandService.CurrentTableSession);
             rotateDegrees = selectedPiece.Rotation.Degrees - QuickRotateIncrement;
-            board.RotateSelectedPiece(WorkspaceService, rotateDegrees);
+            board.RotateSelectedPiece(CommandService, rotateDegrees);
             board.SelectedPieceId = selectedPieceId;
         }, "Rotated selected piece left.");
     }
@@ -2042,9 +2442,9 @@ else
     {
         Execute(() =>
         {
-            var selectedPiece = board.GetSelectedPieceOrThrow(WorkspaceService.State.CurrentTableSession);
+            var selectedPiece = board.GetSelectedPieceOrThrow(CommandService.CurrentTableSession);
             rotateDegrees = selectedPiece.Rotation.Degrees + QuickRotateIncrement;
-            board.RotateSelectedPiece(WorkspaceService, rotateDegrees);
+            board.RotateSelectedPiece(CommandService, rotateDegrees);
             board.SelectedPieceId = selectedPieceId;
         }, "Rotated selected piece right.");
     }
@@ -2054,7 +2454,7 @@ else
         Execute(() =>
         {
             var pieceId = RequireSelectedPiece();
-            WorkspaceService.ProcessAction(new ActionRequest
+            CommandService.ProcessAction(new ActionRequest
             {
                 ActionType = "MovePiece",
                 ActorParticipantId = "gm",
@@ -2076,7 +2476,7 @@ else
         Execute(() =>
         {
             var pieceId = RequireSelectedPiece();
-            WorkspaceService.ProcessAction(new ActionRequest
+            CommandService.ProcessAction(new ActionRequest
             {
                 ActionType = "RotatePiece",
                 ActorParticipantId = "gm",
@@ -2094,7 +2494,7 @@ else
         Execute(() =>
         {
             var pieceId = RequireSelectedPiece();
-            WorkspaceService.ProcessAction(new ActionRequest
+            CommandService.ProcessAction(new ActionRequest
             {
                 ActionType = "AddMarker",
                 ActorParticipantId = "gm",
@@ -2112,7 +2512,7 @@ else
         Execute(() =>
         {
             var pieceId = RequireSelectedPiece();
-            WorkspaceService.ProcessAction(new ActionRequest
+            CommandService.ProcessAction(new ActionRequest
             {
                 ActionType = "RemoveMarker",
                 ActorParticipantId = "gm",
@@ -2130,7 +2530,7 @@ else
         Execute(() =>
         {
             var pieceId = RequireSelectedPiece();
-            WorkspaceService.ProcessAction(new ActionRequest
+            CommandService.ProcessAction(new ActionRequest
             {
                 ActionType = "ChangePieceState",
                 ActorParticipantId = "gm",
@@ -2144,19 +2544,130 @@ else
         }, "Changed piece state.");
     }
 
+    private void RemovePieceState()
+    {
+        Execute(() =>
+        {
+            var pieceId = RequireSelectedPiece();
+            CommandService.ProcessAction(new ActionRequest
+            {
+                ActionType = "ChangePieceState",
+                ActorParticipantId = "gm",
+                Payload = new ChangePieceStatePayload
+                {
+                    PieceId = pieceId,
+                    Key = removeStateKey,
+                    Value = null
+                }
+            });
+        }, "Removed piece state key.");
+    }
+
+    private void SetPieceHpState()
+    {
+        Execute(() =>
+        {
+            var pieceId = RequireSelectedPiece();
+            CommandService.ProcessAction(new ActionRequest
+            {
+                ActionType = "ChangePieceState",
+                ActorParticipantId = "gm",
+                Payload = new ChangePieceStatePayload
+                {
+                    PieceId = pieceId,
+                    Key = "HP",
+                    Value = quickHpValue
+                }
+            });
+        }, "Updated HP state.");
+    }
+
+    private void OnDeveloperSettingsChanged()
+    {
+        if (!WorkspaceService.State.Settings.EnableStampMode)
+        {
+            stampModeEnabled = false;
+        }
+
+        WorkspaceService.State.LastOperationMessage = "Updated developer settings.";
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
+    }
+
+    private static string GetPieceLabel(PieceInstance piece)
+    {
+        if (piece.State.TryGetValue("Label", out var labelValue))
+        {
+            var formatted = FormatStateValue(labelValue);
+            if (!string.IsNullOrWhiteSpace(formatted))
+            {
+                return formatted;
+            }
+        }
+
+        if (piece.State.TryGetValue("Name", out var nameValue))
+        {
+            var formatted = FormatStateValue(nameValue);
+            if (!string.IsNullOrWhiteSpace(formatted))
+            {
+                return formatted;
+            }
+        }
+
+        return piece.Id;
+    }
+
+    private static string GetPieceStateDisplayValue(PieceInstance piece, string key)
+    {
+        if (!piece.State.TryGetValue(key, out var value))
+        {
+            return "(none)";
+        }
+
+        return FormatStateValue(value);
+    }
+
+    private static string GetMarkerSummary(PieceInstance piece)
+    {
+        if (piece.MarkerIds.Count == 0)
+        {
+            return "0";
+        }
+
+        return $"{piece.MarkerIds.Count} ({string.Join(", ", piece.MarkerIds)})";
+    }
+
+    private static string FormatStateValue(object? value)
+    {
+        return value?.ToString() ?? "(null)";
+    }
+
     private void Execute(Action action, string successMessage)
     {
         try
         {
             action();
-            message = successMessage;
-            isError = false;
+
+            if (string.IsNullOrWhiteSpace(WorkspaceService.State.LastOperationMessage))
+            {
+                WorkspaceService.State.LastOperationMessage = successMessage;
+                WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
+            }
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            isError = true;
+            WorkspaceService.State.LastOperationMessage = ex.Message;
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
         }
+    }
+
+    private string GetLastOperationAlertClass()
+    {
+        return WorkspaceService.State.LastOperationSeverity switch
+        {
+            WorkspaceMessageSeverity.Success => "alert-success",
+            WorkspaceMessageSeverity.Error => "alert-danger",
+            _ => "alert-warning"
+        };
     }
 
     private string RequireSelectedPiece()

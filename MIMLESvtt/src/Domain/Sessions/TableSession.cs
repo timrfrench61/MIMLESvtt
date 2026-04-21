@@ -16,6 +16,8 @@ namespace MIMLESvtt.src
 
         public int CurrentTurnIndex { get; set; }
 
+        public int TurnNumber { get; set; } = 1;
+
         public string CurrentPhase { get; set; } = string.Empty;
 
         public TableOptions Options { get; set; } = new();

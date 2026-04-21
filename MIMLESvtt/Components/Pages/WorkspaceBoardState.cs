@@ -9,6 +9,7 @@ public class WorkspaceBoardState
     private readonly Dictionary<string, string> _defaultPresetBySurface = new(StringComparer.Ordinal);
     private readonly List<StampQueueItem> _stampQueue = [];
     private readonly List<StampQueueTemplate> _stampQueueTemplates = [];
+    private readonly List<PieceGroup> _pieceGroups = [];
 
     public string? ActiveSurfaceId { get; set; }
 
@@ -21,6 +22,8 @@ public class WorkspaceBoardState
     public IReadOnlyList<StampQueueItem> StampQueue => _stampQueue;
 
     public IReadOnlyList<StampQueueTemplate> StampQueueTemplates => _stampQueueTemplates;
+
+    public IReadOnlyList<PieceGroup> PieceGroups => _pieceGroups;
 
     public int ActiveStampQueueIndex { get; private set; } = -1;
 
@@ -164,14 +167,14 @@ public class WorkspaceBoardState
     }
 
     public int MoveSelectedPiecesByDelta(
-        SessionWorkspaceService workspaceService,
+        ITableSessionCommandService commandService,
         float deltaX,
         float deltaY,
         bool clampToBoard,
         float maxX,
         float maxY)
     {
-        if (workspaceService.State.CurrentTableSession is null)
+        if (commandService.CurrentTableSession is null)
         {
             throw new InvalidOperationException("Current session is required.");
         }
@@ -185,7 +188,7 @@ public class WorkspaceBoardState
         var selectedIds = SelectedPieceIds.ToList();
         foreach (var pieceId in selectedIds)
         {
-            var piece = workspaceService.State.CurrentTableSession.Pieces.FirstOrDefault(p => p.Id == pieceId);
+            var piece = commandService.CurrentTableSession.Pieces.FirstOrDefault(p => p.Id == pieceId);
             if (piece is null)
             {
                 continue;
@@ -199,7 +202,7 @@ public class WorkspaceBoardState
                 targetY = Math.Clamp(targetY, 0, maxY);
             }
 
-            workspaceService.ProcessAction(new ActionRequest
+            commandService.ProcessAction(new ActionRequest
             {
                 ActionType = "MovePiece",
                 ActorParticipantId = "gm",
@@ -218,6 +221,95 @@ public class WorkspaceBoardState
         }
 
         return movedCount;
+    }
+
+    public PieceGroup CreateGroupFromSelection(string? groupLabel)
+    {
+        if (SelectedPieceIds.Count == 0)
+        {
+            throw new InvalidOperationException("Select at least one piece to create a group.");
+        }
+
+        var groupId = $"group-{Guid.NewGuid():N}";
+        var normalizedLabel = string.IsNullOrWhiteSpace(groupLabel)
+            ? $"Group {_pieceGroups.Count + 1}"
+            : groupLabel.Trim();
+
+        var group = new PieceGroup(
+            groupId,
+            normalizedLabel,
+            SelectedPieceIds.Distinct(StringComparer.Ordinal).ToList());
+
+        _pieceGroups.Add(group);
+        return group;
+    }
+
+    public bool DisbandGroup(string? groupId)
+    {
+        if (string.IsNullOrWhiteSpace(groupId))
+        {
+            return false;
+        }
+
+        var group = _pieceGroups.FirstOrDefault(g => string.Equals(g.GroupId, groupId, StringComparison.Ordinal));
+        if (group is null)
+        {
+            return false;
+        }
+
+        return _pieceGroups.Remove(group);
+    }
+
+    public int SelectGroup(string? groupId)
+    {
+        if (string.IsNullOrWhiteSpace(groupId))
+        {
+            ClearSelection();
+            return 0;
+        }
+
+        var group = _pieceGroups.FirstOrDefault(g => string.Equals(g.GroupId, groupId, StringComparison.Ordinal));
+        if (group is null)
+        {
+            ClearSelection();
+            return 0;
+        }
+
+        SelectedPieceIds.Clear();
+        SelectedPieceIds.AddRange(group.MemberPieceIds);
+        SelectedPieceId = SelectedPieceIds.Count > 0 ? SelectedPieceIds[^1] : null;
+        return SelectedPieceIds.Count;
+    }
+
+    public int MoveGroupByDelta(
+        SessionWorkspaceService workspaceService,
+        string groupId,
+        float deltaX,
+        float deltaY,
+        bool clampToBoard,
+        float maxX,
+        float maxY)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(groupId);
+
+        var selectedCount = SelectGroup(groupId);
+        if (selectedCount == 0)
+        {
+            throw new InvalidOperationException("Selected group was not found or has no members.");
+        }
+
+        return MoveSelectedPiecesByDelta(workspaceService, deltaX, deltaY, clampToBoard, maxX, maxY);
+    }
+
+    public string GetGroupMembersSummary(string groupId)
+    {
+        var group = _pieceGroups.FirstOrDefault(g => string.Equals(g.GroupId, groupId, StringComparison.Ordinal));
+        if (group is null || group.MemberPieceIds.Count == 0)
+        {
+            return "(none)";
+        }
+
+        return string.Join(", ", group.MemberPieceIds);
     }
 
     public string GetSelectionSummary()
@@ -308,20 +400,20 @@ public class WorkspaceBoardState
         return before != SelectedPieceIds.Count;
     }
 
-    public ActionRecord MoveSelectedPiece(SessionWorkspaceService workspaceService, float x, float y)
+    public ActionRecord MoveSelectedPiece(ITableSessionCommandService commandService, float x, float y)
     {
-        return MoveSelectedPiece(workspaceService, x, y, clampToBoard: false, maxX: 0, maxY: 0);
+        return MoveSelectedPiece(commandService, x, y, clampToBoard: false, maxX: 0, maxY: 0);
     }
 
     public ActionRecord MoveSelectedPiece(
-        SessionWorkspaceService workspaceService,
+        ITableSessionCommandService commandService,
         float x,
         float y,
         bool clampToBoard,
         float maxX,
         float maxY)
     {
-        var selectedPiece = RequireSelectedPiece(workspaceService.State.CurrentTableSession);
+        var selectedPiece = RequireSelectedPiece(commandService.CurrentTableSession);
         if (string.IsNullOrWhiteSpace(ActiveSurfaceId))
         {
             throw new InvalidOperationException("Select an active surface first.");
@@ -330,7 +422,7 @@ public class WorkspaceBoardState
         var targetX = clampToBoard ? Math.Clamp(x, 0, maxX) : x;
         var targetY = clampToBoard ? Math.Clamp(y, 0, maxY) : y;
 
-        return workspaceService.ProcessAction(new ActionRequest
+        return commandService.ProcessAction(new ActionRequest
         {
             ActionType = "MovePiece",
             ActorParticipantId = "gm",
@@ -347,7 +439,7 @@ public class WorkspaceBoardState
     }
 
     public bool TryHandleKeyboardInput(
-        SessionWorkspaceService workspaceService,
+        ITableSessionCommandService commandService,
         string? key,
         bool isBoardFocused,
         float moveStep,
@@ -371,33 +463,33 @@ public class WorkspaceBoardState
             return false;
         }
 
-        var selectedPiece = RequireSelectedPiece(workspaceService.State.CurrentTableSession);
+        var selectedPiece = RequireSelectedPiece(commandService.CurrentTableSession);
         switch (key)
         {
             case "ArrowUp":
-                MoveSelectedPiece(workspaceService, selectedPiece.Location.Coordinate.X, selectedPiece.Location.Coordinate.Y - moveStep, clampToBoard, maxX, maxY);
+                MoveSelectedPiece(commandService, selectedPiece.Location.Coordinate.X, selectedPiece.Location.Coordinate.Y - moveStep, clampToBoard, maxX, maxY);
                 statusMessage = "Moved selected piece up.";
                 return true;
             case "ArrowDown":
-                MoveSelectedPiece(workspaceService, selectedPiece.Location.Coordinate.X, selectedPiece.Location.Coordinate.Y + moveStep, clampToBoard, maxX, maxY);
+                MoveSelectedPiece(commandService, selectedPiece.Location.Coordinate.X, selectedPiece.Location.Coordinate.Y + moveStep, clampToBoard, maxX, maxY);
                 statusMessage = "Moved selected piece down.";
                 return true;
             case "ArrowLeft":
-                MoveSelectedPiece(workspaceService, selectedPiece.Location.Coordinate.X - moveStep, selectedPiece.Location.Coordinate.Y, clampToBoard, maxX, maxY);
+                MoveSelectedPiece(commandService, selectedPiece.Location.Coordinate.X - moveStep, selectedPiece.Location.Coordinate.Y, clampToBoard, maxX, maxY);
                 statusMessage = "Moved selected piece left.";
                 return true;
             case "ArrowRight":
-                MoveSelectedPiece(workspaceService, selectedPiece.Location.Coordinate.X + moveStep, selectedPiece.Location.Coordinate.Y, clampToBoard, maxX, maxY);
+                MoveSelectedPiece(commandService, selectedPiece.Location.Coordinate.X + moveStep, selectedPiece.Location.Coordinate.Y, clampToBoard, maxX, maxY);
                 statusMessage = "Moved selected piece right.";
                 return true;
             case "q":
             case "Q":
-                RotateSelectedPiece(workspaceService, selectedPiece.Rotation.Degrees - rotateStep);
+                RotateSelectedPiece(commandService, selectedPiece.Rotation.Degrees - rotateStep);
                 statusMessage = "Rotated selected piece left.";
                 return true;
             case "e":
             case "E":
-                RotateSelectedPiece(workspaceService, selectedPiece.Rotation.Degrees + rotateStep);
+                RotateSelectedPiece(commandService, selectedPiece.Rotation.Degrees + rotateStep);
                 statusMessage = "Rotated selected piece right.";
                 return true;
             default:
@@ -406,7 +498,7 @@ public class WorkspaceBoardState
     }
 
     public bool TryCenterSelectedPiece(
-        SessionWorkspaceService workspaceService,
+        ITableSessionCommandService commandService,
         float centerX,
         float centerY,
         bool clampToBoard,
@@ -422,13 +514,13 @@ public class WorkspaceBoardState
             return false;
         }
 
-        MoveSelectedPiece(workspaceService, centerX, centerY, clampToBoard, maxX, maxY);
+        MoveSelectedPiece(commandService, centerX, centerY, clampToBoard, maxX, maxY);
         statusMessage = "Centered selected piece on board.";
         return true;
     }
 
     public bool TryHandleBoardClick(
-        SessionWorkspaceService workspaceService,
+        ITableSessionCommandService commandService,
         float clickX,
         float clickY,
         bool addPieceAtBoardClickMode,
@@ -443,7 +535,7 @@ public class WorkspaceBoardState
         out string? createdPieceId)
     {
         var handled = TryHandleBoardClick(
-            workspaceService,
+            commandService,
             clickX,
             clickY,
             addPieceAtBoardClickMode,
@@ -464,7 +556,7 @@ public class WorkspaceBoardState
     }
 
     public bool TryHandleBoardClick(
-        SessionWorkspaceService workspaceService,
+        ITableSessionCommandService commandService,
         float clickX,
         float clickY,
         bool addPieceAtBoardClickMode,
@@ -503,6 +595,11 @@ public class WorkspaceBoardState
                 return false;
             }
 
+            if (commandService is not SessionWorkspaceService workspaceService)
+            {
+                throw new InvalidOperationException("Add-at-click requires session workspace setup boundary.");
+            }
+
             try
             {
                 workspaceService.AddPiece(
@@ -534,7 +631,7 @@ public class WorkspaceBoardState
             return false;
         }
 
-        MoveSelectedPiece(workspaceService, targetX, targetY, clampToBoard, maxX, maxY);
+        MoveSelectedPiece(commandService, targetX, targetY, clampToBoard, maxX, maxY);
         statusMessage = "Moved selected piece from board click.";
         return true;
     }
@@ -1166,11 +1263,11 @@ public class WorkspaceBoardState
         return RequireSelectedPiece(session);
     }
 
-    public ActionRecord RotateSelectedPiece(SessionWorkspaceService workspaceService, float newDegrees)
+    public ActionRecord RotateSelectedPiece(ITableSessionCommandService commandService, float newDegrees)
     {
-        var selectedPiece = RequireSelectedPiece(workspaceService.State.CurrentTableSession);
+        var selectedPiece = RequireSelectedPiece(commandService.CurrentTableSession);
 
-        return workspaceService.ProcessAction(new ActionRequest
+        return commandService.ProcessAction(new ActionRequest
         {
             ActionType = "RotatePiece",
             ActorParticipantId = "gm",
@@ -1203,6 +1300,11 @@ public class WorkspaceBoardState
         return piece;
     }
 }
+
+public sealed record PieceGroup(
+    string GroupId,
+    string Label,
+    IReadOnlyList<string> MemberPieceIds);
 
 public sealed record StampPreset(
     string Name,

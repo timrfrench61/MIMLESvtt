@@ -73,6 +73,36 @@ public class ActionValidationServiceTests
     }
 
     [TestMethod]
+    public void ActionValidation_InvalidPayload_Fails()
+    {
+        var validator = new ActionValidationService();
+        var session = new TableSession();
+        session.Surfaces.Add(new SurfaceInstance { Id = "surface-1", DefinitionId = "def-surface-1" });
+        session.Pieces.Add(new PieceInstance
+        {
+            Id = "piece-1",
+            DefinitionId = "def-piece-1",
+            Location = new Location
+            {
+                SurfaceId = "surface-1",
+                Coordinate = new Coordinate { X = 0, Y = 0 }
+            }
+        });
+
+        var request = new ActionRequest
+        {
+            ActionType = "MovePiece",
+            ActorParticipantId = "gm",
+            Payload = new { PieceId = "piece-1" }
+        };
+
+        var result = validator.Validate(request, session);
+
+        Assert.IsFalse(result.IsValid);
+        StringAssert.Contains(result.Message, "payload is required");
+    }
+
+    [TestMethod]
     public void ActionValidation_ValidMove_Succeeds()
     {
         var validator = new ActionValidationService();

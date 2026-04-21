@@ -12,11 +12,15 @@ namespace MIMLESvtt.src
 
         public string? LastOperationMessage { get; internal set; }
 
+        public WorkspaceMessageSeverity LastOperationSeverity { get; internal set; } = WorkspaceMessageSeverity.Info;
+
         public PendingScenarioApplicationPlan? CurrentPendingScenarioPlan { get; internal set; }
 
         public string? PendingScenarioSourcePath { get; internal set; }
 
         public WorkspaceMode Mode { get; internal set; } = WorkspaceMode.Edit;
+
+        public WorkspaceSettings Settings { get; } = new();
 
         public List<WorkspaceOperationEntry> OperationHistory { get; } = [];
 

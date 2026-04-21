@@ -1,0 +1,1 @@
+always add <Routes @rendermode="InteractiveServer" /> to razor pagesto enable edits

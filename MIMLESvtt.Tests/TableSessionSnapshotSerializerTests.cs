@@ -72,6 +72,7 @@ public class TableSessionSnapshotSerializerTests
 
         CollectionAssert.AreEqual(new[] { "participant-1", "participant-2" }, loaded.TurnOrder);
         Assert.AreEqual(1, loaded.CurrentTurnIndex);
+        Assert.AreEqual(2, loaded.TurnNumber);
         Assert.AreEqual("Action", loaded.CurrentPhase);
     }
 
@@ -276,6 +277,7 @@ public class TableSessionSnapshotSerializerTests
             },
             TurnOrder = ["participant-1", "participant-2"],
             CurrentTurnIndex = 1,
+            TurnNumber = 2,
             CurrentPhase = "Action"
         };
     }

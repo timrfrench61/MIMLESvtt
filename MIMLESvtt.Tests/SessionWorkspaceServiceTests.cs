@@ -19,6 +19,96 @@ public class SessionWorkspaceServiceTests
         Assert.IsFalse(string.IsNullOrWhiteSpace(service.State.CurrentTableSession!.Id));
         Assert.IsNull(service.State.CurrentFilePath);
         Assert.IsFalse(service.State.IsDirty);
+        Assert.AreEqual("Created new workspace session.", service.State.LastOperationMessage);
+        Assert.AreEqual(WorkspaceMessageSeverity.Success, service.State.LastOperationSeverity);
+    }
+
+    [TestMethod]
+    public void UI_Action_ShowsSuccessMessage()
+    {
+        var service = new SessionWorkspaceService();
+
+        service.CreateNewSession();
+
+        Assert.IsFalse(string.IsNullOrWhiteSpace(service.State.LastOperationMessage));
+        Assert.AreEqual(WorkspaceMessageSeverity.Success, service.State.LastOperationSeverity);
+    }
+
+    [TestMethod]
+    public void SessionTitle_Update_WorksAndIsVisible()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+
+        service.UpdateSessionTitle("Campaign Night 1");
+
+        Assert.IsNotNull(service.State.CurrentTableSession);
+        Assert.AreEqual("Campaign Night 1", service.State.CurrentTableSession!.Title);
+        Assert.IsTrue(service.State.IsDirty);
+        Assert.AreEqual("Updated session title.", service.State.LastOperationMessage);
+        Assert.AreEqual(WorkspaceMessageSeverity.Success, service.State.LastOperationSeverity);
+    }
+
+    [TestMethod]
+    public void CreateNewSession_CreatesDifferentSessionIdsAcrossCalls()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        var firstId = service.State.CurrentTableSession!.Id;
+
+        service.CreateNewSession();
+        var secondId = service.State.CurrentTableSession!.Id;
+
+        Assert.AreNotEqual(firstId, secondId);
+    }
+
+    [TestMethod]
+    public void Settings_Toggle_DisablesFeature()
+    {
+        var service = new SessionWorkspaceService();
+        service.State.Settings.EnableStampMode = false;
+
+        service.ReportFeatureNotEnabled();
+
+        Assert.IsFalse(service.State.Settings.EnableStampMode);
+        Assert.AreEqual("Feature not enabled (development toggle)", service.State.LastOperationMessage);
+        Assert.AreEqual(WorkspaceMessageSeverity.Info, service.State.LastOperationSeverity);
+    }
+
+    [TestMethod]
+    public void DisabledFeature_ShowsClearMessage()
+    {
+        var service = new SessionWorkspaceService();
+
+        service.ReportFeatureNotEnabled();
+
+        Assert.AreEqual("Feature not enabled (development toggle)", service.State.LastOperationMessage);
+        Assert.AreEqual(WorkspaceMessageSeverity.Info, service.State.LastOperationSeverity);
+    }
+
+    [TestMethod]
+    public void UI_Action_ShowsErrorMessage()
+    {
+        var service = new SessionWorkspaceService();
+
+        var ex = Assert.ThrowsException<InvalidOperationException>(() => service.SaveCurrentSession());
+
+        Assert.IsFalse(string.IsNullOrWhiteSpace(service.State.LastOperationMessage));
+        Assert.AreEqual(ex.Message, service.State.LastOperationMessage);
+        Assert.AreEqual(WorkspaceMessageSeverity.Error, service.State.LastOperationSeverity);
+    }
+
+    [TestMethod]
+    public void UI_StateChange_IsVisible()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+
+        service.AddSurface("surface-visible", "def-surface-visible", SurfaceType.Map, CoordinateSystem.Square);
+
+        Assert.IsTrue(service.State.CurrentTableSession!.Surfaces.Any(s => s.Id == "surface-visible"));
+        Assert.IsFalse(string.IsNullOrWhiteSpace(service.State.LastOperationMessage));
+        Assert.AreEqual(WorkspaceMessageSeverity.Success, service.State.LastOperationSeverity);
     }
 
     [TestMethod]
@@ -668,6 +758,7 @@ public class SessionWorkspaceServiceTests
             Assert.AreEqual(2, loadedService.State.CurrentTableSession!.Participants.Count);
             CollectionAssert.AreEqual(new[] { "gm", "p1" }, loadedService.State.CurrentTableSession.TurnOrder);
             Assert.AreEqual(1, loadedService.State.CurrentTableSession.CurrentTurnIndex);
+            Assert.AreEqual(1, loadedService.State.CurrentTableSession.TurnNumber);
             Assert.AreEqual("Action", loadedService.State.CurrentTableSession.CurrentPhase);
             Assert.AreEqual(1, loadedService.State.CurrentTableSession.ActionLog.Count);
         }
@@ -717,6 +808,7 @@ public class SessionWorkspaceServiceTests
             Assert.AreEqual(0, service.State.CurrentTableSession.ActionLog.Count);
             Assert.AreEqual(0, service.State.CurrentTableSession.TurnOrder.Count);
             Assert.AreEqual(0, service.State.CurrentTableSession.CurrentTurnIndex);
+            Assert.AreEqual(1, service.State.CurrentTableSession.TurnNumber);
             Assert.AreEqual(string.Empty, service.State.CurrentTableSession.CurrentPhase);
         }
         finally
@@ -726,7 +818,7 @@ public class SessionWorkspaceServiceTests
     }
 
     [TestMethod]
-    public void TurnSystem_Initialize_SetsOrderAndIndex()
+    public void TurnSystem_Initialize_SetsOrderIndexAndTurnNumber()
     {
         var service = new SessionWorkspaceService();
         service.CreateNewSession();
@@ -736,6 +828,7 @@ public class SessionWorkspaceServiceTests
         Assert.AreEqual(3, service.State.CurrentTableSession!.TurnOrder.Count);
         CollectionAssert.AreEqual(new[] { "p1", "p2", "p3" }, service.State.CurrentTableSession.TurnOrder);
         Assert.AreEqual(0, service.State.CurrentTableSession.CurrentTurnIndex);
+        Assert.AreEqual(1, service.State.CurrentTableSession.TurnNumber);
     }
 
     [TestMethod]
@@ -753,6 +846,23 @@ public class SessionWorkspaceServiceTests
 
         service.AdvanceTurn();
         Assert.AreEqual(0, service.State.CurrentTableSession.CurrentTurnIndex);
+    }
+
+    [TestMethod]
+    public void TurnSystem_AdvanceTurn_FromLastParticipant_IncrementsTurnNumber()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.InitializeTurnOrder(["p1", "p2", "p3"]);
+
+        service.AdvanceTurn();
+        service.AdvanceTurn();
+        Assert.AreEqual(1, service.State.CurrentTableSession!.TurnNumber);
+
+        service.AdvanceTurn();
+
+        Assert.AreEqual(0, service.State.CurrentTableSession.CurrentTurnIndex);
+        Assert.AreEqual(2, service.State.CurrentTableSession.TurnNumber);
     }
 
     [TestMethod]
@@ -784,6 +894,101 @@ public class SessionWorkspaceServiceTests
     }
 
     [TestMethod]
+    public void Workspace_TurnControls_UpdateVisibleState()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.AddParticipant("p1", "Alice");
+        service.AddParticipant("p2", "Bob");
+        service.InitializeTurnOrder(["p1", "p2"]);
+        service.SetPhase("Movement");
+
+        Assert.AreEqual(1, service.State.CurrentTableSession!.TurnNumber);
+        Assert.AreEqual(0, service.State.CurrentTableSession.CurrentTurnIndex);
+        Assert.AreEqual("p1", service.State.CurrentTableSession.TurnOrder[service.State.CurrentTableSession.CurrentTurnIndex]);
+        Assert.AreEqual("Movement", service.State.CurrentTableSession.CurrentPhase);
+
+        service.AdvanceTurn();
+
+        Assert.AreEqual(1, service.State.CurrentTableSession.CurrentTurnIndex);
+        Assert.AreEqual("p2", service.State.CurrentTableSession.TurnOrder[service.State.CurrentTableSession.CurrentTurnIndex]);
+    }
+
+    [TestMethod]
+    public void InitiativePanel_ShowsTurnOrder()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.AddParticipant("p1", "Alice");
+        service.AddParticipant("p2", "Bob");
+        service.InitializeTurnOrder(["p1", "p2"]);
+
+        CollectionAssert.AreEqual(new[] { "p1", "p2" }, service.State.CurrentTableSession!.TurnOrder);
+    }
+
+    [TestMethod]
+    public void InitiativePanel_Reorder_UpdatesTurnOrder()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.AddParticipant("p1", "Alice");
+        service.AddParticipant("p2", "Bob");
+        service.AddParticipant("p3", "Cara");
+        service.InitializeTurnOrder(["p1", "p2", "p3"]);
+
+        service.MoveTurnParticipantUp("p3");
+
+        CollectionAssert.AreEqual(new[] { "p1", "p3", "p2" }, service.State.CurrentTableSession!.TurnOrder);
+
+        service.MoveTurnParticipantDown("p1");
+
+        CollectionAssert.AreEqual(new[] { "p3", "p1", "p2" }, service.State.CurrentTableSession.TurnOrder);
+    }
+
+    [TestMethod]
+    public void InitiativePanel_CurrentParticipant_HighlightFollowsAdvanceTurn()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.AddParticipant("p1", "Alice");
+        service.AddParticipant("p2", "Bob");
+        service.InitializeTurnOrder(["p1", "p2"]);
+
+        Assert.AreEqual("p1", service.State.CurrentTableSession!.TurnOrder[service.State.CurrentTableSession.CurrentTurnIndex]);
+
+        service.AdvanceTurn();
+
+        Assert.AreEqual("p2", service.State.CurrentTableSession.TurnOrder[service.State.CurrentTableSession.CurrentTurnIndex]);
+    }
+
+    [TestMethod]
+    public void Workspace_TurnOrder_Reorder_PersistsInSessionState()
+    {
+        var service = new SessionWorkspaceService();
+        var path = CreateTempFilePath("workspace-turn-order-reorder", SnapshotFileExtensions.TableSession);
+
+        try
+        {
+            service.CreateNewSession();
+            service.AddParticipant("p1", "Alice");
+            service.AddParticipant("p2", "Bob");
+            service.AddParticipant("p3", "Cara");
+            service.InitializeTurnOrder(["p1", "p2", "p3"]);
+            service.MoveTurnParticipantUp("p3");
+            service.SaveCurrentSessionAs(path);
+
+            var reloaded = new SessionWorkspaceService();
+            reloaded.OpenTableSessionFromFile(path);
+
+            CollectionAssert.AreEqual(new[] { "p1", "p3", "p2" }, reloaded.State.CurrentTableSession!.TurnOrder);
+        }
+        finally
+        {
+            DeleteFileIfExists(path);
+        }
+    }
+
+    [TestMethod]
     public void Participant_Add_Works()
     {
         var service = new SessionWorkspaceService();
@@ -806,6 +1011,60 @@ public class SessionWorkspaceServiceTests
         service.RemoveParticipant("p1");
 
         Assert.AreEqual(0, service.State.CurrentTableSession!.Participants.Count);
+    }
+
+    [TestMethod]
+    public void Participant_Rename_Works()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.AddParticipant("p1", "Alice");
+
+        service.RenameParticipant("p1", "Alice Updated");
+
+        Assert.AreEqual("Alice Updated", service.State.CurrentTableSession!.Participants.Single(p => p.Id == "p1").Name);
+    }
+
+    [TestMethod]
+    public void Participant_DuplicateId_FailsClearly()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.AddParticipant("p1", "Alice");
+
+        var ex = Assert.ThrowsException<InvalidOperationException>(() => service.AddParticipant("p1", "Another Alice"));
+
+        StringAssert.Contains(ex.Message, "already exists");
+    }
+
+    [TestMethod]
+    public void PieceOwner_Assignment_UsesExistingParticipantId()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.AddParticipant("owner-1", "Owner One");
+        service.AddParticipant("owner-2", "Owner Two");
+        service.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        service.AddPiece("piece-1", "def-piece-1", "surface-1", 1, 2, "owner-1", 0);
+
+        service.AssignPieceOwner("piece-1", "owner-2");
+
+        Assert.AreEqual("owner-2", service.State.CurrentTableSession!.Pieces.Single(p => p.Id == "piece-1").OwnerParticipantId);
+    }
+
+    [TestMethod]
+    public void RemovingParticipant_ClearsOrHandlesOwnedPieceReferencesAccordingToChosenRule()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.AddParticipant("owner-1", "Owner One");
+        service.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        service.AddPiece("piece-1", "def-piece-1", "surface-1", 1, 2, "owner-1", 0);
+
+        service.RemoveParticipant("owner-1");
+
+        Assert.AreEqual(0, service.State.CurrentTableSession!.Participants.Count);
+        Assert.AreEqual(string.Empty, service.State.CurrentTableSession.Pieces.Single(p => p.Id == "piece-1").OwnerParticipantId);
     }
 
     [TestMethod]
@@ -839,7 +1098,7 @@ public class SessionWorkspaceServiceTests
     }
 
     [TestMethod]
-    public void Mode_Default_IsEdit()
+    public void WorkspaceMode_Default_IsEdit()
     {
         var service = new SessionWorkspaceService();
 
@@ -847,45 +1106,22 @@ public class SessionWorkspaceServiceTests
     }
 
     [TestMethod]
-    public void Mode_SwitchToPlay_ChangesBehavior()
+    public void WorkspaceMode_Switch_Works()
     {
         var service = new SessionWorkspaceService();
         service.CreateNewSession();
-        service.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
-        service.AddPiece("piece-1", "def-piece-1", "surface-1", 1, 1, "owner-1", 0);
-
-        service.ProcessAction(new ActionRequest
-        {
-            ActionType = "MovePiece",
-            ActorParticipantId = "other-actor",
-            Payload = new MovePiecePayload
-            {
-                PieceId = "piece-1",
-                NewLocation = new Location { SurfaceId = "surface-1", Coordinate = new Coordinate { X = 3, Y = 4 } }
-            }
-        });
-
-        Assert.AreEqual(3, service.State.CurrentTableSession!.Pieces.Single(p => p.Id == "piece-1").Location.Coordinate.X);
 
         service.SetWorkspaceMode(WorkspaceMode.Play);
 
-        var ex = Assert.ThrowsException<InvalidOperationException>(() => service.ProcessAction(new ActionRequest
-        {
-            ActionType = "MovePiece",
-            ActorParticipantId = "other-actor",
-            Payload = new MovePiecePayload
-            {
-                PieceId = "piece-1",
-                NewLocation = new Location { SurfaceId = "surface-1", Coordinate = new Coordinate { X = 8, Y = 9 } }
-            }
-        }));
+        Assert.AreEqual(WorkspaceMode.Play, service.State.Mode);
 
-        StringAssert.Contains(ex.Message, "piece owner");
-        Assert.AreEqual(3, service.State.CurrentTableSession.Pieces.Single(p => p.Id == "piece-1").Location.Coordinate.X);
+        service.SetWorkspaceMode(WorkspaceMode.Edit);
+
+        Assert.AreEqual(WorkspaceMode.Edit, service.State.Mode);
     }
 
     [TestMethod]
-    public void PlayMode_RestrictsInvalidActions()
+    public void PlayMode_UsesActionValidation()
     {
         var service = new SessionWorkspaceService();
         service.CreateNewSession();
@@ -909,7 +1145,22 @@ public class SessionWorkspaceServiceTests
     }
 
     [TestMethod]
-    public void Workspace_ProcessAction_RespectsValidation()
+    public void EditMode_PreservesAuthoringWorkflows()
+    {
+        var service = new SessionWorkspaceService();
+        service.CreateNewSession();
+        service.SetWorkspaceMode(WorkspaceMode.Edit);
+
+        service.AddSurface("surface-1", "def-surface-1", SurfaceType.Map, CoordinateSystem.Square);
+        service.AddPiece("piece-1", "def-piece-1", "surface-1", 1, 1, string.Empty, 0);
+
+        Assert.IsNotNull(service.State.CurrentTableSession);
+        Assert.AreEqual(1, service.State.CurrentTableSession!.Surfaces.Count);
+        Assert.AreEqual(1, service.State.CurrentTableSession.Pieces.Count);
+    }
+
+    [TestMethod]
+    public void Workspace_ProcessAction_RespectsValidationAndDoesNotMutateOnFailure()
     {
         var service = new SessionWorkspaceService();
         service.CreateNewSession();

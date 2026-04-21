@@ -1,6 +1,6 @@
 namespace MIMLESvtt.src
 {
-    public class SessionWorkspaceService
+    public class SessionWorkspaceService : ITableSessionCommandService
     {
         private const string MovePieceActionType = "MovePiece";
         private const string RotatePieceActionType = "RotatePiece";
@@ -56,6 +56,8 @@ namespace MIMLESvtt.src
 
         public SessionWorkspaceState State { get; }
 
+        public TableSession? CurrentTableSession => State.CurrentTableSession;
+
         public void CreateNewSession()
         {
             ExecuteWorkspaceOperation(
@@ -76,6 +78,32 @@ namespace MIMLESvtt.src
                     State.CurrentPendingScenarioPlan = null;
                     State.PendingScenarioSourcePath = null;
                     ClearUndoRedoHistory();
+                });
+        }
+
+        public void ReportFeatureNotEnabled()
+        {
+            State.LastOperationMessage = "Feature not enabled (development toggle)";
+            State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
+        }
+
+        public void UpdateSessionTitle(string title)
+        {
+            ExecuteWorkspaceOperation(
+                WorkspaceOperationKind.UpdateSessionTitle,
+                filePath: State.CurrentFilePath,
+                snapshotFormat: State.CurrentSnapshotFormat,
+                successMessage: "Updated session title.",
+                action: () =>
+                {
+                    if (State.CurrentTableSession is null)
+                    {
+                        throw new InvalidOperationException("CurrentTableSession is required to update session title.");
+                    }
+
+                    ArgumentException.ThrowIfNullOrWhiteSpace(title);
+                    State.CurrentTableSession.Title = title.Trim();
+                    State.IsDirty = true;
                 });
         }
 
@@ -133,6 +161,66 @@ namespace MIMLESvtt.src
 
                     State.CurrentTableSession.TurnOrder = normalizedOrder;
                     State.CurrentTableSession.CurrentTurnIndex = 0;
+                    State.CurrentTableSession.TurnNumber = 1;
+                    State.IsDirty = true;
+                });
+        }
+
+        public void MoveTurnParticipantUp(string participantId)
+        {
+            ReorderTurnParticipant(participantId, moveUp: true);
+        }
+
+        public void MoveTurnParticipantDown(string participantId)
+        {
+            ReorderTurnParticipant(participantId, moveUp: false);
+        }
+
+        private void ReorderTurnParticipant(string participantId, bool moveUp)
+        {
+            ExecuteWorkspaceOperation(
+                WorkspaceOperationKind.ReorderTurnParticipant,
+                filePath: State.CurrentFilePath,
+                snapshotFormat: SnapshotFormatKind.TableSessionSnapshot,
+                successMessage: moveUp ? "Moved turn participant up." : "Moved turn participant down.",
+                action: () =>
+                {
+                    if (State.CurrentTableSession is null)
+                    {
+                        throw new InvalidOperationException("CurrentTableSession is required to reorder turn participants.");
+                    }
+
+                    ArgumentException.ThrowIfNullOrWhiteSpace(participantId);
+
+                    var currentIndex = State.CurrentTableSession.TurnOrder.FindIndex(id => string.Equals(id, participantId.Trim(), StringComparison.Ordinal));
+                    if (currentIndex < 0)
+                    {
+                        throw new InvalidOperationException("Participant id was not found in current turn order.");
+                    }
+
+                    if (State.CurrentTableSession.TurnOrder.Count < 2)
+                    {
+                        return;
+                    }
+
+                    var targetIndex = moveUp ? currentIndex - 1 : currentIndex + 1;
+                    if (targetIndex < 0 || targetIndex >= State.CurrentTableSession.TurnOrder.Count)
+                    {
+                        return;
+                    }
+
+                    (State.CurrentTableSession.TurnOrder[currentIndex], State.CurrentTableSession.TurnOrder[targetIndex]) =
+                        (State.CurrentTableSession.TurnOrder[targetIndex], State.CurrentTableSession.TurnOrder[currentIndex]);
+
+                    if (State.CurrentTableSession.CurrentTurnIndex == currentIndex)
+                    {
+                        State.CurrentTableSession.CurrentTurnIndex = targetIndex;
+                    }
+                    else if (State.CurrentTableSession.CurrentTurnIndex == targetIndex)
+                    {
+                        State.CurrentTableSession.CurrentTurnIndex = currentIndex;
+                    }
+
                     State.IsDirty = true;
                 });
         }
@@ -156,8 +244,52 @@ namespace MIMLESvtt.src
                         throw new InvalidOperationException("Turn order is required before advancing turn.");
                     }
 
+                    var isLastParticipant = State.CurrentTableSession.CurrentTurnIndex >= State.CurrentTableSession.TurnOrder.Count - 1;
                     var nextIndex = State.CurrentTableSession.CurrentTurnIndex + 1;
                     State.CurrentTableSession.CurrentTurnIndex = nextIndex % State.CurrentTableSession.TurnOrder.Count;
+
+                    if (isLastParticipant)
+                    {
+                        State.CurrentTableSession.TurnNumber++;
+                    }
+
+                    State.IsDirty = true;
+                });
+        }
+
+        public void PreviousTurn()
+        {
+            ExecuteWorkspaceOperation(
+                WorkspaceOperationKind.PreviousTurn,
+                filePath: State.CurrentFilePath,
+                snapshotFormat: SnapshotFormatKind.TableSessionSnapshot,
+                successMessage: "Moved to previous turn.",
+                action: () =>
+                {
+                    if (State.CurrentTableSession is null)
+                    {
+                        throw new InvalidOperationException("CurrentTableSession is required to move to previous turn.");
+                    }
+
+                    if (State.CurrentTableSession.TurnOrder.Count == 0)
+                    {
+                        throw new InvalidOperationException("Turn order is required before moving to previous turn.");
+                    }
+
+                    var isFirstParticipant = State.CurrentTableSession.CurrentTurnIndex == 0;
+                    var previousIndex = State.CurrentTableSession.CurrentTurnIndex - 1;
+                    if (previousIndex < 0)
+                    {
+                        previousIndex = State.CurrentTableSession.TurnOrder.Count - 1;
+                    }
+
+                    State.CurrentTableSession.CurrentTurnIndex = previousIndex;
+
+                    if (isFirstParticipant)
+                    {
+                        State.CurrentTableSession.TurnNumber = Math.Max(1, State.CurrentTableSession.TurnNumber - 1);
+                    }
+
                     State.IsDirty = true;
                 });
         }
@@ -273,6 +405,69 @@ namespace MIMLESvtt.src
                         State.CurrentTableSession.CurrentTurnIndex = 0;
                     }
 
+                    State.IsDirty = true;
+                });
+        }
+
+        public void RenameParticipant(string id, string newName)
+        {
+            ExecuteWorkspaceOperation(
+                WorkspaceOperationKind.RenameParticipant,
+                filePath: State.CurrentFilePath,
+                snapshotFormat: SnapshotFormatKind.TableSessionSnapshot,
+                successMessage: "Renamed participant.",
+                action: () =>
+                {
+                    if (State.CurrentTableSession is null)
+                    {
+                        throw new InvalidOperationException("CurrentTableSession is required to rename participant.");
+                    }
+
+                    ArgumentException.ThrowIfNullOrWhiteSpace(id);
+                    ArgumentException.ThrowIfNullOrWhiteSpace(newName);
+
+                    var normalizedId = id.Trim();
+                    var participant = State.CurrentTableSession.Participants.FirstOrDefault(p => string.Equals(p.Id, normalizedId, StringComparison.Ordinal));
+                    if (participant is null)
+                    {
+                        throw new InvalidOperationException("Participant id was not found in current session.");
+                    }
+
+                    participant.Name = newName.Trim();
+                    State.IsDirty = true;
+                });
+        }
+
+        public void AssignPieceOwner(string pieceId, string ownerParticipantId)
+        {
+            ExecuteWorkspaceOperation(
+                WorkspaceOperationKind.AssignPieceOwner,
+                filePath: State.CurrentFilePath,
+                snapshotFormat: SnapshotFormatKind.TableSessionSnapshot,
+                successMessage: "Updated piece owner.",
+                action: () =>
+                {
+                    if (State.CurrentTableSession is null)
+                    {
+                        throw new InvalidOperationException("CurrentTableSession is required to assign piece owner.");
+                    }
+
+                    ArgumentException.ThrowIfNullOrWhiteSpace(pieceId);
+
+                    var piece = State.CurrentTableSession.Pieces.FirstOrDefault(p => string.Equals(p.Id, pieceId.Trim(), StringComparison.Ordinal));
+                    if (piece is null)
+                    {
+                        throw new InvalidOperationException("Piece id was not found in current session.");
+                    }
+
+                    var normalizedOwnerParticipantId = ownerParticipantId?.Trim() ?? string.Empty;
+                    if (!string.IsNullOrWhiteSpace(normalizedOwnerParticipantId) &&
+                        State.CurrentTableSession.Participants.All(p => !string.Equals(p.Id, normalizedOwnerParticipantId, StringComparison.Ordinal)))
+                    {
+                        throw new InvalidOperationException("Owner participant id was not found in current session.");
+                    }
+
+                    piece.OwnerParticipantId = normalizedOwnerParticipantId;
                     State.IsDirty = true;
                 });
         }
@@ -750,7 +945,7 @@ namespace MIMLESvtt.src
 
             try
             {
-                if (State.Mode == WorkspaceMode.Play)
+                if (State.Mode == WorkspaceMode.Play && State.Settings.EnableRulesValidation)
                 {
                     var validation = _actionValidationService.Validate(request, State.CurrentTableSession);
                     if (!validation.IsValid)
@@ -1312,11 +1507,13 @@ namespace MIMLESvtt.src
             {
                 action();
                 State.LastOperationMessage = successMessage;
+                State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
                 RecordSuccessOperation(operationKind, filePath, snapshotFormat, successMessage);
             }
             catch (Exception ex)
             {
                 State.LastOperationMessage = ex.Message;
+                State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
                 RecordFailureOperation(operationKind, filePath, snapshotFormat, ex.Message);
                 throw;
             }
@@ -1328,6 +1525,9 @@ namespace MIMLESvtt.src
             SnapshotFormatKind? snapshotFormat,
             string message)
         {
+            State.LastOperationMessage = message;
+            State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
+
             State.OperationHistory.Add(new WorkspaceOperationEntry
             {
                 OperationKind = operationKind,
@@ -1345,6 +1545,9 @@ namespace MIMLESvtt.src
             SnapshotFormatKind? snapshotFormat,
             string message)
         {
+            State.LastOperationMessage = message;
+            State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
+
             State.OperationHistory.Add(new WorkspaceOperationEntry
             {
                 OperationKind = operationKind,

@@ -64,13 +64,6 @@ namespace MIMLESvtt.src
                 return ActionValidationResult.Failure("MovePiece target surface was not found in TableSession.Surfaces.");
             }
 
-            if (!string.IsNullOrWhiteSpace(piece.OwnerParticipantId) &&
-                !string.IsNullOrWhiteSpace(actionRequest.ActorParticipantId) &&
-                !string.Equals(piece.OwnerParticipantId, actionRequest.ActorParticipantId, StringComparison.Ordinal))
-            {
-                return ActionValidationResult.Failure("MovePiece actor does not match the piece owner.");
-            }
-
             return ActionValidationResult.Success();
         }
 

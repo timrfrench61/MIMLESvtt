@@ -304,6 +304,92 @@ Used for:
 
 ---
 
+### Workspace
+A **user-facing working context** for editing or playing within the application.
+
+A workspace typically includes:
+- the current Table Session
+- current file path
+- current pending scenario plan
+- current selection state
+- current board interaction state
+- current operation feedback
+- current developer feature toggles (if exposed)
+
+A workspace is not the same thing as a Table Session.
+
+A Table Session is domain/runtime state.
+A Workspace is application/UI state wrapped around that session.
+
+---
+
+### Workspace State
+The mutable UI/application state associated with a Workspace.
+
+Examples:
+- active surface
+- selected piece
+- dirty flag
+- operation history
+- current mode (edit/play)
+- board HUD settings
+- stamp mode state
+- queue state
+- preset state
+
+Workspace State is application state, not core persisted domain state unless explicitly saved as workspace recovery data.
+
+---
+
+### Pending Scenario Plan
+An intermediate application object created when a scenario is imported but not yet activated.
+
+It represents:
+- a valid scenario that has been loaded
+- a prepared plan for activation
+- a state prior to creating or activating a live session candidate
+
+It is not yet the live Table Session.
+
+---
+
+### Scenario Candidate
+An isolated Table Session candidate produced from a Pending Scenario Plan.
+
+It is:
+- structurally valid for activation
+- not yet necessarily the active live session
+
+It is used as a controlled step before replacing the current live session.
+
+---
+
+### Active Surface
+The surface currently shown or interacted with in the Workspace board UI.
+
+This is a workspace/UI concept.
+It references a Surface Instance within the current Table Session.
+
+---
+
+### Selected Piece
+The piece currently selected in the Workspace UI.
+
+This is a workspace/UI concept.
+It references a Piece Instance within the current Table Session.
+
+---
+
+### Feature Toggle
+A switch used to enable, disable, or stage a feature during development or pre-alpha use.
+
+Feature toggles are:
+- application-level controls
+- not core domain concepts
+- useful for incremental rollout and testing
+
+---
+
 ## Naming Rules
 
 - Use **Definition** for reusable content

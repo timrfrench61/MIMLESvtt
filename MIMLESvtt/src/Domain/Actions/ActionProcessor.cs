@@ -101,9 +101,14 @@ namespace MIMLESvtt.src
 
             var pieceId = RequireNonEmptyValue(changePieceStatePayload.PieceId, nameof(changePieceStatePayload.PieceId));
             var key = RequireNonEmptyValue(changePieceStatePayload.Key, nameof(changePieceStatePayload.Key));
-            ArgumentNullException.ThrowIfNull(changePieceStatePayload.Value);
 
             var piece = RequirePieceById(tableSession, pieceId, ChangePieceStateActionType);
+
+            if (changePieceStatePayload.Value is null)
+            {
+                piece.State.Remove(key);
+                return;
+            }
 
             piece.State[key] = changePieceStatePayload.Value;
         }
