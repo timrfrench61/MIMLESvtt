@@ -89,8 +89,8 @@ Each item should be small enough to implement independently.
 
 ## Table
 
-- [ ] create table creation workflow
-- [ ] create table load workflow
+- [x] create table creation workflow
+- [x] create table load workflow
 - [ ] create surface creation
 - [ ] create piece creation
 - [ ] implement piece placement
@@ -118,6 +118,21 @@ Each item should be small enough to implement independently.
 - [x] add runtime apply executor boundary (ReplaceTableSession)
 - [x] add runtime apply policy controls
 - [x] add pending scenario application plan support (non-mutating)
+- [x] add scenario candidate activation boundary (DryRun/Activate policy-controlled)
+- [x] add scenario activation orchestration service
+- [x] add thin file persistence services for TableSession/Scenario/ContentPack/ActionLog
+- [x] add snapshot file extension constants helper
+- [x] add snapshot file workflow orchestration with extension guardrails
+- [x] add single-file import/apply workflow from path
+- [x] add known/recent snapshot file library service (caller-managed, non-scanning)
+- [x] add snapshot file library list persistence (known paths only)
+- [x] add runtime workspace/session lifecycle service (new/open/save/save-as/import-scenario/activate-scenario)
+- [x] add workspace operation history tracking for lifecycle operations
+- [x] integrate workspace dirty-state updates for successful action processing
+- [x] add workspace restore/recovery state file (rehydrate current file + pending scenario context)
+- [x] harden workspace-state persistence with temp-write/replace + single backup fallback
+- [x] add structured workspace recovery diagnostics (main vs backup, restored flags, warnings/errors)
+- [x] add restore options for strict vs best-effort pending-scenario recovery (default strict)
 
 ---
 
@@ -182,6 +197,15 @@ Each item should be small enough to implement independently.
 - [x] test action execution
 - [x] test persistence save/load
 - [x] test import validation
+- [x] test file persistence boundaries and extension guardrails
+- [x] test scenario activation workflow (dry-run/activate/policy)
+- [x] test known-files library operations and persistence
+- [x] test workspace lifecycle operations
+- [x] test workspace operation history
+- [x] test workspace action-driven dirty-state behavior
+- [x] test workspace save/restore recovery state round-trip and rehydration behavior
+- [x] test workspace-state file safety behavior (temp replace, backup fallback, corruption handling)
+- [x] test restore diagnostics flags and strict vs best-effort restore options behavior
 - [ ] test multiplayer synchronization
 - [ ] test module behavior
 - [~] test domain invariants (covered for current action/persistence boundaries, full invariant suite pending)
@@ -190,9 +214,9 @@ Each item should be small enough to implement independently.
 
 ## Near-Term Focus (next block)
 
-- [ ] scenario plan apply command boundary (still non-mutating to active TableSession)
+- [ ] expand domain invariant enforcement (id uniqueness + broader reference checks)
 - [ ] complete remaining core actions (CreatePiece, DeletePiece, SetPieceVisibility, UpdateTableOptions)
-- [ ] strengthen cross-entity reference/domain invariant checks beyond current action paths
+- [ ] add current-session missing-file restore option (strict default, optional best-effort) with matrix tests
 
 ---
 

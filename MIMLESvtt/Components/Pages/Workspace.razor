@@ -1,0 +1,595 @@
+@page "/workspace"
+@using MIMLESvtt.src
+@inject SessionWorkspaceService WorkspaceService
+
+<PageTitle>Workspace</PageTitle>
+
+<h1>Workspace</h1>
+
+<div class="mb-3">
+    <button class="btn btn-primary me-2" @onclick="CreateNewSession">Create New Session</button>
+    <button class="btn btn-success me-2" @onclick="OpenSessionFromPath">Open Session</button>
+    <button class="btn btn-outline-success me-2" @onclick="SaveCurrentSession">Save Current Session</button>
+    <button class="btn btn-outline-primary me-2" @onclick="SaveCurrentSessionAs">Save Current Session As</button>
+    <button class="btn btn-warning me-2" @onclick="ImportScenarioToPendingPlan">Import Scenario To Pending Plan</button>
+    <button class="btn btn-danger" @onclick="ActivatePendingScenario">Activate Pending Scenario</button>
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Session file path (.session.json)</label>
+    <InputText @bind-Value="sessionPath" class="form-control" />
+</div>
+<div class="mb-3">
+    <label class="form-label">Scenario file path (.scenario.json)</label>
+    <InputText @bind-Value="scenarioPath" class="form-control" />
+</div>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <div class="alert @(isError ? "alert-danger" : "alert-info")">@message</div>
+}
+
+<h3>Session Summary</h3>
+@if (WorkspaceService.State.CurrentTableSession is null)
+{
+    <p>No current session.</p>
+}
+else
+{
+    <ul>
+        <li><strong>Title:</strong> @WorkspaceService.State.CurrentTableSession.Title</li>
+        <li><strong>Current File:</strong> @(WorkspaceService.State.CurrentFilePath ?? "(none)")</li>
+        <li><strong>Dirty:</strong> @WorkspaceService.State.IsDirty</li>
+        <li><strong>Surfaces:</strong> @WorkspaceService.State.CurrentTableSession.Surfaces.Count</li>
+        <li><strong>Pieces:</strong> @WorkspaceService.State.CurrentTableSession.Pieces.Count</li>
+        <li><strong>Pending Scenario:</strong> @(WorkspaceService.State.CurrentPendingScenarioPlan?.ScenarioTitle ?? "(none)")</li>
+        <li><strong>Last Operation:</strong> @(WorkspaceService.State.LastOperationMessage ?? "(none)")</li>
+    </ul>
+}
+
+@if (WorkspaceService.State.CurrentTableSession is not null)
+{
+    <h3>Setup</h3>
+
+    <h4>Add Surface</h4>
+    <div class="row g-2 mb-3">
+        <div class="col">
+            <InputText @bind-Value="newSurfaceId" class="form-control" placeholder="Surface Id" />
+        </div>
+        <div class="col">
+            <InputText @bind-Value="newSurfaceDefinitionId" class="form-control" placeholder="Definition Id" />
+        </div>
+        <div class="col">
+            <InputSelect @bind-Value="newSurfaceType" class="form-select">
+                @foreach (var type in Enum.GetValues<SurfaceType>())
+                {
+                    <option value="@type">@type</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="col">
+            <InputSelect @bind-Value="newCoordinateSystem" class="form-select">
+                @foreach (var system in Enum.GetValues<CoordinateSystem>())
+                {
+                    <option value="@system">@system</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-secondary" @onclick="AddSurface">Add Surface</button>
+        </div>
+    </div>
+
+    <h4>Add Piece</h4>
+    <div class="row g-2 mb-3">
+        <div class="col">
+            <InputText @bind-Value="newPieceId" class="form-control" placeholder="Piece Id" />
+        </div>
+        <div class="col">
+            <InputText @bind-Value="newPieceDefinitionId" class="form-control" placeholder="Definition Id" />
+        </div>
+        <div class="col">
+            <InputText @bind-Value="newPieceSurfaceId" class="form-control" placeholder="Target Surface Id" />
+        </div>
+        <div class="col">
+            <InputNumber @bind-Value="newPieceX" class="form-control" />
+        </div>
+        <div class="col">
+            <InputNumber @bind-Value="newPieceY" class="form-control" />
+        </div>
+        <div class="col">
+            <InputNumber @bind-Value="newPieceRotation" class="form-control" />
+        </div>
+        <div class="col">
+            <InputText @bind-Value="newPieceOwnerParticipantId" class="form-control" placeholder="Owner (optional)" />
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-secondary" @onclick="AddPiece">Add Piece</button>
+        </div>
+    </div>
+
+    <h3>Surfaces</h3>
+    @if (WorkspaceService.State.CurrentTableSession.Surfaces.Count == 0)
+    {
+        <p>No surfaces in current session.</p>
+    }
+    else
+    {
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Type</th>
+                    <th>Coordinate System</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var surface in WorkspaceService.State.CurrentTableSession.Surfaces)
+                {
+                    <tr>
+                        <td>@surface.Id</td>
+                        <td>@surface.Type</td>
+                        <td>@surface.CoordinateSystem</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="mb-3">
+            <label class="form-label">Active surface for board</label>
+            <select class="form-select" @bind="board.ActiveSurfaceId">
+                @foreach (var surface in WorkspaceService.State.CurrentTableSession.Surfaces)
+                {
+                    <option value="@surface.Id">@surface.Id (@surface.Type / @surface.CoordinateSystem)</option>
+                }
+            </select>
+        </div>
+
+        <div class="board-panel" @onclick="BoardClicked">
+            @foreach (var piece in board.GetRenderedPiecesForActiveSurface(WorkspaceService.State.CurrentTableSession))
+            {
+                <div class="@GetPieceCss(piece)"
+                     style="@GetPieceStyle(piece)"
+                     @onclick:stopPropagation="true"
+                     @onclick="() => OnBoardPieceClicked(piece.Id)">
+                    @piece.Id
+                </div>
+            }
+        </div>
+
+        <div class="row g-2 mb-3">
+            <div class="col-auto">
+                <button class="btn btn-outline-dark" @onclick="MoveFromBoardPanel">Move Selected On Board</button>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-dark" @onclick="RotateFromBoardPanel">Rotate Selected On Board</button>
+            </div>
+        </div>
+    }
+
+    <h3>Pieces</h3>
+
+    @if (WorkspaceService.State.CurrentTableSession.Pieces.Count == 0)
+    {
+        <p>No pieces in current session.</p>
+    }
+    else
+    {
+        <div class="mb-3">
+            <label class="form-label">Select piece</label>
+            <select class="form-select" @bind="selectedPieceId">
+                <option value="">(select piece)</option>
+                @foreach (var piece in WorkspaceService.State.CurrentTableSession.Pieces)
+                {
+                    <option value="@piece.Id">@piece.Id (@piece.DefinitionId)</option>
+                }
+            </select>
+        </div>
+
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Surface</th>
+                    <th>X</th>
+                    <th>Y</th>
+                    <th>Rotation</th>
+                    <th>Markers</th>
+                    <th>State Keys</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var piece in WorkspaceService.State.CurrentTableSession.Pieces)
+                {
+                    <tr>
+                        <td>@piece.Id</td>
+                        <td>@piece.Location.SurfaceId</td>
+                        <td>@piece.Location.Coordinate.X</td>
+                        <td>@piece.Location.Coordinate.Y</td>
+                        <td>@piece.Rotation.Degrees</td>
+                        <td>@piece.MarkerIds.Count</td>
+                        <td>@piece.State.Count</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <h4>Move Piece</h4>
+        <div class="row g-2 mb-3">
+            <div class="col">
+                <InputText @bind-Value="moveSurfaceId" class="form-control" placeholder="Surface Id" />
+            </div>
+            <div class="col">
+                <InputNumber @bind-Value="moveX" class="form-control" />
+            </div>
+            <div class="col">
+                <InputNumber @bind-Value="moveY" class="form-control" />
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-primary" @onclick="MovePiece">Move</button>
+            </div>
+        </div>
+
+        <h4>Rotate Piece</h4>
+        <div class="row g-2 mb-3">
+            <div class="col">
+                <InputNumber @bind-Value="rotateDegrees" class="form-control" />
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-primary" @onclick="RotatePiece">Rotate</button>
+            </div>
+        </div>
+
+        <h4>Add Marker</h4>
+        <div class="row g-2 mb-3">
+            <div class="col">
+                <InputText @bind-Value="markerId" class="form-control" placeholder="Marker Id" />
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-primary" @onclick="AddMarker">Add Marker</button>
+            </div>
+        </div>
+
+        <h4>Remove Marker</h4>
+        <div class="row g-2 mb-3">
+            <div class="col">
+                <InputText @bind-Value="markerId" class="form-control" placeholder="Marker Id" />
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-primary" @onclick="RemoveMarker">Remove Marker</button>
+            </div>
+        </div>
+
+        <h4>Change Piece State</h4>
+        <div class="row g-2 mb-3">
+            <div class="col">
+                <InputText @bind-Value="stateKey" class="form-control" placeholder="State Key" />
+            </div>
+            <div class="col">
+                <InputText @bind-Value="stateValue" class="form-control" placeholder="State Value" />
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-primary" @onclick="ChangePieceState">Update State</button>
+            </div>
+        </div>
+    }
+}
+
+@if (WorkspaceService.State.OperationHistory.Count > 0)
+{
+    <h3>Recent Operations</h3>
+    <ul>
+        @foreach (var item in WorkspaceService.State.OperationHistory.TakeLast(10).Reverse())
+        {
+            <li>@item.TimestampUtc:u - @item.OperationKind - @(item.Success ? "Success" : "Failed") - @item.Message</li>
+        }
+    </ul>
+}
+
+@code {
+    private readonly WorkspaceBoardState board = new();
+
+    private string? sessionPath;
+    private string? scenarioPath;
+
+    private string? selectedPieceId;
+
+    private string newSurfaceId = "surface-1";
+    private string newSurfaceDefinitionId = "def-surface-1";
+    private SurfaceType newSurfaceType = SurfaceType.Map;
+    private CoordinateSystem newCoordinateSystem = CoordinateSystem.Square;
+
+    private string newPieceId = "piece-1";
+    private string newPieceDefinitionId = "def-piece-1";
+    private string newPieceSurfaceId = "surface-1";
+    private float newPieceX;
+    private float newPieceY;
+    private float newPieceRotation;
+    private string newPieceOwnerParticipantId = string.Empty;
+
+    private string moveSurfaceId = "surface-1";
+    private float moveX;
+    private float moveY;
+    private float rotateDegrees;
+    private string markerId = "marker-1";
+    private string stateKey = "Status";
+    private string stateValue = "Active";
+
+    private string? message;
+    private bool isError;
+
+    protected override void OnInitialized()
+    {
+        if (WorkspaceService.State.CurrentTableSession is null)
+        {
+            WorkspaceService.CreateNewSession();
+        }
+
+        board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
+
+        if (WorkspaceService.State.CurrentTableSession!.Pieces.Count > 0)
+        {
+            selectedPieceId = WorkspaceService.State.CurrentTableSession.Pieces[0].Id;
+            board.SelectedPieceId = selectedPieceId;
+        }
+    }
+
+    private void AddSurface()
+    {
+        Execute(() =>
+        {
+            WorkspaceService.AddSurface(newSurfaceId, newSurfaceDefinitionId, newSurfaceType, newCoordinateSystem);
+            board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
+            moveSurfaceId = newSurfaceId;
+            if (string.IsNullOrWhiteSpace(newPieceSurfaceId))
+            {
+                newPieceSurfaceId = newSurfaceId;
+            }
+        }, "Added surface.");
+    }
+
+    private void AddPiece()
+    {
+        Execute(() =>
+        {
+            WorkspaceService.AddPiece(
+                newPieceId,
+                newPieceDefinitionId,
+                newPieceSurfaceId,
+                newPieceX,
+                newPieceY,
+                newPieceOwnerParticipantId,
+                newPieceRotation);
+
+            selectedPieceId = newPieceId;
+            board.SelectedPieceId = selectedPieceId;
+            board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
+        }, "Added piece.");
+    }
+
+    private void CreateNewSession()
+    {
+        Execute(() =>
+        {
+            WorkspaceService.CreateNewSession();
+            board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
+            selectedPieceId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.Id;
+            board.SelectedPieceId = selectedPieceId;
+        }, "Created new session.");
+    }
+
+    private void OpenSessionFromPath()
+    {
+        Execute(() =>
+        {
+            WorkspaceService.OpenTableSessionFromFile(sessionPath ?? string.Empty);
+            board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
+            selectedPieceId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.Id;
+            board.SelectedPieceId = selectedPieceId;
+        }, "Opened session from file.");
+    }
+
+    private void SaveCurrentSession()
+    {
+        Execute(() => WorkspaceService.SaveCurrentSession(), "Saved current session.");
+    }
+
+    private void SaveCurrentSessionAs()
+    {
+        Execute(() => WorkspaceService.SaveCurrentSessionAs(sessionPath ?? string.Empty), "Saved current session as file.");
+    }
+
+    private void ImportScenarioToPendingPlan()
+    {
+        Execute(() => WorkspaceService.ImportScenarioToPendingPlanFromFile(scenarioPath ?? string.Empty), "Imported scenario to pending plan.");
+    }
+
+    private void ActivatePendingScenario()
+    {
+        Execute(() =>
+        {
+            WorkspaceService.ActivatePendingScenario();
+            board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
+            selectedPieceId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.Id;
+            board.SelectedPieceId = selectedPieceId;
+        }, "Activated pending scenario.");
+    }
+
+    private void OnBoardPieceClicked(string pieceId)
+    {
+        selectedPieceId = pieceId;
+        board.SelectPiece(pieceId);
+
+        var piece = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault(p => p.Id == pieceId);
+        if (piece is not null)
+        {
+            moveSurfaceId = piece.Location.SurfaceId;
+            moveX = piece.Location.Coordinate.X;
+            moveY = piece.Location.Coordinate.Y;
+            rotateDegrees = piece.Rotation.Degrees;
+        }
+    }
+
+    private void BoardClicked(MouseEventArgs args)
+    {
+        var offsetX = (float)args.OffsetX;
+        var offsetY = (float)args.OffsetY;
+        moveX = offsetX;
+        moveY = offsetY;
+    }
+
+    private void MoveFromBoardPanel()
+    {
+        Execute(() =>
+        {
+            board.MoveSelectedPiece(WorkspaceService, moveX, moveY);
+        }, "Moved piece from board panel.");
+    }
+
+    private void RotateFromBoardPanel()
+    {
+        Execute(() =>
+        {
+            board.RotateSelectedPiece(WorkspaceService, rotateDegrees);
+        }, "Rotated piece from board panel.");
+    }
+
+    private void MovePiece()
+    {
+        Execute(() =>
+        {
+            var pieceId = RequireSelectedPiece();
+            WorkspaceService.ProcessAction(new ActionRequest
+            {
+                ActionType = "MovePiece",
+                ActorParticipantId = "gm",
+                Payload = new MovePiecePayload
+                {
+                    PieceId = pieceId,
+                    NewLocation = new Location
+                    {
+                        SurfaceId = moveSurfaceId,
+                        Coordinate = new Coordinate { X = moveX, Y = moveY }
+                    }
+                }
+            });
+        }, "Moved piece.");
+    }
+
+    private void RotatePiece()
+    {
+        Execute(() =>
+        {
+            var pieceId = RequireSelectedPiece();
+            WorkspaceService.ProcessAction(new ActionRequest
+            {
+                ActionType = "RotatePiece",
+                ActorParticipantId = "gm",
+                Payload = new RotatePiecePayload
+                {
+                    PieceId = pieceId,
+                    NewRotation = new Rotation { Degrees = rotateDegrees }
+                }
+            });
+        }, "Rotated piece.");
+    }
+
+    private void AddMarker()
+    {
+        Execute(() =>
+        {
+            var pieceId = RequireSelectedPiece();
+            WorkspaceService.ProcessAction(new ActionRequest
+            {
+                ActionType = "AddMarker",
+                ActorParticipantId = "gm",
+                Payload = new AddMarkerPayload
+                {
+                    PieceId = pieceId,
+                    MarkerId = markerId
+                }
+            });
+        }, "Added marker.");
+    }
+
+    private void RemoveMarker()
+    {
+        Execute(() =>
+        {
+            var pieceId = RequireSelectedPiece();
+            WorkspaceService.ProcessAction(new ActionRequest
+            {
+                ActionType = "RemoveMarker",
+                ActorParticipantId = "gm",
+                Payload = new RemoveMarkerPayload
+                {
+                    PieceId = pieceId,
+                    MarkerId = markerId
+                }
+            });
+        }, "Removed marker.");
+    }
+
+    private void ChangePieceState()
+    {
+        Execute(() =>
+        {
+            var pieceId = RequireSelectedPiece();
+            WorkspaceService.ProcessAction(new ActionRequest
+            {
+                ActionType = "ChangePieceState",
+                ActorParticipantId = "gm",
+                Payload = new ChangePieceStatePayload
+                {
+                    PieceId = pieceId,
+                    Key = stateKey,
+                    Value = stateValue
+                }
+            });
+        }, "Changed piece state.");
+    }
+
+    private void Execute(Action action, string successMessage)
+    {
+        try
+        {
+            action();
+            message = successMessage;
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            isError = true;
+        }
+    }
+
+    private string RequireSelectedPiece()
+    {
+        if (string.IsNullOrWhiteSpace(selectedPieceId))
+        {
+            throw new InvalidOperationException("Select a piece first.");
+        }
+
+        return selectedPieceId;
+    }
+
+    private string GetPieceCss(PieceInstance piece)
+    {
+        var css = "board-piece";
+        if (piece.Id == selectedPieceId)
+        {
+            css += " selected";
+        }
+
+        return css;
+    }
+
+    private string GetPieceStyle(PieceInstance piece)
+    {
+        var left = Math.Clamp(piece.Location.Coordinate.X, 0, 620);
+        var top = Math.Clamp(piece.Location.Coordinate.Y, 0, 360);
+        return $"left: {left}px; top: {top}px; transform: rotate({piece.Rotation.Degrees}deg);";
+    }
+
+}

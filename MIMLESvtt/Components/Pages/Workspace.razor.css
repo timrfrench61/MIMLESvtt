@@ -1,0 +1,31 @@
+.board-panel {
+    border: 1px solid #6c757d;
+    border-radius: 4px;
+    background: #f8f9fa;
+    width: 720px;
+    height: 420px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.board-piece {
+    position: absolute;
+    width: 84px;
+    height: 42px;
+    border: 1px solid #0d6efd;
+    border-radius: 4px;
+    background: #cfe2ff;
+    color: #0a1f44;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.board-piece.selected {
+    border: 2px solid #dc3545;
+    background: #f8d7da;
+}

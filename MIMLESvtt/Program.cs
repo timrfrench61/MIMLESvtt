@@ -1,10 +1,13 @@
 using MIMLESvtt.Components;
+using MIMLESvtt.src;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddScoped<SessionWorkspaceService>();
 
 var app = builder.Build();
 
