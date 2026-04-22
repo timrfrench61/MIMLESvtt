@@ -122,7 +122,7 @@ Examples:
 
 * TokenDefinition vs TokenInstance
 * MapDefinition vs SurfaceInstance
-* ScenarioDefinition vs TableSession
+* ScenarioDefinition vs VttSession
 
 ### 3. State is authoritative
 
@@ -154,7 +154,7 @@ Responsible for the live table/session.
 
 Includes:
 
-* TableSession
+* VttSession
 * participants
 * permissions
 * session metadata
@@ -362,7 +362,7 @@ Blazor remains a good fit for rich .NET UI, and Microsoft’s current docs still
 
 Pure model and rules-neutral concepts:
 
-* TableSession
+* VttSession
 * Surface
 * Piece
 * Coordinates
@@ -414,7 +414,7 @@ This is the big part that has been missing in the VTT discussion.
 
 ## Foundational runtime aggregate
 
-### TableSession
+### VttSession
 
 Contains:
 

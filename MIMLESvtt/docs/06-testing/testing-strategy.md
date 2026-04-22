@@ -42,7 +42,7 @@ If the domain model is unstable, UI and multiplayer behavior will drift.
 
 Testing must verify that:
 
-- TableSession state remains coherent
+- VttSession state remains coherent
 - actions validate and apply correctly
 - persisted data can be saved and restored
 - imports reject invalid data
@@ -76,7 +76,7 @@ Verify that the core runtime model behaves correctly.
 
 ### Covers
 
-- TableSession creation
+- VttSession creation
 - participant management
 - surface creation
 - piece creation
@@ -122,7 +122,7 @@ Verify that all state changes happen correctly through actions.
 
 - MovePiece updates only the intended piece location
 - AddMarker updates marker state correctly
-- invalid actions do not mutate TableSession
+- invalid actions do not mutate VttSession
 - accepted actions are added to ActionLog
 - rejected actions are not logged
 
@@ -144,8 +144,8 @@ Verify that session state can be saved and loaded without corruption.
 
 ### Covers
 
-- TableSession serialization
-- TableSession deserialization
+- VttSession serialization
+- VttSession deserialization
 - version field presence
 - preservation of references
 - module state persistence
@@ -356,7 +356,7 @@ This order reflects architectural importance.
 
 At minimum, the project should have tests for:
 
-- TableSession creation
+- VttSession creation
 - piece placement
 - MovePiece validation and execution
 - AddMarker validation and execution
@@ -385,7 +385,7 @@ The system is tested in layers:
 
 The highest priority is always:
 
-- coherent TableSession state
+- coherent VttSession state
 - correct action behavior
 - reliable persistence
 - stable module boundaries

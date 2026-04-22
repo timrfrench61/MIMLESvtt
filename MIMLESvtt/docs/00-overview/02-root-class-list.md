@@ -52,10 +52,9 @@ Represents a prepared starting layout/template that can be imported and activate
 ### Properties
 
 - `string Title`  -   VttScenario title.
-
 - `List<SurfaceInstance> Surfaces`  -   VttScenario starting surfaces.
 - `List<PieceInstance> Pieces`  -   VttScenario starting piece placements.
-- `TabletopOptions Options`  -   VttScenario starting table options.
+- `TabletopOptions Options`  -   VttScenario starting tabletop options.
 
 ### Related Snapshot Container
 

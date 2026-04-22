@@ -5,6 +5,7 @@ using MIMLESvtt.src.Application.Workspace;
 using MIMLESvtt.src.Domain.Models.Pieces;
 using MIMLESvtt.src.Domain.Models.Placement;
 using MIMLESvtt.src.Domain.Models.Surfaces;
+using MIMLESvtt.src.Domain.Persistence.Workspace;
 
 namespace MIMLESvtt.Components.Pages;
 
@@ -100,7 +101,7 @@ public partial class Workspace : ComponentBase
 
     protected override void OnInitialized()
     {
-        if (WorkspaceService.State.CurrentTableSession is null)
+        if (WorkspaceService.State.CurrentVttSession is null)
         {
             WorkspaceService.CreateNewSession();
             sessionCounter = 1;
@@ -110,18 +111,18 @@ public partial class Workspace : ComponentBase
             sessionCounter = 1;
         }
 
-        board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
+        board.EnsureActiveSurface(WorkspaceService.State.CurrentVttSession);
 
-        if (WorkspaceService.State.CurrentTableSession!.Pieces.Count > 0)
+        if (WorkspaceService.State.CurrentVttSession!.Pieces.Count > 0)
         {
-            selectedPieceId = WorkspaceService.State.CurrentTableSession.Pieces[0].Id;
+            selectedPieceId = WorkspaceService.State.CurrentVttSession.Pieces[0].Id;
             board.SelectedPieceId = selectedPieceId;
-            selectedPieceOwnerParticipantId = WorkspaceService.State.CurrentTableSession.Pieces[0].OwnerParticipantId;
+            selectedPieceOwnerParticipantId = WorkspaceService.State.CurrentVttSession.Pieces[0].OwnerParticipantId;
         }
 
         previousActiveSurfaceId = board.ActiveSurfaceId;
-        phaseInput = WorkspaceService.State.CurrentTableSession.CurrentPhase;
-        sessionTitleInput = WorkspaceService.State.CurrentTableSession.Title;
+        phaseInput = WorkspaceService.State.CurrentVttSession.CurrentPhase;
+        sessionTitleInput = WorkspaceService.State.CurrentVttSession.Title;
     }
 
     private void AddSurface()
@@ -129,7 +130,7 @@ public partial class Workspace : ComponentBase
         Execute(() =>
         {
             WorkspaceService.AddSurface(newSurfaceId, newSurfaceDefinitionId, newSurfaceType, newCoordinateSystem);
-            board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
+            board.EnsureActiveSurface(WorkspaceService.State.CurrentVttSession);
             moveSurfaceId = newSurfaceId;
             if (string.IsNullOrWhiteSpace(newPieceSurfaceId))
             {
@@ -154,7 +155,7 @@ public partial class Workspace : ComponentBase
             selectedPieceId = newPieceId;
             board.SelectedPieceId = selectedPieceId;
             selectedPieceOwnerParticipantId = newPieceOwnerParticipantId;
-            board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
+            board.EnsureActiveSurface(WorkspaceService.State.CurrentVttSession);
         }, "Added piece.");
     }
 
@@ -164,14 +165,14 @@ public partial class Workspace : ComponentBase
         {
             WorkspaceService.CreateNewSession();
             sessionCounter++;
-            board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
-            selectedPieceId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.Id;
+            board.EnsureActiveSurface(WorkspaceService.State.CurrentVttSession);
+            selectedPieceId = WorkspaceService.State.CurrentVttSession?.Pieces.FirstOrDefault()?.Id;
             board.SelectedPieceId = selectedPieceId;
-            selectedPieceOwnerParticipantId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.OwnerParticipantId ?? string.Empty;
-            phaseInput = WorkspaceService.State.CurrentTableSession?.CurrentPhase ?? string.Empty;
-            sessionTitleInput = WorkspaceService.State.CurrentTableSession?.Title ?? string.Empty;
+            selectedPieceOwnerParticipantId = WorkspaceService.State.CurrentVttSession?.Pieces.FirstOrDefault()?.OwnerParticipantId ?? string.Empty;
+            phaseInput = WorkspaceService.State.CurrentVttSession?.CurrentPhase ?? string.Empty;
+            sessionTitleInput = WorkspaceService.State.CurrentVttSession?.Title ?? string.Empty;
 
-            var sessionId = WorkspaceService.State.CurrentTableSession?.Id;
+            var sessionId = WorkspaceService.State.CurrentVttSession?.Id;
             var shortId = !string.IsNullOrWhiteSpace(sessionId) && sessionId.Length >= 8 ? sessionId[..8] : sessionId;
             WorkspaceService.State.LastOperationMessage = $"Created new workspace session ({shortId}) at {DateTime.Now:T}.";
             WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
@@ -184,13 +185,13 @@ public partial class Workspace : ComponentBase
     {
         Execute(() =>
         {
-            WorkspaceService.OpenTableSessionFromFile(sessionPath ?? string.Empty);
-            board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
-            selectedPieceId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.Id;
+            WorkspaceService.OpenVttSessionFromFile(sessionPath ?? string.Empty);
+            board.EnsureActiveSurface(WorkspaceService.State.CurrentVttSession);
+            selectedPieceId = WorkspaceService.State.CurrentVttSession?.Pieces.FirstOrDefault()?.Id;
             board.SelectedPieceId = selectedPieceId;
-            selectedPieceOwnerParticipantId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.OwnerParticipantId ?? string.Empty;
-            phaseInput = WorkspaceService.State.CurrentTableSession?.CurrentPhase ?? string.Empty;
-            sessionTitleInput = WorkspaceService.State.CurrentTableSession?.Title ?? string.Empty;
+            selectedPieceOwnerParticipantId = WorkspaceService.State.CurrentVttSession?.Pieces.FirstOrDefault()?.OwnerParticipantId ?? string.Empty;
+            phaseInput = WorkspaceService.State.CurrentVttSession?.CurrentPhase ?? string.Empty;
+            sessionTitleInput = WorkspaceService.State.CurrentVttSession?.Title ?? string.Empty;
         }, "Opened session from file.");
     }
 
@@ -219,12 +220,12 @@ public partial class Workspace : ComponentBase
         Execute(() =>
         {
             WorkspaceService.ActivatePendingScenario();
-            board.EnsureActiveSurface(WorkspaceService.State.CurrentTableSession);
-            selectedPieceId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.Id;
+            board.EnsureActiveSurface(WorkspaceService.State.CurrentVttSession);
+            selectedPieceId = WorkspaceService.State.CurrentVttSession?.Pieces.FirstOrDefault()?.Id;
             board.SelectedPieceId = selectedPieceId;
-            selectedPieceOwnerParticipantId = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault()?.OwnerParticipantId ?? string.Empty;
-            phaseInput = WorkspaceService.State.CurrentTableSession?.CurrentPhase ?? string.Empty;
-            sessionTitleInput = WorkspaceService.State.CurrentTableSession?.Title ?? string.Empty;
+            selectedPieceOwnerParticipantId = WorkspaceService.State.CurrentVttSession?.Pieces.FirstOrDefault()?.OwnerParticipantId ?? string.Empty;
+            phaseInput = WorkspaceService.State.CurrentVttSession?.CurrentPhase ?? string.Empty;
+            sessionTitleInput = WorkspaceService.State.CurrentVttSession?.Title ?? string.Empty;
         }, "Activated pending scenario.");
     }
 
@@ -233,7 +234,7 @@ public partial class Workspace : ComponentBase
         try
         {
             WorkspaceService.UpdateSessionTitle(sessionTitleInput);
-            sessionTitleInput = WorkspaceService.State.CurrentTableSession?.Title ?? sessionTitleInput;
+            sessionTitleInput = WorkspaceService.State.CurrentVttSession?.Title ?? sessionTitleInput;
             WorkspaceService.State.LastOperationMessage = $"Updated session title to '{sessionTitleInput}'.";
             WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
             StateHasChanged();
@@ -338,14 +339,14 @@ public partial class Workspace : ComponentBase
 
     private void OnSelectedPieceChangedFromList()
     {
-        var piece = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault(p => p.Id == selectedPieceId);
+        var piece = WorkspaceService.State.CurrentVttSession?.Pieces.FirstOrDefault(p => p.Id == selectedPieceId);
         selectedPieceOwnerParticipantId = piece?.OwnerParticipantId ?? string.Empty;
         board.SelectedPieceId = selectedPieceId;
     }
 
     private string GetCurrentTurnParticipant()
     {
-        var session = WorkspaceService.State.CurrentTableSession;
+        var session = WorkspaceService.State.CurrentVttSession;
         if (session is null || session.TurnOrder.Count == 0)
         {
             return "(none)";
@@ -372,7 +373,7 @@ public partial class Workspace : ComponentBase
 
     private string GetParticipantDisplayById(string participantId)
     {
-        var session = WorkspaceService.State.CurrentTableSession;
+        var session = WorkspaceService.State.CurrentVttSession;
         if (session is null)
         {
             return participantId;
@@ -389,7 +390,7 @@ public partial class Workspace : ComponentBase
 
     private string GetOwnedPiecesSummary(string participantId)
     {
-        var session = WorkspaceService.State.CurrentTableSession;
+        var session = WorkspaceService.State.CurrentVttSession;
         if (session is null)
         {
             return "0";
@@ -493,7 +494,7 @@ public partial class Workspace : ComponentBase
 
     private void ApplyBoardVisibilityRules()
     {
-        if (board.ClearHiddenSelections(WorkspaceService.State.CurrentTableSession, boardVisibility))
+        if (board.ClearHiddenSelections(WorkspaceService.State.CurrentVttSession, boardVisibility))
         {
             selectedPieceId = board.SelectedPieceId;
             WorkspaceService.State.LastOperationMessage = "Cleared selection for pieces hidden by current board visibility filters.";
@@ -527,7 +528,7 @@ public partial class Workspace : ComponentBase
             board.SelectSinglePiece(pieceId);
         }
 
-        var piece = WorkspaceService.State.CurrentTableSession?.Pieces.FirstOrDefault(p => p.Id == pieceId);
+        var piece = WorkspaceService.State.CurrentVttSession?.Pieces.FirstOrDefault(p => p.Id == pieceId);
         if (piece is not null)
         {
             moveSurfaceId = piece.Location.SurfaceId;
@@ -548,7 +549,7 @@ public partial class Workspace : ComponentBase
 
     private void SelectAllOnActiveSurface()
     {
-        var selectedCount = board.SelectAllPiecesOnActiveSurface(WorkspaceService.State.CurrentTableSession);
+        var selectedCount = board.SelectAllPiecesOnActiveSurface(WorkspaceService.State.CurrentVttSession);
         selectedPieceId = board.SelectedPieceId;
         WorkspaceService.State.LastOperationMessage = $"Selected {selectedCount} piece(s) on active surface.";
         WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Success;
@@ -827,7 +828,7 @@ public partial class Workspace : ComponentBase
 
     private void ApplyQueueItem(int index)
     {
-        var session = WorkspaceService.State.CurrentTableSession;
+        var session = WorkspaceService.State.CurrentVttSession;
         if (!board.TryApplyQueueItemToBoardContext(
             index,
             session,
@@ -862,7 +863,7 @@ public partial class Workspace : ComponentBase
 
     private void ApplyNextQueueItem()
     {
-        var session = WorkspaceService.State.CurrentTableSession;
+        var session = WorkspaceService.State.CurrentVttSession;
         if (!board.TryApplyNextQueueItemToBoardContext(
             session,
             clearSelectionWhenSwitchingSurfaces: true,
@@ -1074,7 +1075,7 @@ public partial class Workspace : ComponentBase
 
     private void ActivateSurfaceWorkflow(string? surfaceId, bool includeSuccessMessage)
     {
-        var session = WorkspaceService.State.CurrentTableSession;
+        var session = WorkspaceService.State.CurrentVttSession;
         if (session is null)
         {
             WorkspaceService.State.LastOperationMessage = "Current session is required before switching surfaces.";
@@ -1210,7 +1211,7 @@ public partial class Workspace : ComponentBase
     {
         Execute(() =>
         {
-            var session = WorkspaceService.State.CurrentTableSession ?? throw new InvalidOperationException("Current session is required.");
+            var session = WorkspaceService.State.CurrentVttSession ?? throw new InvalidOperationException("Current session is required.");
             if (string.IsNullOrWhiteSpace(board.ActiveSurfaceId))
             {
                 throw new InvalidOperationException("Select an active surface first.");
@@ -1449,7 +1450,7 @@ public partial class Workspace : ComponentBase
     {
         Execute(() =>
         {
-            var selectedPiece = board.GetSelectedPieceOrThrow(CommandService.CurrentTableSession);
+            var selectedPiece = board.GetSelectedPieceOrThrow(CommandService.CurrentVttSession);
             rotateDegrees = selectedPiece.Rotation.Degrees - QuickRotateIncrement;
             board.RotateSelectedPiece(CommandService, rotateDegrees);
             board.SelectedPieceId = selectedPieceId;
@@ -1460,7 +1461,7 @@ public partial class Workspace : ComponentBase
     {
         Execute(() =>
         {
-            var selectedPiece = board.GetSelectedPieceOrThrow(CommandService.CurrentTableSession);
+            var selectedPiece = board.GetSelectedPieceOrThrow(CommandService.CurrentVttSession);
             rotateDegrees = selectedPiece.Rotation.Degrees + QuickRotateIncrement;
             board.RotateSelectedPiece(CommandService, rotateDegrees);
             board.SelectedPieceId = selectedPieceId;
@@ -1728,7 +1729,7 @@ public partial class Workspace : ComponentBase
     private bool TryGetSelectedPiece(out PieceInstance selectedPiece)
     {
         selectedPiece = null!;
-        var session = WorkspaceService.State.CurrentTableSession;
+        var session = WorkspaceService.State.CurrentVttSession;
         if (session is null || string.IsNullOrWhiteSpace(selectedPieceId))
         {
             return false;

@@ -13,7 +13,7 @@ Use this as the primary “what exists in code” map.
 
 ## Root Runtime and Content Classes
 
-- `VttSession` (compat: `TableSession`) — live runtime game/session object.
+- `VttSession` — live runtime game/session object.
 - `VttScenario` (compat: `Scenario`) — prepared starting layout/template.
 - `VttContentPack` (target) — reusable content package model (non-snapshot runtime/content contract).
 
@@ -97,7 +97,7 @@ Primary classes/services:
 
 - `WorkspaceBoardState`
 - `SessionWorkspaceService`
-- `ITableSessionCommandService`
+- `IVttSessionCommandService`
 
 Responsibility:
 
@@ -150,8 +150,8 @@ Responsibility:
 
 Primary classes:
 
-- `TableSessionSnapshot`, `TableSessionSnapshotSerializer`
-- `ScenarioSnapshot`, `ScenarioSnapshotSerializer`
+- `VttSessionSnapshot`, `VttSessionSnapshotSerializer`
+- `VttScenarioSnapshot`, `VttScenarioSnapshotSerializer`
 - `VttContentPackSnapshot`, `VttContentPackSnapshotSerializer`
 - `SnapshotFileWorkflowService`
 - `SnapshotFileImportApplyWorkflowService`

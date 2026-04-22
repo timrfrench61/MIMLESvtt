@@ -22,7 +22,7 @@ This document now includes both:
 
 The system distinguishes between:
 
-- runtime state (`TableSession`/`VttSession`)
+- runtime state (`VttSession`)
 - reusable definitions (content)
 
 Runtime state represents current live or saved session state.
@@ -77,15 +77,15 @@ Invalid import input is rejected as a whole (no partial apply).
 
 The subsystem supports:
 
-- Session Save (`.session.json`)
-- Scenario Snapshot (`.scenario.json`)
+- Session Save (`.vttsession.json`)
+- Scenario Snapshot (`.vttscenario.json`)
 - VTT Content Pack (`.vttcontentpack.json`)
 - Action Log Snapshot (`.actionlog.json`)
 
 Conceptual shapes:
 
 ```json
-{ "Version": 1, "TableSession": {} }
+{ "Version": 1, "VttSession": {} }
 ```
 
 ```json
@@ -138,13 +138,13 @@ On failure:
 
 The subsystem currently supports four persisted snapshot families:
 
-- Table Session (`.session.json`)
-- Scenario (`.scenario.json`)
+- Table Session (`.vttsession.json`)
+- Scenario (`.vttscenario.json`)
 - VTT Content Pack (`.vttcontentpack.json`)
 - Action Log (`.actionlog.json`)
 
 Extension constants are defined in:
-- `src/Domain/Persistence/SnapshotFileExtensions.cs`
+- `src/Domain/Persistence/Snapshot/SnapshotFileExtensions.cs`
 
 ---
 
@@ -153,8 +153,8 @@ Extension constants are defined in:
 Scenario persistence now uses a unified **Scenario** model:
 
 - `src/Domain/Models/VttScenario.cs`
-- `src/Domain/Persistence/ScenarioSnapshot.cs`
-- `src/Domain/Persistence/ScenarioSnapshotSerializer.cs`
+- `src/Domain/Persistence/Scenario/ScenarioSnapshot.cs`
+- `src/Domain/Persistence/Scenario/ScenarioSnapshotSerializer.cs`
 
 Snapshot shape remains:
 
@@ -165,7 +165,7 @@ Snapshot shape remains:
 }
 ```
 
-This is intentionally separate from live `TableSession` runtime state.
+This is intentionally separate from live `VttSession` runtime state.
 
 ---
 
@@ -173,8 +173,8 @@ This is intentionally separate from live `TableSession` runtime state.
 
 ## File persistence services (single format)
 
-- `TableSessionFilePersistenceService`
-- `ScenarioFilePersistenceService`
+- `VttSessionFilePersistenceService`
+- `VttScenarioFilePersistenceService`
 - `VttContentPackFilePersistenceService`
 - `ActionLogFilePersistenceService`
 
@@ -208,10 +208,10 @@ Responsibility:
 
 ## Scenario-specific activation pipeline
 
-- `ScenarioActivationWorkflowService`
-- `ScenarioPlanApplyService`
-- `ScenarioCandidateActivationService`
-- `PendingScenarioApplicationPlan`
+- `VttScenarioActivationWorkflowService`
+- `VttScenarioPlanApplyService`
+- `VttScenarioCandidateActivationService`
+- `VttScenarioPendingApplicationPlan`
 
 Responsibility:
 - convert imported scenario into pending plan
@@ -244,12 +244,12 @@ This avoids overloading one class with all responsibilities and preserves explic
 ## Runtime Relationship: Scenario vs Session
 
 - **Scenario**: prepared starting layout/template
-- **TableSession**: live runtime game state
+- **VttSession**: live runtime game state
 
 Activation flow:
 1. import `.scenario.json`
 2. build `PendingScenarioApplicationPlan`
-3. create isolated `TableSession` candidate
+3. create isolated `VttSession` candidate
 4. activate candidate into current workspace context
 
 ---

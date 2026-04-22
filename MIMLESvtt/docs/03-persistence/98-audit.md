@@ -24,8 +24,8 @@ It also identifies variances between:
 Implemented persisted object families:
 
 1. **Session snapshot** (`.session.json`)
-- Root shape: `{ Version, TableSession }`
-- Types: `TableSessionSnapshot`, `TableSessionSnapshotSerializer`, `TableSessionFilePersistenceService`
+- Root shape: `{ Version, VttSession }`
+- Types: `VttSessionSnapshot`, `VttSessionSnapshotSerializer`, `VttSessionFilePersistenceService`
 
 2. **Scenario snapshot** (`.scenario.json`)
 - Root shape: `{ Version, Scenario }`
@@ -50,15 +50,15 @@ Implemented persisted object families:
 ## B. Runtime persistence-related state objects (not snapshot payload roots)
 
 - `SessionWorkspaceState`
-  - `CurrentTableSession`
+  - `CurrentVttSession`
   - `CurrentFilePath`
   - `CurrentSnapshotFormat`
   - `IsDirty`
-  - `CurrentPendingScenarioPlan`
-  - `PendingScenarioSourcePath`
+  - `CurrentPendingVttScenarioPlan`
+  - `PendingVttScenarioSourcePath`
   - operation history and undo/redo stacks
 
-- `PendingScenarioApplicationPlan`
+- `PendingVttScenarioApplicationPlan`
   - non-mutating intermediate for scenario activation flow
 
 ---
@@ -68,8 +68,8 @@ Implemented persisted object families:
 ## A. File save/load actions (direct)
 
 From `SnapshotFileWorkflowService`:
-- `SaveTableSession`
-- `LoadTableSession`
+- `SaveVttSession`
+- `LoadVttSession`
 - `SaveScenario`
 - `LoadScenario`
 - `SaveVttContentPack` (snapshot + app-model overloads)
@@ -85,14 +85,14 @@ All enforce extension guardrails via `SnapshotFileExtensions`.
 From `SnapshotFileImportApplyWorkflowService`:
 - detect format by extension
 - import and apply:
-  - TableSession path -> replace runtime session (policy-controlled)
+  - VttSession path -> replace runtime session (policy-controlled)
   - Scenario path -> scenario activation workflow (dry-run/activate)
   - ContentPack/ActionLog path -> import-only outcome
 
 ## C. Workspace-facing persistence actions
 
 From `SessionWorkspaceService` (`WorkspaceOperationKind`):
-- `OpenTableSessionFromFile`
+- `OpenVttSessionFromFile`
 - `SaveCurrentSession`
 - `SaveCurrentSessionAs`
 - `SaveCurrentLayoutAsScenario`
@@ -116,7 +116,7 @@ Key state update points:
 ## A. Session lifecycle and file path state
 
 - On open session:
-  - `State.CurrentTableSession` replaced
+  - `State.CurrentVttSession` replaced
   - `State.CurrentFilePath` set
   - `State.CurrentSnapshotFormat` set
   - `State.IsDirty = false`
@@ -130,13 +130,13 @@ Key state update points:
 ## B. Scenario flow state
 
 - Import scenario to pending:
-  - `State.CurrentPendingScenarioPlan` set
-  - `State.PendingScenarioSourcePath` set
+  - `State.CurrentPendingVttScenarioPlan` set
+  - `State.PendingVttScenarioSourcePath` set
   - no runtime session mutation in dry-run path
 
 - Activate pending scenario:
   - candidate produced and activated
-  - `State.CurrentTableSession` replaced
+  - `State.CurrentVttSession` replaced
   - pending scenario state cleared
   - `State.IsDirty = true`
 
@@ -198,7 +198,7 @@ Impact:
 
 ## Variance 5 — Runtime object naming compatibility layering
 
-Code currently carries compatibility naming (e.g., `TableSession`, `VttSession`, `TabletopState` aliases in other areas), while design docs increasingly use tabletop-centric terminology.
+Code currently carries compatibility naming (e.g., `VttSession`, `VttSession`, `TabletopState` aliases in other areas), while design docs increasingly use tabletop-centric terminology.
 
 Impact:
 - terminology friction during refactor planning

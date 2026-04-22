@@ -1,8 +1,10 @@
 @page "/workspace"
 @using MIMLESvtt.src
 @using MIMLESvtt.src.Domain.Models.Surfaces
-@inject SessionWorkspaceService WorkspaceService
-@inject ITableSessionCommandService CommandService
+@using MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
+@using MIMLESvtt.src.Domain.Persistence.Workspace
+@inject VttSessionWorkspaceService WorkspaceService
+@inject IVttSessionCommandService CommandService
 
 <PageTitle>Workspace</PageTitle>
 
@@ -75,14 +77,14 @@
 }
 
 <WorkspaceSessionSettingsPanel
-    CurrentTableSession="WorkspaceService.State.CurrentTableSession"
+    CurrentVttSession="WorkspaceService.State.CurrentVttSession"
     WorkspaceState="WorkspaceService.State"
     SessionCounter="sessionCounter"
     SessionTitleInput="@sessionTitleInput"
     SessionTitleInputChanged="OnSessionTitleInputChangedFromPanel"
     UpdateSessionTitleClicked="UpdateSessionTitle" />
 
-@if (WorkspaceService.State.CurrentTableSession is not null)
+@if (WorkspaceService.State.CurrentVttSession is not null)
 {
 
     <div class="mb-3 p-2 border rounded bg-light">
@@ -122,12 +124,12 @@
     <div class="mb-3 p-2 border rounded bg-light">
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
             <strong>Turn / Phase</strong>
-            <span>Turn: <strong>@WorkspaceService.State.CurrentTableSession.TurnNumber</strong></span>
-            <span>Index: <strong>@WorkspaceService.State.CurrentTableSession.CurrentTurnIndex</strong></span>
+            <span>Turn: <strong>@WorkspaceService.State.CurrentVttSession.TurnNumber</strong></span>
+            <span>Index: <strong>@WorkspaceService.State.CurrentVttSession.CurrentTurnIndex</strong></span>
             <span>Current Player: <strong>@GetCurrentTurnParticipant()</strong></span>
-            <span>Phase: <strong>@(string.IsNullOrWhiteSpace(WorkspaceService.State.CurrentTableSession.CurrentPhase) ? "(none)" : WorkspaceService.State.CurrentTableSession.CurrentPhase)</strong></span>
-            <button class="btn btn-sm btn-outline-primary" @onclick="PreviousTurn" disabled="@(WorkspaceService.State.CurrentTableSession.TurnOrder.Count == 0)">Previous Turn</button>
-            <button class="btn btn-sm btn-outline-primary" @onclick="AdvanceTurn" disabled="@(WorkspaceService.State.CurrentTableSession.TurnOrder.Count == 0)">Next Turn</button>
+            <span>Phase: <strong>@(string.IsNullOrWhiteSpace(WorkspaceService.State.CurrentVttSession.CurrentPhase) ? "(none)" : WorkspaceService.State.CurrentVttSession.CurrentPhase)</strong></span>
+            <button class="btn btn-sm btn-outline-primary" @onclick="PreviousTurn" disabled="@(WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)">Previous Turn</button>
+            <button class="btn btn-sm btn-outline-primary" @onclick="AdvanceTurn" disabled="@(WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)">Next Turn</button>
         </div>
         <div class="d-flex flex-wrap gap-2 align-items-center">
             <InputText @bind-Value="turnOrderInput" class="form-control form-control-sm" style="max-width: 360px;" placeholder="Turn order: p1, p2, p3" />
@@ -141,11 +143,11 @@
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
             <strong>Initiative / Roster</strong>
             <span>Current: <strong>@GetCurrentTurnParticipant()</strong></span>
-            <span>Turn: <strong>@WorkspaceService.State.CurrentTableSession.TurnNumber</strong></span>
-            <span>Phase: <strong>@(string.IsNullOrWhiteSpace(WorkspaceService.State.CurrentTableSession.CurrentPhase) ? "(none)" : WorkspaceService.State.CurrentTableSession.CurrentPhase)</strong></span>
+            <span>Turn: <strong>@WorkspaceService.State.CurrentVttSession.TurnNumber</strong></span>
+            <span>Phase: <strong>@(string.IsNullOrWhiteSpace(WorkspaceService.State.CurrentVttSession.CurrentPhase) ? "(none)" : WorkspaceService.State.CurrentVttSession.CurrentPhase)</strong></span>
         </div>
 
-        @if (WorkspaceService.State.CurrentTableSession.TurnOrder.Count == 0)
+        @if (WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)
         {
             <small class="text-muted">No turn order initialized yet.</small>
         }
@@ -162,17 +164,17 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @for (var i = 0; i < WorkspaceService.State.CurrentTableSession.TurnOrder.Count; i++)
+                        @for (var i = 0; i < WorkspaceService.State.CurrentVttSession.TurnOrder.Count; i++)
                         {
-                            var participantId = WorkspaceService.State.CurrentTableSession.TurnOrder[i];
-                            var isActive = i == WorkspaceService.State.CurrentTableSession.CurrentTurnIndex;
+                            var participantId = WorkspaceService.State.CurrentVttSession.TurnOrder[i];
+                            var isActive = i == WorkspaceService.State.CurrentVttSession.CurrentTurnIndex;
                             <tr class="@(isActive ? "table-primary" : string.Empty)">
                                 <td>@(i + 1)</td>
                                 <td>@GetParticipantDisplayById(participantId)</td>
                                 <td>@GetOwnedPiecesSummary(participantId)</td>
                                 <td>
                                     <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => MoveTurnParticipantUp(participantId)" disabled="@(i == 0)">↑</button>
-                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => MoveTurnParticipantDown(participantId)" disabled="@(i == WorkspaceService.State.CurrentTableSession.TurnOrder.Count - 1)">↓</button>
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => MoveTurnParticipantDown(participantId)" disabled="@(i == WorkspaceService.State.CurrentVttSession.TurnOrder.Count - 1)">↓</button>
                                 </td>
                             </tr>
                         }
@@ -195,7 +197,7 @@
             <button class="btn btn-sm btn-outline-secondary" @onclick="RenameParticipantInSession">Rename Participant</button>
         </div>
 
-        @if (WorkspaceService.State.CurrentTableSession.Participants.Count == 0)
+        @if (WorkspaceService.State.CurrentVttSession.Participants.Count == 0)
         {
             <small class="text-muted">No participants in current session.</small>
         }
@@ -209,7 +211,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var participant in WorkspaceService.State.CurrentTableSession.Participants)
+                    @foreach (var participant in WorkspaceService.State.CurrentVttSession.Participants)
                     {
                         <tr>
                             <td>@participant.Id</td>
@@ -222,7 +224,7 @@
     </div>
 }
 
-@if (WorkspaceService.State.CurrentTableSession is not null)
+@if (WorkspaceService.State.CurrentVttSession is not null)
 {
     <h3>Setup</h3>
 
@@ -284,7 +286,7 @@
     </div>
 
     <h3>Surfaces</h3>
-    @if (WorkspaceService.State.CurrentTableSession.Surfaces.Count == 0)
+    @if (WorkspaceService.State.CurrentVttSession.Surfaces.Count == 0)
     {
         <p>No surfaces in current session.</p>
     }
@@ -299,7 +301,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var surface in WorkspaceService.State.CurrentTableSession.Surfaces)
+                @foreach (var surface in WorkspaceService.State.CurrentVttSession.Surfaces)
                 {
                     <tr>
                         <td>@surface.Id</td>
@@ -329,7 +331,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var surface in WorkspaceService.State.CurrentTableSession.Surfaces)
+                        @foreach (var surface in WorkspaceService.State.CurrentVttSession.Surfaces)
                         {
                             var isActiveSurface = string.Equals(board.ActiveSurfaceId, surface.Id, StringComparison.Ordinal);
                             var defaultPresetName = board.GetDefaultPresetForSurface(surface.Id)?.Name;
@@ -391,7 +393,7 @@
         <div class="mb-3">
             <label class="form-label">Active surface for board</label>
             <select class="form-select" value="@board.ActiveSurfaceId" @onchange="OnActiveSurfaceChanged">
-                @foreach (var surface in WorkspaceService.State.CurrentTableSession.Surfaces)
+                @foreach (var surface in WorkspaceService.State.CurrentVttSession.Surfaces)
                 {
                     <option value="@surface.Id">@surface.Id (@surface.Type / @surface.CoordinateSystem)</option>
                 }
@@ -477,7 +479,7 @@
             {
                 <div class="board-grid-overlay"></div>
             }
-            @foreach (var piece in board.GetRenderedPiecesForBoard(WorkspaceService.State.CurrentTableSession, boardVisibility))
+            @foreach (var piece in board.GetRenderedPiecesForBoard(WorkspaceService.State.CurrentVttSession, boardVisibility))
             {
                 <div class="@GetPieceCss(piece)"
                      style="@GetPieceStyle(piece)"
@@ -856,7 +858,7 @@
                 <strong>Assign Owner</strong>
                 <select class="form-select form-select-sm" style="max-width: 280px;" @bind="selectedPieceOwnerParticipantId">
                     <option value="">(none)</option>
-                    @foreach (var participant in WorkspaceService.State.CurrentTableSession.Participants)
+                    @foreach (var participant in WorkspaceService.State.CurrentVttSession.Participants)
                     {
                         <option value="@participant.Id">@participant.Name (@participant.Id)</option>
                     }
@@ -868,7 +870,7 @@
 
     <h3>Pieces</h3>
 
-    @if (WorkspaceService.State.CurrentTableSession.Pieces.Count == 0)
+    @if (WorkspaceService.State.CurrentVttSession.Pieces.Count == 0)
     {
         <p>No pieces in current session.</p>
     }
@@ -878,7 +880,7 @@
             <label class="form-label">Select piece</label>
             <select class="form-select" @bind="selectedPieceId" @bind:after="OnSelectedPieceChangedFromList">
                 <option value="">(select piece)</option>
-                @foreach (var piece in WorkspaceService.State.CurrentTableSession.Pieces)
+                @foreach (var piece in WorkspaceService.State.CurrentVttSession.Pieces)
                 {
                     <option value="@piece.Id">@piece.Id (@piece.DefinitionId)</option>
                 }
@@ -899,7 +901,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var piece in WorkspaceService.State.CurrentTableSession.Pieces)
+                @foreach (var piece in WorkspaceService.State.CurrentVttSession.Pieces)
                 {
                     <tr>
                         <td>@piece.Id</td>
@@ -990,10 +992,10 @@
     </ul>
 }
 
-@if (WorkspaceService.State.CurrentTableSession is not null)
+@if (WorkspaceService.State.CurrentVttSession is not null)
 {
     <h3>Play Log</h3>
-    @if (WorkspaceService.State.CurrentTableSession.ActionLog.Count == 0)
+    @if (WorkspaceService.State.CurrentVttSession.ActionLog.Count == 0)
     {
         <p>No actions recorded yet.</p>
     }
@@ -1010,7 +1012,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var action in WorkspaceService.State.CurrentTableSession.ActionLog.TakeLast(20).Reverse())
+                    @foreach (var action in WorkspaceService.State.CurrentVttSession.ActionLog.TakeLast(20).Reverse())
                     {
                         <tr>
                             <td>@action.TimestampUtc.ToString("u")</td>

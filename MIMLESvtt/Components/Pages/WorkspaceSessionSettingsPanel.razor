@@ -1,7 +1,8 @@
 @using MIMLESvtt.src
 @using MIMLESvtt.src.Domain.Models
+@using MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
 
-@if (CurrentTableSession is null)
+@if (CurrentVttSession is null)
 {
     <h3>Session Summary</h3>
     <p>No current session.</p>
@@ -13,29 +14,29 @@ else
     <div class="mb-3 p-2 border rounded bg-light">
         <div class="d-flex flex-wrap gap-2 align-items-center">
             <strong>Session Details</strong>
-            <span class="text-muted">Id: @CurrentTableSession.Id</span>
-            <input @key="CurrentTableSession.Id" class="form-control form-control-sm" style="max-width: 320px;" placeholder="Session title" value="@SessionTitleInput" @oninput="OnSessionTitleChanged" />
+            <span class="text-muted">Id: @CurrentVttSession.Id</span>
+            <input @key="CurrentVttSession.Id" class="form-control form-control-sm" style="max-width: 320px;" placeholder="Session title" value="@SessionTitleInput" @oninput="OnSessionTitleChanged" />
             <button class="btn btn-sm btn-outline-secondary" @onclick="UpdateSessionTitleClicked">Update Title</button>
         </div>
     </div>
 
     <ul>
         <li><strong>Session #:</strong> @SessionCounter</li>
-        <li><strong>Title:</strong> @CurrentTableSession.Title</li>
+        <li><strong>Title:</strong> @CurrentVttSession.Title</li>
         <li><strong>Mode:</strong> @WorkspaceState.Mode</li>
         <li><strong>Current File:</strong> @(WorkspaceState.CurrentFilePath ?? "(none)")</li>
         <li><strong>Dirty:</strong> @WorkspaceState.IsDirty</li>
-        <li><strong>Participants:</strong> @CurrentTableSession.Participants.Count</li>
-        <li><strong>Surfaces:</strong> @CurrentTableSession.Surfaces.Count</li>
-        <li><strong>Pieces:</strong> @CurrentTableSession.Pieces.Count</li>
-        <li><strong>Pending Scenario:</strong> @(WorkspaceState.CurrentPendingScenarioPlan?.ScenarioTitle ?? "(none)")</li>
+        <li><strong>Participants:</strong> @CurrentVttSession.Participants.Count</li>
+        <li><strong>Surfaces:</strong> @CurrentVttSession.Surfaces.Count</li>
+        <li><strong>Pieces:</strong> @CurrentVttSession.Pieces.Count</li>
+        <li><strong>Pending VTT Scenario:</strong> @(WorkspaceState.CurrentPendingVttScenarioPlan?.ScenarioTitle ?? "(none)")</li>
         <li><strong>Last Operation:</strong> @(WorkspaceState.LastOperationMessage ?? "(none)")</li>
     </ul>
 }
 
 @code {
-    [Parameter] public VttSession? CurrentTableSession { get; set; }
-    [Parameter] public SessionWorkspaceState WorkspaceState { get; set; } = null!;
+    [Parameter] public VttSession? CurrentVttSession { get; set; }
+    [Parameter] public VttSessionWorkspaceState WorkspaceState { get; set; } = null!;
     [Parameter] public int SessionCounter { get; set; }
 
     [Parameter] public string SessionTitleInput { get; set; } = string.Empty;

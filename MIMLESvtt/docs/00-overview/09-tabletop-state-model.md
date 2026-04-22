@@ -26,7 +26,7 @@ It is not a screen design document.
 
 ## Core Principle
 
-> The `TableSession` is the single source of truth for live play.
+> The `VttSession` is the single source of truth for live play.
 
 The table session contains the current runtime state of one live or saved tabletop session.
 
@@ -81,7 +81,7 @@ The session stores the current live instance values only.
 
 ### 2. The Session Owns Live State
 
-The `TableSession` owns:
+The `VttSession` owns:
 
 - participants
 - active surfaces
@@ -113,9 +113,9 @@ Do not hide important state in component-only fields.
 
 ## Top-Level Aggregate
 
-## TableSession
+## VttSession
 
-`TableSession` is the root aggregate for one live or saved game table.
+`VttSession` is the root aggregate for one live or saved game table.
 
 ### Responsibilities
 
@@ -133,7 +133,7 @@ It is responsible for:
 ### Example Shape
 
 ```csharp
-class TableSession
+class VttSession
 {
     string Id;
     string Title;

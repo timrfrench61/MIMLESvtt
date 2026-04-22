@@ -54,7 +54,7 @@ Establish a stable domain model.
 
 ### Exit Criteria
 
-- TableSession exists and is coherent
+- VttSession exists and is coherent
 - actions mutate state through a single system
 - state is serializable
 
@@ -68,7 +68,7 @@ Create a usable table in single-user mode.
 
 ### Includes
 
-- create/load TableSession
+- create/load VttSession
 - create surfaces
 - create and place pieces
 - move pieces

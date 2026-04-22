@@ -26,7 +26,7 @@ Backlog items must align with the domain model.
 
 No task should bypass:
 
-- TableSession
+- VttSession
 - action system
 - persistence rules
 
@@ -92,7 +92,7 @@ Each item should be small enough to implement independently.
 
 ## Domain
 
-- [x] create TableSession class
+- [x] create VttSession class
 - [x] create Participant model
 - [x] create SurfaceInstance model
 - [x] create PieceInstance model
@@ -155,12 +155,12 @@ Each item should be small enough to implement independently.
 - [x] implement validation during import
 - [x] add import dispatcher/orchestration boundary
 - [x] add import apply-intent boundary
-- [x] add runtime apply executor boundary (ReplaceTableSession)
+- [x] add runtime apply executor boundary (ReplaceVttSession)
 - [x] add runtime apply policy controls
 - [x] add pending scenario application plan support (non-mutating)
 - [x] add scenario candidate activation boundary (DryRun/Activate policy-controlled)
 - [x] add scenario activation orchestration service
-- [x] add thin file persistence services for TableSession/Scenario/ContentPack/ActionLog
+- [x] add thin file persistence services for VttSession/Scenario/ContentPack/ActionLog
 - [x] add snapshot file extension constants helper
 - [x] add snapshot file workflow orchestration with extension guardrails
 - [x] add single-file import/apply workflow from path
@@ -284,7 +284,7 @@ Each item should be small enough to implement independently.
 - backlog follows roadmap
 - work grouped by system area
 - all work aligns to domain model
-- actions and TableSession remain central
+- actions and VttSession remain central
 
 - Workspace board add-at-click now supports **Stamp Mode** for repeated placement on the active surface.
 - Piece ids remain explicit and visible through an editable next-id preview that auto-advances after successful placement.

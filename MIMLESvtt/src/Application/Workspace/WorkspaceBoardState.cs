@@ -1,6 +1,7 @@
 using MIMLESvtt.src.Domain.Models;
 using MIMLESvtt.src.Domain.Models.Pieces;
 using MIMLESvtt.src.Domain.Models.Placement;
+using MIMLESvtt.src.Domain.Persistence.VttSessionNSPC;
 
 namespace MIMLESvtt.src.Application.Workspace;
 
@@ -169,14 +170,14 @@ public class WorkspaceBoardState
     }
 
     public int MoveSelectedPiecesByDelta(
-        ITableSessionCommandService commandService,
+        IVttSessionCommandService commandService,
         float deltaX,
         float deltaY,
         bool clampToBoard,
         float maxX,
         float maxY)
     {
-        if (commandService.CurrentTableSession is null)
+        if (commandService.CurrentVttSession is null)
         {
             throw new InvalidOperationException("Current session is required.");
         }
@@ -190,7 +191,7 @@ public class WorkspaceBoardState
         var selectedIds = SelectedPieceIds.ToList();
         foreach (var pieceId in selectedIds)
         {
-            var piece = commandService.CurrentTableSession.Pieces.FirstOrDefault(p => p.Id == pieceId);
+            var piece = commandService.CurrentVttSession.Pieces.FirstOrDefault(p => p.Id == pieceId);
             if (piece is null)
             {
                 continue;
@@ -284,7 +285,7 @@ public class WorkspaceBoardState
     }
 
     public int MoveGroupByDelta(
-        SessionWorkspaceService workspaceService,
+        VttSessionWorkspaceService workspaceService,
         string groupId,
         float deltaX,
         float deltaY,
@@ -402,20 +403,20 @@ public class WorkspaceBoardState
         return before != SelectedPieceIds.Count;
     }
 
-    public ActionRecord MoveSelectedPiece(ITableSessionCommandService commandService, float x, float y)
+    public ActionRecord MoveSelectedPiece(IVttSessionCommandService commandService, float x, float y)
     {
         return MoveSelectedPiece(commandService, x, y, clampToBoard: false, maxX: 0, maxY: 0);
     }
 
     public ActionRecord MoveSelectedPiece(
-        ITableSessionCommandService commandService,
+        IVttSessionCommandService commandService,
         float x,
         float y,
         bool clampToBoard,
         float maxX,
         float maxY)
     {
-        var selectedPiece = RequireSelectedPiece(commandService.CurrentTableSession);
+        var selectedPiece = RequireSelectedPiece(commandService.CurrentVttSession);
         if (string.IsNullOrWhiteSpace(ActiveSurfaceId))
         {
             throw new InvalidOperationException("Select an active surface first.");
@@ -441,7 +442,7 @@ public class WorkspaceBoardState
     }
 
     public bool TryHandleKeyboardInput(
-        ITableSessionCommandService commandService,
+        IVttSessionCommandService commandService,
         string? key,
         bool isBoardFocused,
         float moveStep,
@@ -465,7 +466,7 @@ public class WorkspaceBoardState
             return false;
         }
 
-        var selectedPiece = RequireSelectedPiece(commandService.CurrentTableSession);
+        var selectedPiece = RequireSelectedPiece(commandService.CurrentVttSession);
         switch (key)
         {
             case "ArrowUp":
@@ -500,7 +501,7 @@ public class WorkspaceBoardState
     }
 
     public bool TryCenterSelectedPiece(
-        ITableSessionCommandService commandService,
+        IVttSessionCommandService commandService,
         float centerX,
         float centerY,
         bool clampToBoard,
@@ -522,7 +523,7 @@ public class WorkspaceBoardState
     }
 
     public bool TryHandleBoardClick(
-        ITableSessionCommandService commandService,
+        IVttSessionCommandService commandService,
         float clickX,
         float clickY,
         bool addPieceAtBoardClickMode,
@@ -558,7 +559,7 @@ public class WorkspaceBoardState
     }
 
     public bool TryHandleBoardClick(
-        ITableSessionCommandService commandService,
+        IVttSessionCommandService commandService,
         float clickX,
         float clickY,
         bool addPieceAtBoardClickMode,
@@ -597,7 +598,7 @@ public class WorkspaceBoardState
                 return false;
             }
 
-            if (commandService is not SessionWorkspaceService workspaceService)
+            if (commandService is not VttSessionWorkspaceService workspaceService)
             {
                 throw new InvalidOperationException("Add-at-click requires session workspace setup boundary.");
             }
@@ -1265,9 +1266,9 @@ public class WorkspaceBoardState
         return RequireSelectedPiece(session);
     }
 
-    public ActionRecord RotateSelectedPiece(ITableSessionCommandService commandService, float newDegrees)
+    public ActionRecord RotateSelectedPiece(IVttSessionCommandService commandService, float newDegrees)
     {
-        var selectedPiece = RequireSelectedPiece(commandService.CurrentTableSession);
+        var selectedPiece = RequireSelectedPiece(commandService.CurrentVttSession);
 
         return commandService.ProcessAction(new ActionRequest
         {

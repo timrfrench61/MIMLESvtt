@@ -12,7 +12,7 @@ This document defines how optional systems (modules) extend the Blazor VTT witho
 
 It establishes:
 
-- how modules interact with TableSession
+- how modules interact with VttSession
 - how modules store data
 - how modules participate in actions
 - how modules are enabled or disabled
@@ -44,7 +44,7 @@ Examples:
 
 Modules operate on top of:
 
-- TableSession
+- VttSession
 - SurfaceInstance
 - PieceInstance
 
@@ -67,7 +67,7 @@ Modules may:
 
 Modules must not:
 
-- change the structure of TableSession
+- change the structure of VttSession
 - modify core domain classes directly
 - bypass the action system
 - store state outside of defined module storage
@@ -80,7 +80,7 @@ Modules must not:
 Modules store runtime data inside:
 
 ```plaintext
-TableSession.ModuleState
+VttSession.ModuleState
 ````
 
 This is a key-value structure.
@@ -121,7 +121,7 @@ A session may have:
 * one module
 * multiple modules
 
-Module activation should be stored in TableSession configuration.
+Module activation should be stored in VttSession configuration.
 
 ---
 
@@ -153,7 +153,7 @@ Modules must be isolated from each other.
 Rules:
 
 * no direct access to another module’s state
-* no shared mutable structures outside TableSession
+* no shared mutable structures outside VttSession
 * interaction must occur through:
 
   * actions
@@ -197,7 +197,7 @@ When a module is enabled:
 
 ## Module Persistence
 
-Module state is persisted as part of TableSession.
+Module state is persisted as part of VttSession.
 
 It must:
 
@@ -256,7 +256,7 @@ These must:
 
 Core engine owns:
 
-* TableSession
+* VttSession
 * surfaces
 * pieces
 * visibility

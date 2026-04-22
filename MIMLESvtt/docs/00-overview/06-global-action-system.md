@@ -15,14 +15,14 @@ ActionRequest → src/Domain/Actions/ActionRequest.cs
 
 ## Purpose
 
-Defines how `TableSession` state changes.
+Defines how `VttSession` state changes.
 
 ---
 
 ## Core Rule
 
 All state changes must go through actions.  
-Do not mutate `TableSession` directly.
+Do not mutate `VttSession` directly.
 
 ---
 
@@ -55,7 +55,7 @@ Contains:
 Represents a logged, accepted action.
 
 Stored in:
-- TableSession.ActionLog
+- VttSession.ActionLog
 
 Contains:
 - ActionType
@@ -92,13 +92,13 @@ Invalid → reject, no change
 
 ### 3. Apply
 
-Update only relevant state in TableSession.
+Update only relevant state in VttSession.
 
 ---
 
 ### 4. Log
 
-Append ActionRecord to TableSession.ActionLog.
+Append ActionRecord to VttSession.ActionLog.
 
 ---
 
@@ -125,7 +125,7 @@ Append ActionRecord to TableSession.ActionLog.
 
 ## Rules
 
-- No direct mutation of TableSession
+- No direct mutation of VttSession
 - Validate before apply
 - Log only accepted actions
 - One action = one meaningful change

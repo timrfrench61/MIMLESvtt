@@ -235,7 +235,7 @@ Initial recommendation:
 When loading a session:
 
 1. Load session record
-2. Rebuild TableSession object
+2. Rebuild VttSession object
 3. Restore:
    - board/map
    - pieces

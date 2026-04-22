@@ -49,7 +49,7 @@ Standard checkers rules:
 
 This module depends on:
 
-- TableSession
+- VttSession
 - Board (square grid)
 - PieceDefinition / PieceInstance
 - TurnState (alternating turn)

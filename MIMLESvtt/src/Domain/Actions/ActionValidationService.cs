@@ -10,10 +10,10 @@ namespace MIMLESvtt.src
         private const string RemoveMarkerActionType = "RemoveMarker";
         private const string ChangePieceStateActionType = "ChangePieceState";
 
-        public ActionValidationResult Validate(ActionRequest actionRequest, VttSession tableSession)
+        public ActionValidationResult Validate(ActionRequest actionRequest, VttSession vttSesstion)
         {
             ArgumentNullException.ThrowIfNull(actionRequest);
-            ArgumentNullException.ThrowIfNull(tableSession);
+            ArgumentNullException.ThrowIfNull(vttSesstion);
 
             if (string.IsNullOrWhiteSpace(actionRequest.ActionType))
             {
@@ -23,21 +23,21 @@ namespace MIMLESvtt.src
             switch (actionRequest.ActionType)
             {
                 case MovePieceActionType:
-                    return ValidateMovePiece(actionRequest, tableSession);
+                    return ValidateMovePiece(actionRequest, vttSesstion);
                 case RotatePieceActionType:
-                    return ValidatePieceTarget(actionRequest, tableSession, RotatePieceActionType);
+                    return ValidatePieceTarget(actionRequest, vttSesstion, RotatePieceActionType);
                 case AddMarkerActionType:
-                    return ValidatePieceTarget(actionRequest, tableSession, AddMarkerActionType);
+                    return ValidatePieceTarget(actionRequest, vttSesstion, AddMarkerActionType);
                 case RemoveMarkerActionType:
-                    return ValidatePieceTarget(actionRequest, tableSession, RemoveMarkerActionType);
+                    return ValidatePieceTarget(actionRequest, vttSesstion, RemoveMarkerActionType);
                 case ChangePieceStateActionType:
-                    return ValidatePieceTarget(actionRequest, tableSession, ChangePieceStateActionType);
+                    return ValidatePieceTarget(actionRequest, vttSesstion, ChangePieceStateActionType);
                 default:
                     return ActionValidationResult.Success();
             }
         }
 
-        private static ActionValidationResult ValidateMovePiece(ActionRequest actionRequest, VttSession tableSession)
+        private static ActionValidationResult ValidateMovePiece(ActionRequest actionRequest, VttSession vttSesstion)
         {
             if (actionRequest.Payload is not MovePiecePayload payload)
             {
@@ -49,10 +49,10 @@ namespace MIMLESvtt.src
                 return ActionValidationResult.Failure("MovePiece PieceId is required.");
             }
 
-            var piece = tableSession.Pieces.FirstOrDefault(p => string.Equals(p.Id, payload.PieceId, StringComparison.Ordinal));
+            var piece = vttSesstion.Pieces.FirstOrDefault(p => string.Equals(p.Id, payload.PieceId, StringComparison.Ordinal));
             if (piece is null)
             {
-                return ActionValidationResult.Failure("MovePiece target piece was not found in TableSession.Pieces.");
+                return ActionValidationResult.Failure("MovePiece target piece was not found in vttSesstion.Pieces.");
             }
 
             if (payload.NewLocation is null || string.IsNullOrWhiteSpace(payload.NewLocation.SurfaceId))
@@ -60,16 +60,16 @@ namespace MIMLESvtt.src
                 return ActionValidationResult.Failure("MovePiece target surface is required.");
             }
 
-            var surfaceExists = tableSession.Surfaces.Any(s => string.Equals(s.Id, payload.NewLocation.SurfaceId, StringComparison.Ordinal));
+            var surfaceExists = vttSesstion.Surfaces.Any(s => string.Equals(s.Id, payload.NewLocation.SurfaceId, StringComparison.Ordinal));
             if (!surfaceExists)
             {
-                return ActionValidationResult.Failure("MovePiece target surface was not found in TableSession.Surfaces.");
+                return ActionValidationResult.Failure("MovePiece target surface was not found in vttSesstion.Surfaces.");
             }
 
             return ActionValidationResult.Success();
         }
 
-        private static ActionValidationResult ValidatePieceTarget(ActionRequest actionRequest, VttSession tableSession, string actionType)
+        private static ActionValidationResult ValidatePieceTarget(ActionRequest actionRequest, VttSession vttSesstion, string actionType)
         {
             var pieceId = actionRequest.Payload switch
             {
@@ -85,10 +85,10 @@ namespace MIMLESvtt.src
                 return ActionValidationResult.Failure($"{actionType} PieceId is required.");
             }
 
-            var pieceExists = tableSession.Pieces.Any(p => string.Equals(p.Id, pieceId, StringComparison.Ordinal));
+            var pieceExists = vttSesstion.Pieces.Any(p => string.Equals(p.Id, pieceId, StringComparison.Ordinal));
             if (!pieceExists)
             {
-                return ActionValidationResult.Failure($"{actionType} target piece was not found in TableSession.Pieces.");
+                return ActionValidationResult.Failure($"{actionType} target piece was not found in vttSesstion.Pieces.");
             }
 
             return ActionValidationResult.Success();

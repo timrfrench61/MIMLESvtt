@@ -1,0 +1,31 @@
+namespace MIMLESvtt.src.Domain.Persistence.Workspace
+{
+    public enum WorkspaceOperationKind
+    {
+        CreateNewSession,
+        AddSurface,
+        AddPiece,
+        OpenVttSessionFromFile,
+        SaveCurrentSession,
+        SaveCurrentSessionAs,
+        SaveCurrentLayoutAsScenario,
+        ImportScenarioToPendingPlanFromFile,
+        ActivatePendingScenario,
+        SaveWorkspaceState,
+        RestoreWorkspaceState,
+        InitializeTurnOrder,
+        ReorderTurnParticipant,
+        AdvanceTurn,
+        PreviousTurn,
+        SetPhase,
+        AddParticipant,
+        UpdateSessionTitle,
+        RemoveParticipant,
+        RenameParticipant,
+        AssignPieceOwner,
+        SetWorkspaceMode,
+        ProcessAction,
+        UndoLastOperation,
+        RedoLastOperation
+    }
+}
