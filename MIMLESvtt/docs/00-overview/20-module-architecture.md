@@ -2,7 +2,7 @@
 
 ## File Location
 
-docs/04-modules/module-architecture.md
+docs/00-overview/20-module-architecture.md
 
 ---
 

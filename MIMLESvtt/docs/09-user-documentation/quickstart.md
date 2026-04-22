@@ -1,5 +1,11 @@
 # Quickstart
 
+This application supports three main usage modes:
+
+- **Game template setup**: create and prepare scenario/session layouts.
+- **Solo play/testing**: run and validate gameplay workflows by yourself.
+- **Multiplayer-ready staging**: prepare sessions and workflows for future multiplayer usage.
+
 This guide walks you through a basic flow in Workspace.
 
 ## 1. Create a session

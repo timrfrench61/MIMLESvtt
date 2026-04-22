@@ -1475,9 +1475,9 @@ namespace MIMLESvtt.src
             State.RedoStack.Clear();
         }
 
-        private static ScenarioExport BuildScenarioExportFromCurrentSession(TableSession session, string scenarioTitle)
+        private static Scenario BuildScenarioExportFromCurrentSession(TableSession session, string scenarioTitle)
         {
-            return new ScenarioExport
+            return new Scenario
             {
                 Title = scenarioTitle,
                 Surfaces = [.. session.Surfaces.Select(CloneSurface)],

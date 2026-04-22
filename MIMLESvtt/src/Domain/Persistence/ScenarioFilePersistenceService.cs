@@ -16,7 +16,7 @@ namespace MIMLESvtt.src
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
         }
 
-        public void SaveToFile(ScenarioExport scenario, string path)
+        public void SaveToFile(Scenario scenario, string path)
         {
             ArgumentNullException.ThrowIfNull(scenario);
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -25,7 +25,7 @@ namespace MIMLESvtt.src
             File.WriteAllText(path, json, Encoding.UTF8);
         }
 
-        public ScenarioExport LoadFromFile(string path)
+        public Scenario LoadFromFile(string path)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
 

@@ -2,7 +2,7 @@
 
 ## File Location
 
-docs/02-domain/action-system.md
+docs/00-overview/06-global-action-system.md
 
 ---
 

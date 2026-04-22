@@ -1,5 +1,12 @@
 # Roadmap
 
+## Canonical Status
+
+This is the **canonical platform implementation roadmap** for the project.
+
+Related scoped roadmap:
+- `docs/05-backlog/checkers-roadmap.md` (reference implementation / prototype track)
+
 ## File Location
 
 docs/05-backlog/roadmap.md
@@ -39,9 +46,9 @@ Establish a stable domain model.
 
 ### Includes
 
-- domain-glossary.md defined
-- table-state-model.md implemented
-- action-system.md implemented
+- 00-overview/98-glossary.md defined
+- 00-overview/09-tabletop-state-model.md implemented
+- 00-overview/06-global-action-system.md implemented
 - core domain classes created
 - basic validation rules defined
 

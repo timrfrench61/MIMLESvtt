@@ -43,9 +43,9 @@ namespace MIMLESvtt.src
                 return CreateUnsupportedIntent(applicationOutcome);
             }
 
-            if (applicationOutcome.Payload is not ScenarioExport scenario)
+            if (applicationOutcome.Payload is not Scenario scenario)
             {
-                throw new InvalidOperationException("Supported ScenarioSnapshot outcome must include a ScenarioExport payload.");
+                throw new InvalidOperationException("Supported ScenarioSnapshot outcome must include a Scenario payload.");
             }
 
             return new SnapshotImportApplyIntent(

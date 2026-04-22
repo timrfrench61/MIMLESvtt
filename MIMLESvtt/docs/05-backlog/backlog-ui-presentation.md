@@ -243,6 +243,46 @@ Plan file selection, validation preview, import result summary, and error review
 
 ---
 
+### UI-013
+**Title:** Implement Workspace right-slide controls panel over tabletop  
+**Master ID:** MB-043, MB-044  
+**Priority:** High  
+**Status:** In Progress  
+
+**Description:**  
+Consolidate Workspace control-heavy UI into a right-side slide-in panel (Android-style interaction pattern) while keeping tabletop visible behind the panel.
+
+**Dependencies:** UI-001, UI-003
+
+**Acceptance Criteria:**
+- Workspace controls and text-entry workflows are reachable in a right slide panel.
+- Panel can open/close without losing table state.
+- Tabletop remains visible behind panel.
+- Tabletop supports explicit fallback states:
+  - default x-y grid
+  - missing tabletop
+  - page not loading
+
+---
+
+### UI-014
+**Title:** Document Workspace slide-panel interaction model and fallback tabletop states  
+**Master ID:** MB-044  
+**Priority:** Medium  
+**Status:** Pending  
+
+**Description:**  
+Add explicit UI design documentation for the slide-in panel behavior, expected responsiveness, and fallback tabletop states.
+
+**Dependencies:** UI-013
+
+**Acceptance Criteria:**
+- UI behavior spec includes panel open/close states and layering.
+- Fallback tabletop states are documented with operator intent.
+- Documentation references Workspace controls grouping and expected user flow.
+
+---
+
 ## Near-Term Execution Order
 
 1. UI-001 Define application shell layout  
@@ -252,3 +292,5 @@ Plan file selection, validation preview, import result summary, and error review
 5. UI-005 Define checkers reference UI flow  
 6. UI-007 Define content management screen inventory  
 7. UI-012 Define import workflow UI
+8. UI-013 Implement Workspace right-slide controls panel over tabletop
+9. UI-014 Document Workspace slide-panel interaction model and fallback tabletop states

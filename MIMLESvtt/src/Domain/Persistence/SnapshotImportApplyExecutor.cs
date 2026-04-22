@@ -54,9 +54,9 @@ namespace MIMLESvtt.src
                 throw new InvalidOperationException("CreateScenarioFromImport intent must be marked supported.");
             }
 
-            if (intent.Payload is not ScenarioExport scenario)
+            if (intent.Payload is not Scenario scenario)
             {
-                throw new InvalidOperationException("CreateScenarioFromImport intent must include a ScenarioExport payload.");
+                throw new InvalidOperationException("CreateScenarioFromImport intent must include a Scenario payload.");
             }
 
             var pendingScenarioPlan = new PendingScenarioApplicationPlan

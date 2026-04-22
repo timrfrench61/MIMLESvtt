@@ -8,7 +8,7 @@ namespace MIMLESvtt.src
 
         private static readonly JsonSerializerOptions SerializerOptions = new();
 
-        public string SerializeScenario(ScenarioExport scenario)
+        public string SerializeScenario(Scenario scenario)
         {
             ArgumentNullException.ThrowIfNull(scenario);
 
@@ -21,7 +21,7 @@ namespace MIMLESvtt.src
             return SerializeSnapshot(snapshot);
         }
 
-        public ScenarioExport DeserializeScenario(string json)
+        public Scenario DeserializeScenario(string json)
         {
             var snapshot = DeserializeSnapshot(json);
 

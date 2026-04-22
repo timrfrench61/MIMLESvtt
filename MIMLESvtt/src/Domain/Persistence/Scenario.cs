@@ -1,6 +1,6 @@
 namespace MIMLESvtt.src
 {
-    public class ScenarioExport
+    public class VttScenario
     {
         public string Title { get; set; } = string.Empty;
 
@@ -9,5 +9,9 @@ namespace MIMLESvtt.src
         public List<PieceInstance> Pieces { get; set; } = [];
 
         public TableOptions Options { get; set; } = new();
+    }
+
+    public class Scenario : VttScenario
+    {
     }
 }

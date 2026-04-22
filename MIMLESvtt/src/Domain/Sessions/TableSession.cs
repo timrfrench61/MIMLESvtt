@@ -1,6 +1,6 @@
 namespace MIMLESvtt.src
 {
-    public class TableSession
+    public class VttSession
     {
         public string Id { get; set; } = string.Empty;
 
@@ -27,5 +27,13 @@ namespace MIMLESvtt.src
         public List<ActionRecord> ActionLog { get; set; } = [];
 
         public Dictionary<string, object> ModuleState { get; set; } = [];
+    }
+
+    public class TabletopState : VttSession
+    {
+    }
+
+    public class TableSession : VttSession
+    {
     }
 }

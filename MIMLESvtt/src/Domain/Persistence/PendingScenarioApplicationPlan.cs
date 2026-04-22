@@ -4,7 +4,7 @@ namespace MIMLESvtt.src
     {
         public string ScenarioTitle { get; init; } = string.Empty;
 
-        public ScenarioExport Scenario { get; init; } = new();
+        public Scenario Scenario { get; init; } = new();
 
         public SnapshotImportApplyOperationKind IntendedOperationKind { get; init; }
 

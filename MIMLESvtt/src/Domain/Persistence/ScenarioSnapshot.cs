@@ -4,6 +4,6 @@ namespace MIMLESvtt.src
     {
         public int Version { get; set; }
 
-        public ScenarioExport? Scenario { get; set; }
+        public Scenario? Scenario { get; set; }
     }
 }

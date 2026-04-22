@@ -40,13 +40,13 @@ namespace MIMLESvtt.src
             return _tableSessionFilePersistenceService.LoadFromFile(path);
         }
 
-        public void SaveScenario(ScenarioExport scenario, string path)
+        public void SaveScenario(Scenario scenario, string path)
         {
             ValidatePathExtension(path, SnapshotFileExtensions.Scenario, "Scenario");
             _scenarioFilePersistenceService.SaveToFile(scenario, path);
         }
 
-        public ScenarioExport LoadScenario(string path)
+        public Scenario LoadScenario(string path)
         {
             ValidatePathExtension(path, SnapshotFileExtensions.Scenario, "Scenario");
             return _scenarioFilePersistenceService.LoadFromFile(path);

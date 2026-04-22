@@ -1,7 +1,11 @@
-﻿## Updated Roadmap
+﻿# Checkers Reference Roadmap
 
+## Scoped Status
 
-# Roadmap
+This roadmap is a **reference implementation / prototype track** centered on checkers as an engine validation path.
+
+Canonical platform roadmap:
+- `docs/05-backlog/roadmap.md`
 
 ## Phase 1 — Foundation and Product Definition
 

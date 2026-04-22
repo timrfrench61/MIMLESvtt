@@ -1,21 +1,14 @@
 # Documentation Index
 
-## Overview
+## Canonical Purpose
 
-This folder contains all planning, architecture, and development documentation for the **Blazor Tabletop Engine / VTT** project.
+This index maps the current docs set and identifies canonical planning documents.
 
-The project is designed as a **general tabletop platform**, supporting:
-
-- board games
-- tactical tabletop games
-- strategic war games
-- roleplaying games (AD&D1, BRP, and future systems)
-
-This documentation is structured to support:
-- long-term maintainability
-- subsystem isolation
-- iterative development
-- clear onboarding for new contributors
+Primary canonical planning docs:
+- Platform roadmap: `docs/05-backlog/roadmap.md`
+- Working backlog: `docs/05-backlog/backlog.md`
+- Vision/scope: `docs/00-overview/vision-and-scope.md`
+- Testing strategy: `docs/06-testing/testing-strategy.md`
 
 ---
 
@@ -27,8 +20,8 @@ Start here:
 
 1. `/00-overview/vision-and-scope.md`
 2. `/00-overview/subsystem-map.md`
-3. `/00-overview/roadmap.md`
-4. `/05-backlog/master-backlog.md`
+3. `/05-backlog/roadmap.md`
+4. `/05-backlog/backlog.md`
 
 Then review subsystem backlogs relevant to your work.
 
@@ -66,35 +59,27 @@ High-level project definition and direction.
 - **subsystem-map.md**  
   Defines system decomposition and responsibilities
 
+- **design-packet-integration-report.md**  
+  Tracks integration status against authoritative packet docs
+
 - **roadmap.md**  
-  Defines phased development plan and milestones
+  Historical/alternate roadmap narrative (use `05-backlog/roadmap.md` as canonical implementation roadmap)
 
 ---
 
-### `/01-architecture/` *(planned/optional)*
+### `/00-overview/`
 
-System-level technical decisions.
+High-level project direction and consolidated core-model documentation.
 
-- system architecture overview
-- networking model
-- persistence strategy
-- architecture decision records (ADR)
+Includes:
 
----
-
-### `/02-domain/` *(planned/optional)*
-
-Core data and engine concepts.
-
-- table/board model
-- piece/token model
-- turn/phase model
-- rules framework abstractions
-- content models (RPG + wargame)
+- vision/scope and subsystem framing
+- glossary, table-state model, and global action system
+- turn/persistence/rules supporting model docs
 
 ---
 
-### `/03-import-export/` *(planned/optional)*
+### `/03-import-export/`
 
 Data ingestion and validation.
 
@@ -105,24 +90,21 @@ Data ingestion and validation.
 
 ---
 
-### `/04-ui/` *(planned/optional)*
-
-UI and interaction design.
-
-- UI shell layout
-- board presentation patterns
-- screen inventory
-- GM workflows
-- player workflows (future)
-
----
-
 ### `/05-backlog/`
 
 All planning and execution tracking.
 
+- **backlog.md**  
+  Canonical working backlog
+
+- **roadmap.md**  
+  Canonical platform implementation roadmap
+
+- **checkers-roadmap.md**  
+  Scoped reference implementation roadmap (prototype track)
+
 - **master-backlog.md**  
-  Top-level backlog across all subsystems
+  Roll-up/reference backlog
 
 - **backlog-table-engine.md**  
   Core engine (board, pieces, turns)
@@ -153,7 +135,7 @@ All planning and execution tracking.
 
 ---
 
-### `/06-testing/` *(planned/optional)*
+### `/06-testing/`
 
 Testing artifacts and data.
 
@@ -161,6 +143,25 @@ Testing artifacts and data.
 - test cases
 - test data packets
 - regression definitions
+
+---
+
+### `/09-user-documentation/`
+
+User-facing guidance.
+
+- **quickstart.md**  
+  Step-by-step pre-alpha usage flow
+
+---
+
+### `/99-admin/`
+
+Administrative/process docs.
+
+- this index
+- lifecycle assessment report
+- prompt and planning notes
 
 ---
 
@@ -204,8 +205,8 @@ Subsystem backlogs reference **Master Backlog IDs** for traceability.
 
 Refer to:
 
-- `/00-overview/roadmap.md`
-- `/05-backlog/master-backlog.md`
+- `/05-backlog/roadmap.md`
+- `/05-backlog/backlog.md`
 
 for current priorities and execution order.
 

@@ -1,18 +1,16 @@
 docs/
   00-overview/
-    vision-and-scope.md
-    subsystem-map.md
+    00-what-is-a-vtt.md
+    01-core-class-list.md
+    98-glossary.md
+    09-tabletop-state-model.md
+    06-global-action-system.md
 
-  02-domain/
-    domain-glossary.md
-    table-state-model.md
-    action-system.md
+  03-persistence/
+    00-persistence-subsystem.md
 
-  03-import-export/
-    persistence-and-import-export.md
-
-  04-modules/
-    module-architecture.md
+  00-overview/
+    20-module-architecture.md
 
   05-backlog/
     roadmap.md

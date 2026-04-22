@@ -48,7 +48,7 @@ namespace MIMLESvtt.src
                 if (!IsAllowedByPolicy(intent, policy))
                 {
                     var policyDeniedPendingScenarioTitle = intent.OperationKind == SnapshotImportApplyOperationKind.CreateScenarioFromImport
-                        ? (intent.Payload as ScenarioExport)?.Title
+                        ? (intent.Payload as Scenario)?.Title
                         : null;
 
                     return new SnapshotImportApplyResponse
@@ -75,7 +75,7 @@ namespace MIMLESvtt.src
                 var isSupported = intent.IsSupported;
                 var isSuccess = applyResult.IsSuccess || !isSupported;
                 var pendingScenarioTitle = intent.OperationKind == SnapshotImportApplyOperationKind.CreateScenarioFromImport
-                    ? applyResult.PendingScenarioPlan?.ScenarioTitle ?? (intent.Payload as ScenarioExport)?.Title
+                    ? applyResult.PendingScenarioPlan?.ScenarioTitle ?? (intent.Payload as Scenario)?.Title
                     : null;
 
                 return new SnapshotImportApplyResponse
