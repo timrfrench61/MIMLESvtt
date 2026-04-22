@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using MIMLESvtt.src;
+using MIMLESvtt.src.Application.Workspace;
+using MIMLESvtt.src.Domain.Models.Pieces;
+using MIMLESvtt.src.Domain.Models.Placement;
+using MIMLESvtt.src.Domain.Models.Surfaces;
 
 namespace MIMLESvtt.Components.Pages;
 

@@ -1,3 +1,5 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class ScenarioActivationWorkflowService
@@ -183,8 +185,8 @@ namespace MIMLESvtt.src
             SnapshotImportErrorCode errorCode,
             SnapshotImportFailureStage failureStage,
             PendingScenarioApplicationPlan? pendingScenarioPlan,
-            TableSession? tableSessionCandidate,
-            TableSession? resultingCurrentTableSession,
+            VttSession? tableSessionCandidate,
+            VttSession? resultingCurrentTableSession,
             ScenarioCandidateActivationMode activationMode)
         {
             return new ScenarioActivationWorkflowResponse

@@ -1,3 +1,5 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class ScenarioCandidateActivationService
@@ -63,7 +65,7 @@ namespace MIMLESvtt.src
             };
         }
 
-        private static void ValidateCandidate(TableSession candidate)
+        private static void ValidateCandidate(VttSession candidate)
         {
             if (string.IsNullOrWhiteSpace(candidate.Id))
             {

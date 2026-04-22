@@ -1,3 +1,5 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class SnapshotImportApplyExecutor
@@ -30,7 +32,7 @@ namespace MIMLESvtt.src
                 throw new InvalidOperationException("ReplaceTableSession intent must be marked supported.");
             }
 
-            if (intent.Payload is not TableSession tableSession)
+            if (intent.Payload is not VttSession tableSession)
             {
                 throw new InvalidOperationException("ReplaceTableSession intent must include a TableSession payload.");
             }

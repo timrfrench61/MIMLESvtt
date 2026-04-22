@@ -1,3 +1,5 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class SnapshotImportIntentService
@@ -10,7 +12,7 @@ namespace MIMLESvtt.src
             {
                 SnapshotFormatKind.TableSessionSnapshot => CreateTableSessionIntent(applicationOutcome),
                 SnapshotFormatKind.ScenarioSnapshot => CreateScenarioIntent(applicationOutcome),
-                SnapshotFormatKind.ContentPackSnapshot => CreateUnsupportedIntent(applicationOutcome),
+                SnapshotFormatKind.VttContentPackSnapshot => CreateUnsupportedIntent(applicationOutcome),
                 SnapshotFormatKind.ActionLogSnapshot => CreateUnsupportedIntent(applicationOutcome),
                 _ => throw new InvalidOperationException("Unsupported snapshot format kind.")
             };
@@ -23,7 +25,7 @@ namespace MIMLESvtt.src
                 return CreateUnsupportedIntent(applicationOutcome);
             }
 
-            if (applicationOutcome.Payload is not TableSession tableSession)
+            if (applicationOutcome.Payload is not VttSession tableSession)
             {
                 throw new InvalidOperationException("Supported TableSessionSnapshot outcome must include a TableSession payload.");
             }

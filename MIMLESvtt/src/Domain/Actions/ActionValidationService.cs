@@ -1,3 +1,5 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class ActionValidationService
@@ -8,7 +10,7 @@ namespace MIMLESvtt.src
         private const string RemoveMarkerActionType = "RemoveMarker";
         private const string ChangePieceStateActionType = "ChangePieceState";
 
-        public ActionValidationResult Validate(ActionRequest actionRequest, TableSession tableSession)
+        public ActionValidationResult Validate(ActionRequest actionRequest, VttSession tableSession)
         {
             ArgumentNullException.ThrowIfNull(actionRequest);
             ArgumentNullException.ThrowIfNull(tableSession);
@@ -35,7 +37,7 @@ namespace MIMLESvtt.src
             }
         }
 
-        private static ActionValidationResult ValidateMovePiece(ActionRequest actionRequest, TableSession tableSession)
+        private static ActionValidationResult ValidateMovePiece(ActionRequest actionRequest, VttSession tableSession)
         {
             if (actionRequest.Payload is not MovePiecePayload payload)
             {
@@ -67,7 +69,7 @@ namespace MIMLESvtt.src
             return ActionValidationResult.Success();
         }
 
-        private static ActionValidationResult ValidatePieceTarget(ActionRequest actionRequest, TableSession tableSession, string actionType)
+        private static ActionValidationResult ValidatePieceTarget(ActionRequest actionRequest, VttSession tableSession, string actionType)
         {
             var pieceId = actionRequest.Payload switch
             {

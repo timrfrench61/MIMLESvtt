@@ -1,3 +1,7 @@
+using MIMLESvtt.src.Domain.Models.Pieces;
+using MIMLESvtt.src.Domain.Models.Placement;
+using MIMLESvtt.src.Domain.Models.Surfaces;
+
 namespace MIMLESvtt.src
 {
     public enum WorkspaceUndoOperationKind

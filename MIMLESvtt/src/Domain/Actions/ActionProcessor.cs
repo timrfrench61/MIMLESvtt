@@ -1,3 +1,6 @@
+using MIMLESvtt.src.Domain.Models;
+using MIMLESvtt.src.Domain.Models.Pieces;
+
 namespace MIMLESvtt.src
 {
     public class ActionProcessor
@@ -8,7 +11,7 @@ namespace MIMLESvtt.src
         private const string RemoveMarkerActionType = "RemoveMarker";
         private const string ChangePieceStateActionType = "ChangePieceState";
 
-        public ActionRecord Process(TableSession tableSession, ActionRequest actionRequest)
+        public ActionRecord Process(VttSession tableSession, ActionRequest actionRequest)
         {
             Validate(tableSession, actionRequest);
             Apply(tableSession, actionRequest);
@@ -19,7 +22,7 @@ namespace MIMLESvtt.src
             return actionRecord;
         }
 
-        private static void Validate(TableSession tableSession, ActionRequest actionRequest)
+        private static void Validate(VttSession tableSession, ActionRequest actionRequest)
         {
             ArgumentNullException.ThrowIfNull(tableSession);
             ArgumentNullException.ThrowIfNull(actionRequest);
@@ -27,7 +30,7 @@ namespace MIMLESvtt.src
             ArgumentException.ThrowIfNullOrWhiteSpace(actionRequest.ActorParticipantId);
         }
 
-        private static void Apply(TableSession tableSession, ActionRequest actionRequest)
+        private static void Apply(VttSession tableSession, ActionRequest actionRequest)
         {
             switch (actionRequest.ActionType)
             {
@@ -51,7 +54,7 @@ namespace MIMLESvtt.src
             }
         }
 
-        private static void ApplyMovePiece(TableSession tableSession, ActionRequest actionRequest)
+        private static void ApplyMovePiece(VttSession tableSession, ActionRequest actionRequest)
         {
             var movePiecePayload = RequirePayloadType<MovePiecePayload>(actionRequest, MovePieceActionType);
 
@@ -66,7 +69,7 @@ namespace MIMLESvtt.src
             piece.Location = movePiecePayload.NewLocation;
         }
 
-        private static void ApplyRotatePiece(TableSession tableSession, ActionRequest actionRequest)
+        private static void ApplyRotatePiece(VttSession tableSession, ActionRequest actionRequest)
         {
             var rotatePiecePayload = RequirePayloadType<RotatePiecePayload>(actionRequest, RotatePieceActionType);
 
@@ -78,7 +81,7 @@ namespace MIMLESvtt.src
             piece.Rotation = rotatePiecePayload.NewRotation;
         }
 
-        private static void ApplyAddMarker(TableSession tableSession, ActionRequest actionRequest)
+        private static void ApplyAddMarker(VttSession tableSession, ActionRequest actionRequest)
         {
             var addMarkerPayload = RequirePayloadType<AddMarkerPayload>(actionRequest, AddMarkerActionType);
 
@@ -95,7 +98,7 @@ namespace MIMLESvtt.src
             piece.MarkerIds.Add(markerId);
         }
 
-        private static void ApplyChangePieceState(TableSession tableSession, ActionRequest actionRequest)
+        private static void ApplyChangePieceState(VttSession tableSession, ActionRequest actionRequest)
         {
             var changePieceStatePayload = RequirePayloadType<ChangePieceStatePayload>(actionRequest, ChangePieceStateActionType);
 
@@ -113,7 +116,7 @@ namespace MIMLESvtt.src
             piece.State[key] = changePieceStatePayload.Value;
         }
 
-        private static void ApplyRemoveMarker(TableSession tableSession, ActionRequest actionRequest)
+        private static void ApplyRemoveMarker(VttSession tableSession, ActionRequest actionRequest)
         {
             var removeMarkerPayload = RequirePayloadType<RemoveMarkerPayload>(actionRequest, RemoveMarkerActionType);
 
@@ -146,7 +149,7 @@ namespace MIMLESvtt.src
             return value;
         }
 
-        private static PieceInstance RequirePieceById(TableSession tableSession, string pieceId, string actionType)
+        private static PieceInstance RequirePieceById(VttSession tableSession, string pieceId, string actionType)
         {
             var piece = tableSession.Pieces.FirstOrDefault(p => p.Id == pieceId);
             if (piece is null)
@@ -157,7 +160,7 @@ namespace MIMLESvtt.src
             return piece;
         }
 
-        private static void RequireSurfaceExists(TableSession tableSession, string surfaceId, string actionType)
+        private static void RequireSurfaceExists(VttSession tableSession, string surfaceId, string actionType)
         {
             var surfaceExists = tableSession.Surfaces.Any(s => s.Id == surfaceId);
             if (!surfaceExists)
@@ -178,7 +181,7 @@ namespace MIMLESvtt.src
             };
         }
 
-        private static void Log(TableSession tableSession, ActionRecord actionRecord)
+        private static void Log(VttSession tableSession, ActionRecord actionRecord)
         {
             tableSession.ActionLog.Add(actionRecord);
         }

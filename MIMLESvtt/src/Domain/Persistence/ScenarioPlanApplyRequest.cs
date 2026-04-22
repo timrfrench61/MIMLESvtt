@@ -1,3 +1,5 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class ScenarioPlanApplyRequest
@@ -6,6 +8,6 @@ namespace MIMLESvtt.src
 
         public string? TargetSessionTitleOverride { get; init; }
 
-        public TableSession? ActiveRuntimeTableSession { get; init; }
+        public VttSession? ActiveRuntimeTableSession { get; init; }
     }
 }

@@ -1,3 +1,5 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class TableSessionPersistenceService
@@ -14,14 +16,14 @@ namespace MIMLESvtt.src
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
         }
 
-        public string Save(TableSession tableSession)
+        public string Save(VttSession tableSession)
         {
             ArgumentNullException.ThrowIfNull(tableSession);
 
             return _serializer.Save(tableSession);
         }
 
-        public TableSession Load(string json)
+        public VttSession Load(string json)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(json);
 

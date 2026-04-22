@@ -117,7 +117,7 @@ namespace MIMLESvtt.src
             {
                 SnapshotFormatKind.TableSessionSnapshot => SnapshotFileExtensions.TableSession,
                 SnapshotFormatKind.ScenarioSnapshot => SnapshotFileExtensions.Scenario,
-                SnapshotFormatKind.ContentPackSnapshot => SnapshotFileExtensions.ContentPack,
+                SnapshotFormatKind.VttContentPackSnapshot => SnapshotFileExtensions.VttContentPack,
                 SnapshotFormatKind.ActionLogSnapshot => SnapshotFileExtensions.ActionLog,
                 _ => string.Empty
             };
@@ -141,9 +141,9 @@ namespace MIMLESvtt.src
                 return SnapshotFormatKind.ScenarioSnapshot;
             }
 
-            if (path.EndsWith(SnapshotFileExtensions.ContentPack, StringComparison.OrdinalIgnoreCase))
+            if (path.EndsWith(SnapshotFileExtensions.VttContentPack, StringComparison.OrdinalIgnoreCase))
             {
-                return SnapshotFormatKind.ContentPackSnapshot;
+                return SnapshotFormatKind.VttContentPackSnapshot;
             }
 
             if (path.EndsWith(SnapshotFileExtensions.ActionLog, StringComparison.OrdinalIgnoreCase))

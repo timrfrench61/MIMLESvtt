@@ -15,7 +15,7 @@ Use this as the primary “what exists in code” map.
 
 - `VttSession` (compat: `TableSession`) — live runtime game/session object.
 - `VttScenario` (compat: `Scenario`) — prepared starting layout/template.
-- `ContentPackSnapshot` — persisted content pack root.
+- `VttContentPack` (target) — reusable content package model (non-snapshot runtime/content contract).
 
 ---
 
@@ -27,7 +27,7 @@ Primary classes:
 
 - `VttSession`
 - `Participant`
-- `TableOptions`
+- `TabletopOptions`
 - `VisibilityState`
 - `ActionRecord`
 
@@ -76,17 +76,18 @@ Responsibility:
 
 ## 4) Content Library and Definitions
 
-Primary classes (current persistence/content shape):
+Primary classes (target content shape + current persisted shape):
 
-- `ContentPackSnapshot`
-- `ContentPackManifest`
-- `ContentPackDefinition`
-- `ContentPackAsset`
+- `VttContentPack` (target)
+- `VttContentPackManifest`
+- `VttContentPackDefinition`
+- `VttContentPackAsset`
 - `VttScenario`
 
 Responsibility:
 
 - reusable authored content and packaged definitions/assets
+- snapshot wrappers belong to persistence mapping, not root content-model naming
 
 ---
 
@@ -151,7 +152,7 @@ Primary classes:
 
 - `TableSessionSnapshot`, `TableSessionSnapshotSerializer`
 - `ScenarioSnapshot`, `ScenarioSnapshotSerializer`
-- `ContentPackSnapshotSerializer`
+- `VttContentPackSnapshot`, `VttContentPackSnapshotSerializer`
 - `SnapshotFileWorkflowService`
 - `SnapshotFileImportApplyWorkflowService`
 
@@ -186,7 +187,7 @@ Responsibility:
 
 Primary classes:
 
-- `ContentPackAsset`
+- `VttContentPackAsset`
 - content-pack persistence services
 
 Responsibility:

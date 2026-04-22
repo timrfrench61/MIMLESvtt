@@ -6,7 +6,7 @@ namespace MIMLESvtt.src
 
         public const string Scenario = ".scenario.json";
 
-        public const string ContentPack = ".contentpack.json";
+        public const string VttContentPack = ".vttcontentpack.json";
 
         public const string ActionLog = ".actionlog.json";
     }

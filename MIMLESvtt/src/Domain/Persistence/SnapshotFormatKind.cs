@@ -4,7 +4,7 @@ namespace MIMLESvtt.src
     {
         TableSessionSnapshot,
         ScenarioSnapshot,
-        ContentPackSnapshot,
+        VttContentPackSnapshot,
         ActionLogSnapshot
     }
 }

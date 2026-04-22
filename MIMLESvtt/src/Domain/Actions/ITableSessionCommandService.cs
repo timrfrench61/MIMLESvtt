@@ -1,8 +1,10 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public interface ITableSessionCommandService
     {
-        TableSession? CurrentTableSession { get; }
+        VttSession? CurrentTableSession { get; }
 
         ActionRecord ProcessAction(ActionRequest request);
     }

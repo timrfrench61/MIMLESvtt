@@ -1,8 +1,10 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class SessionWorkspaceState
     {
-        public TableSession? CurrentTableSession { get; internal set; }
+        public VttSession? CurrentTableSession { get; internal set; }
 
         public string? CurrentFilePath { get; internal set; }
 

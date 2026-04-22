@@ -1,17 +1,19 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class SnapshotFileWorkflowService
     {
         private readonly TableSessionFilePersistenceService _tableSessionFilePersistenceService;
         private readonly ScenarioFilePersistenceService _scenarioFilePersistenceService;
-        private readonly ContentPackFilePersistenceService _contentPackFilePersistenceService;
+        private readonly VttContentPackFilePersistenceService _vttContentPackFilePersistenceService;
         private readonly ActionLogFilePersistenceService _actionLogFilePersistenceService;
 
         public SnapshotFileWorkflowService()
             : this(
                 new TableSessionFilePersistenceService(),
                 new ScenarioFilePersistenceService(),
-                new ContentPackFilePersistenceService(),
+                new VttContentPackFilePersistenceService(),
                 new ActionLogFilePersistenceService())
         {
         }
@@ -19,22 +21,22 @@ namespace MIMLESvtt.src
         public SnapshotFileWorkflowService(
             TableSessionFilePersistenceService tableSessionFilePersistenceService,
             ScenarioFilePersistenceService scenarioFilePersistenceService,
-            ContentPackFilePersistenceService contentPackFilePersistenceService,
+            VttContentPackFilePersistenceService vttContentPackFilePersistenceService,
             ActionLogFilePersistenceService actionLogFilePersistenceService)
         {
             _tableSessionFilePersistenceService = tableSessionFilePersistenceService ?? throw new ArgumentNullException(nameof(tableSessionFilePersistenceService));
             _scenarioFilePersistenceService = scenarioFilePersistenceService ?? throw new ArgumentNullException(nameof(scenarioFilePersistenceService));
-            _contentPackFilePersistenceService = contentPackFilePersistenceService ?? throw new ArgumentNullException(nameof(contentPackFilePersistenceService));
+            _vttContentPackFilePersistenceService = vttContentPackFilePersistenceService ?? throw new ArgumentNullException(nameof(vttContentPackFilePersistenceService));
             _actionLogFilePersistenceService = actionLogFilePersistenceService ?? throw new ArgumentNullException(nameof(actionLogFilePersistenceService));
         }
 
-        public void SaveTableSession(TableSession session, string path)
+        public void SaveTableSession(VttSession session, string path)
         {
             ValidatePathExtension(path, SnapshotFileExtensions.TableSession, "TableSession");
             _tableSessionFilePersistenceService.SaveToFile(session, path);
         }
 
-        public TableSession LoadTableSession(string path)
+        public VttSession LoadTableSession(string path)
         {
             ValidatePathExtension(path, SnapshotFileExtensions.TableSession, "TableSession");
             return _tableSessionFilePersistenceService.LoadFromFile(path);
@@ -52,16 +54,28 @@ namespace MIMLESvtt.src
             return _scenarioFilePersistenceService.LoadFromFile(path);
         }
 
-        public void SaveContentPack(ContentPackSnapshot contentPack, string path)
+        public void SaveVttContentPack(VttContentPack contentPack, string path)
         {
-            ValidatePathExtension(path, SnapshotFileExtensions.ContentPack, "ContentPack");
-            _contentPackFilePersistenceService.SaveToFile(contentPack, path);
+            ValidatePathExtension(path, SnapshotFileExtensions.VttContentPack, "VttContentPack");
+            _vttContentPackFilePersistenceService.SaveToFile(contentPack, path);
         }
 
-        public ContentPackSnapshot LoadContentPack(string path)
+        public void SaveVttContentPackSnapshot(VttContentPackSnapshot contentPack, string path)
         {
-            ValidatePathExtension(path, SnapshotFileExtensions.ContentPack, "ContentPack");
-            return _contentPackFilePersistenceService.LoadFromFile(path);
+            ValidatePathExtension(path, SnapshotFileExtensions.VttContentPack, "VttContentPack");
+            _vttContentPackFilePersistenceService.SaveToFile(contentPack, path);
+        }
+
+        public VttContentPack LoadVttContentPack(string path)
+        {
+            ValidatePathExtension(path, SnapshotFileExtensions.VttContentPack, "VttContentPack");
+            return _vttContentPackFilePersistenceService.LoadModelFromFile(path);
+        }
+
+        public VttContentPackSnapshot LoadVttContentPackSnapshot(string path)
+        {
+            ValidatePathExtension(path, SnapshotFileExtensions.VttContentPack, "VttContentPack");
+            return _vttContentPackFilePersistenceService.LoadFromFile(path);
         }
 
         public void SaveActionLog(ActionLogSnapshot actionLog, string path)

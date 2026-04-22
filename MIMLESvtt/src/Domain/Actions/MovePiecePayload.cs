@@ -1,3 +1,5 @@
+using MIMLESvtt.src.Domain.Models.Placement;
+
 namespace MIMLESvtt.src
 {
     public class MovePiecePayload

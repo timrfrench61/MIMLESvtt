@@ -79,7 +79,7 @@ The subsystem supports:
 
 - Session Save (`.session.json`)
 - Scenario Snapshot (`.scenario.json`)
-- Content Pack (`.contentpack.json`)
+- VTT Content Pack (`.vttcontentpack.json`)
 - Action Log Snapshot (`.actionlog.json`)
 
 Conceptual shapes:
@@ -140,7 +140,7 @@ The subsystem currently supports four persisted snapshot families:
 
 - Table Session (`.session.json`)
 - Scenario (`.scenario.json`)
-- Content Pack (`.contentpack.json`)
+- VTT Content Pack (`.vttcontentpack.json`)
 - Action Log (`.actionlog.json`)
 
 Extension constants are defined in:
@@ -152,7 +152,7 @@ Extension constants are defined in:
 
 Scenario persistence now uses a unified **Scenario** model:
 
-- `src/Domain/Persistence/Scenario.cs`
+- `src/Domain/Models/VttScenario.cs`
 - `src/Domain/Persistence/ScenarioSnapshot.cs`
 - `src/Domain/Persistence/ScenarioSnapshotSerializer.cs`
 
@@ -175,7 +175,7 @@ This is intentionally separate from live `TableSession` runtime state.
 
 - `TableSessionFilePersistenceService`
 - `ScenarioFilePersistenceService`
-- `ContentPackFilePersistenceService`
+- `VttContentPackFilePersistenceService`
 - `ActionLogFilePersistenceService`
 
 Responsibility:

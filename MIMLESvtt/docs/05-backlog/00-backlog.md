@@ -262,7 +262,7 @@ Each item should be small enough to implement independently.
 ## Near-Term Focus (next block)
 
 - [ ] expand domain invariant enforcement (id uniqueness + broader reference checks)
-- [ ] complete remaining core actions (CreatePiece, DeletePiece, SetPieceVisibility, UpdateTableOptions)
+- [ ] complete remaining core actions (CreatePiece, DeletePiece, SetPieceVisibility, UpdateTabletopOptions)
 - [ ] add current-session missing-file restore option (strict default, optional best-effort) with matrix tests
 - [ ] persist workspace mode in workspace recovery state round-trip
 - [ ] tighten owner-reference rules for all piece create/update paths (optionally gated to Play mode)

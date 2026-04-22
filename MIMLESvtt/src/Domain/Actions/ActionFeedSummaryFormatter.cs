@@ -1,3 +1,6 @@
+using MIMLESvtt.src.Domain.Models.Pieces;
+using MIMLESvtt.src.Domain.Models.Surfaces;
+
 namespace MIMLESvtt.src
 {
     public static class ActionFeedSummaryFormatter

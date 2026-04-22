@@ -1,3 +1,4 @@
+using MIMLESvtt.src.Domain.Models;
 using System.Text.Json;
 
 namespace MIMLESvtt.src
@@ -8,7 +9,7 @@ namespace MIMLESvtt.src
 
         private static readonly JsonSerializerOptions SerializerOptions = new();
 
-        public string Save(TableSession tableSession)
+        public string Save(VttSession tableSession)
         {
             ArgumentNullException.ThrowIfNull(tableSession);
 
@@ -21,7 +22,7 @@ namespace MIMLESvtt.src
             return SerializeSnapshot(snapshot);
         }
 
-        public TableSession Load(string json)
+        public VttSession Load(string json)
         {
             var snapshot = DeserializeSnapshot(json);
 

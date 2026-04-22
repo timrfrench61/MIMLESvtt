@@ -1,3 +1,4 @@
+using MIMLESvtt.src.Domain.Models;
 using System.Text;
 
 namespace MIMLESvtt.src
@@ -73,7 +74,7 @@ namespace MIMLESvtt.src
                 {
                     SnapshotFormatKind.TableSessionSnapshot => RunTableSessionFlow(requestId, path, json, context, policy),
                     SnapshotFormatKind.ScenarioSnapshot => RunScenarioFlow(requestId, path, json, context, scenarioActivationMode, policy),
-                    SnapshotFormatKind.ContentPackSnapshot => RunImportOnlyFlow(requestId, path, json, detectedFormat.Value, context),
+                    SnapshotFormatKind.VttContentPackSnapshot => RunImportOnlyFlow(requestId, path, json, detectedFormat.Value, context),
                     SnapshotFormatKind.ActionLogSnapshot => RunImportOnlyFlow(requestId, path, json, detectedFormat.Value, context),
                     _ => CreateFailureResponse(
                         requestId,
@@ -234,7 +235,7 @@ namespace MIMLESvtt.src
             string errorMessage,
             SnapshotImportErrorCode errorCode,
             SnapshotImportFailureStage failureStage,
-            TableSession? resultingCurrentTableSession)
+            VttSession? resultingCurrentTableSession)
         {
             return new SnapshotFileImportApplyResponse
             {
@@ -267,9 +268,9 @@ namespace MIMLESvtt.src
                 return SnapshotFormatKind.ScenarioSnapshot;
             }
 
-            if (path.EndsWith(SnapshotFileExtensions.ContentPack, StringComparison.OrdinalIgnoreCase))
+            if (path.EndsWith(SnapshotFileExtensions.VttContentPack, StringComparison.OrdinalIgnoreCase))
             {
-                return SnapshotFormatKind.ContentPackSnapshot;
+                return SnapshotFormatKind.VttContentPackSnapshot;
             }
 
             if (path.EndsWith(SnapshotFileExtensions.ActionLog, StringComparison.OrdinalIgnoreCase))

@@ -1,3 +1,5 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class SnapshotImportApplyResponse
@@ -16,7 +18,7 @@ namespace MIMLESvtt.src
 
         public SnapshotImportApplyOperationKind? OperationKind { get; init; }
 
-        public TableSession? ResultingTableSession { get; init; }
+        public VttSession? ResultingTableSession { get; init; }
 
         public string? PendingScenarioTitle { get; init; }
 

@@ -1,3 +1,5 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class ScenarioActivationWorkflowResponse
@@ -16,11 +18,11 @@ namespace MIMLESvtt.src
 
         public ScenarioCandidateActivationMode ActivationMode { get; init; }
 
-        public TableSession? ResultingCurrentTableSession { get; init; }
+        public VttSession? ResultingCurrentTableSession { get; init; }
 
         public PendingScenarioApplicationPlan? PendingScenarioPlan { get; init; }
 
-        public TableSession? TableSessionCandidate { get; init; }
+        public VttSession? TableSessionCandidate { get; init; }
 
         public string? Message { get; init; }
 

@@ -119,7 +119,7 @@ Append ActionRecord to TableSession.ActionLog.
 - AddMarker
 - RemoveMarker
 - SetPieceVisibility
-- UpdateTableOptions
+- UpdateTabletopOptions
 
 ---
 

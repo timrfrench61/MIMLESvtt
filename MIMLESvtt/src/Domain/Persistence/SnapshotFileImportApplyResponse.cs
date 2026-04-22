@@ -1,3 +1,5 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class SnapshotFileImportApplyResponse
@@ -14,7 +16,7 @@ namespace MIMLESvtt.src
 
         public bool IsRuntimeStateMutated { get; init; }
 
-        public TableSession? ResultingCurrentTableSession { get; init; }
+        public VttSession? ResultingCurrentTableSession { get; init; }
 
         public string? Message { get; init; }
 

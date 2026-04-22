@@ -1,3 +1,5 @@
+using MIMLESvtt.src.Domain.Models.Pieces;
+
 namespace MIMLESvtt.src
 {
     public class RotatePiecePayload

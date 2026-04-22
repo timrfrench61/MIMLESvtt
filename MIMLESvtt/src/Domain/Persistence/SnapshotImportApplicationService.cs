@@ -10,11 +10,11 @@ namespace MIMLESvtt.src
             {
                 SnapshotFormatKind.TableSessionSnapshot => ApplyTableSession(importResult.Payload),
                 SnapshotFormatKind.ScenarioSnapshot => ApplyScenario(importResult.Payload),
-                SnapshotFormatKind.ContentPackSnapshot => new SnapshotImportApplicationOutcome(
-                    SnapshotFormatKind.ContentPackSnapshot,
+                SnapshotFormatKind.VttContentPackSnapshot => new SnapshotImportApplicationOutcome(
+                    SnapshotFormatKind.VttContentPackSnapshot,
                     false,
                     null,
-                    "ContentPackSnapshot is not supported for application in this pass."),
+                    "VttContentPackSnapshot is not supported for application in this pass."),
                 SnapshotFormatKind.ActionLogSnapshot => new SnapshotImportApplicationOutcome(
                     SnapshotFormatKind.ActionLogSnapshot,
                     false,

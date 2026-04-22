@@ -1,7 +1,9 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class SnapshotImportApplyContext
     {
-        public TableSession? CurrentTableSession { get; set; }
+        public VttSession? CurrentTableSession { get; set; }
     }
 }

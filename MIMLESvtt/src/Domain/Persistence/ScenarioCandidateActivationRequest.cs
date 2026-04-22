@@ -1,8 +1,10 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class ScenarioCandidateActivationRequest
     {
-        public TableSession? TableSessionCandidate { get; init; }
+        public VttSession? TableSessionCandidate { get; init; }
 
         public SnapshotImportApplyContext? TargetContext { get; init; }
 

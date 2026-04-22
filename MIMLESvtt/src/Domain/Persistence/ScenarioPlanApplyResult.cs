@@ -1,3 +1,5 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class ScenarioPlanApplyResult
@@ -6,7 +8,7 @@ namespace MIMLESvtt.src
 
         public bool IsRuntimeStateMutated { get; init; }
 
-        public TableSession? TableSessionCandidate { get; init; }
+        public VttSession? TableSessionCandidate { get; init; }
 
         public string? Message { get; init; }
 

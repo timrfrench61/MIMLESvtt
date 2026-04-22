@@ -1,3 +1,4 @@
+using MIMLESvtt.src.Domain.Models;
 using System.Text;
 
 namespace MIMLESvtt.src
@@ -16,7 +17,7 @@ namespace MIMLESvtt.src
             _persistenceService = persistenceService ?? throw new ArgumentNullException(nameof(persistenceService));
         }
 
-        public void SaveToFile(TableSession session, string path)
+        public void SaveToFile(VttSession session, string path)
         {
             ArgumentNullException.ThrowIfNull(session);
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -25,7 +26,7 @@ namespace MIMLESvtt.src
             File.WriteAllText(path, json, Encoding.UTF8);
         }
 
-        public TableSession LoadFromFile(string path)
+        public VttSession LoadFromFile(string path)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
 

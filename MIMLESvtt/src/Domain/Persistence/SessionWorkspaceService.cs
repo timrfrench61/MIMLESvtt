@@ -1,3 +1,8 @@
+using MIMLESvtt.src.Domain.Models;
+using MIMLESvtt.src.Domain.Models.Pieces;
+using MIMLESvtt.src.Domain.Models.Placement;
+using MIMLESvtt.src.Domain.Models.Surfaces;
+
 namespace MIMLESvtt.src
 {
     public class SessionWorkspaceService : ITableSessionCommandService
@@ -56,7 +61,7 @@ namespace MIMLESvtt.src
 
         public SessionWorkspaceState State { get; }
 
-        public TableSession? CurrentTableSession => State.CurrentTableSession;
+        public VttSession? CurrentTableSession => State.CurrentTableSession;
 
         public void CreateNewSession()
         {
@@ -67,7 +72,7 @@ namespace MIMLESvtt.src
                 successMessage: "Created new workspace session.",
                 action: () =>
                 {
-                    State.CurrentTableSession = new TableSession
+                    State.CurrentTableSession = new VttSession
                     {
                         Id = Guid.NewGuid().ToString("N"),
                         Title = "New Session"
@@ -1093,7 +1098,7 @@ namespace MIMLESvtt.src
             }
         }
 
-        private WorkspaceUndoEntry? CreateUndoEntryForAction(TableSession tableSession, ActionRequest request)
+        private WorkspaceUndoEntry? CreateUndoEntryForAction(VttSession tableSession, ActionRequest request)
         {
             switch (request.ActionType)
             {
@@ -1208,7 +1213,7 @@ namespace MIMLESvtt.src
             }
         }
 
-        private static void ApplyUndoEntry(TableSession tableSession, WorkspaceUndoEntry entry, bool undoing)
+        private static void ApplyUndoEntry(VttSession tableSession, WorkspaceUndoEntry entry, bool undoing)
         {
             switch (entry.OperationKind)
             {
@@ -1361,7 +1366,7 @@ namespace MIMLESvtt.src
             }
         }
 
-        private static PieceInstance RequirePiece(TableSession tableSession, string pieceId, WorkspaceUndoOperationKind operationKind)
+        private static PieceInstance RequirePiece(VttSession tableSession, string pieceId, WorkspaceUndoOperationKind operationKind)
         {
             var piece = tableSession.Pieces.FirstOrDefault(p => p.Id == pieceId);
             if (piece is null)
@@ -1475,20 +1480,20 @@ namespace MIMLESvtt.src
             State.RedoStack.Clear();
         }
 
-        private static Scenario BuildScenarioExportFromCurrentSession(TableSession session, string scenarioTitle)
+        private static Scenario BuildScenarioExportFromCurrentSession(VttSession session, string scenarioTitle)
         {
             return new Scenario
             {
                 Title = scenarioTitle,
                 Surfaces = [.. session.Surfaces.Select(CloneSurface)],
                 Pieces = [.. session.Pieces.Select(ClonePiece)],
-                Options = CloneTableOptions(session.Options)
+                Options = CloneTabletopOptions(session.Options)
             };
         }
 
-        private static TableOptions CloneTableOptions(TableOptions options)
+        private static TabletopOptions CloneTabletopOptions(TabletopOptions options)
         {
-            return new TableOptions
+            return new TabletopOptions
             {
                 EnableFog = options.EnableFog,
                 EnableTurnTracker = options.EnableTurnTracker,

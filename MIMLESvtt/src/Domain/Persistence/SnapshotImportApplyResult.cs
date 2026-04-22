@@ -1,3 +1,5 @@
+using MIMLESvtt.src.Domain.Models;
+
 namespace MIMLESvtt.src
 {
     public class SnapshotImportApplyResult
@@ -7,7 +9,7 @@ namespace MIMLESvtt.src
             bool isSuccess,
             bool isApplied,
             bool isRuntimeStateMutated,
-            TableSession? resultingTableSession,
+            VttSession? resultingTableSession,
             PendingScenarioApplicationPlan? pendingScenarioPlan,
             string message)
         {
@@ -28,7 +30,7 @@ namespace MIMLESvtt.src
 
         public bool IsRuntimeStateMutated { get; }
 
-        public TableSession? ResultingTableSession { get; }
+        public VttSession? ResultingTableSession { get; }
 
         public PendingScenarioApplicationPlan? PendingScenarioPlan { get; }
 

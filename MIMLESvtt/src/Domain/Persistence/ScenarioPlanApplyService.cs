@@ -1,3 +1,9 @@
+using MIMLESvtt.src.Domain.Models;
+using MIMLESvtt.src.Domain.Models.Pieces;
+using MIMLESvtt.src.Domain.Models.Placement;
+using MIMLESvtt.src.Domain.Models.Surfaces;
+using MIMLESvtt.src.Domain.Models.Visibility;
+
 namespace MIMLESvtt.src
 {
     public class ScenarioPlanApplyService
@@ -21,13 +27,13 @@ namespace MIMLESvtt.src
                 ? plan.ScenarioTitle
                 : request.TargetSessionTitleOverride;
 
-            var tableSessionCandidate = new TableSession
+            var tableSessionCandidate = new VttSession
             {
                 Id = Guid.NewGuid().ToString("N"),
                 Title = candidateTitle,
                 Surfaces = plan.Scenario.Surfaces.Select(CloneSurface).ToList(),
                 Pieces = plan.Scenario.Pieces.Select(ClonePiece).ToList(),
-                Options = CloneTableOptions(plan.Scenario.Options),
+                Options = CloneTabletopOptions(plan.Scenario.Options),
                 Participants = [],
                 ActionLog = [],
                 ModuleState = []
@@ -141,9 +147,9 @@ namespace MIMLESvtt.src
             };
         }
 
-        private static TableOptions CloneTableOptions(TableOptions source)
+        private static TabletopOptions CloneTabletopOptions(TabletopOptions source)
         {
-            return new TableOptions
+            return new TabletopOptions
             {
                 EnableFog = source.EnableFog,
                 EnableTurnTracker = source.EnableTurnTracker,
