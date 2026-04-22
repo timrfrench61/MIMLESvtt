@@ -1,4 +1,4 @@
-# Backlog — Table Engine
+# Backlog — Tabletop Engine
 
 ## Purpose
 
@@ -18,7 +18,7 @@ This subsystem must remain system-agnostic and support:
 - board games
 - tactical skirmish games
 - strategic war games
-- RPG table play
+- RPG tabletop play
 
 Related master backlog items:
 - MB-005 through MB-011
@@ -298,7 +298,7 @@ Support movement, facing, status, and tactical tags without hard-coding one rule
 **Status:** Pending  
 
 **Description:**  
-Extend the table engine to support region/area maps in addition to grid maps.
+Extend the tabletop engine to support region/area maps in addition to grid maps.
 
 **Acceptance Criteria:**
 - Strategic map abstraction exists

@@ -1,5 +1,7 @@
 ## Updated `master-backlog.md`
 
+### Reference-only. Do not use as active planning source.
+
 # Master Backlog
 
 ## Overview
@@ -29,6 +31,48 @@ AD&D 1e and BRP are early supported rulesets, but the platform itself must remai
 - In Progress
 - Blocked
 - Done
+
+---
+
+## Documentation and Planning Traceability (Reference)
+
+This section captures the compact crosswalk previously expanded in the documentation-planning subsystem backlog.
+
+Primary master IDs for documentation/planning governance:
+
+- MB-002 Define product vision and scope
+- MB-003 Define subsystem map
+- MB-054 Create subsystem backlog set
+- MB-055 Create roadmap and milestone tracking doc
+- MB-056 Create developer onboarding and repo conventions doc
+
+Compact DOC reference catalog:
+
+| DOC ID | Master ID | Title | Priority |
+|---|---|---|---|
+| DOC-001 | MB-002 | Maintain vision and scope document | High |
+| DOC-002 | MB-003 | Maintain subsystem map | High |
+| DOC-003 | MB-055 | Maintain roadmap and milestone tracking | High |
+| DOC-004 | MB-054 | Maintain master backlog reference | High |
+| DOC-005 | MB-054 | Maintain subsystem backlog set | High |
+| DOC-006 | MB-056 | Create developer onboarding guide | Medium |
+| DOC-007 | MB-056 | Create repo conventions document | Medium |
+| DOC-008 | MB-056 | Define module-addition workflow | Medium |
+| DOC-009 | MB-055 | Create milestone review checklist | Medium |
+| DOC-010 | MB-055 | Create architecture decision record index | Medium |
+| DOC-011 | MB-055 | Maintain domain glossary | High |
+| DOC-012 | MB-054 | Create dependency tracking notes across subsystems | Medium |
+| DOC-013 | MB-055 | Create release packaging and milestone naming notes | Low |
+| DOC-014 | MB-056 | Create documentation folder map | Medium |
+| DOC-015 | MB-054 | Define backlog item writing standard | Medium |
+| DOC-016 | MB-056 | Create contributor quick-start checklist | Low |
+| DOC-017 | MB-055 | Maintain implementation notes and open questions log | Medium |
+| DOC-018 | MB-054 | Create subsystem ownership matrix | Low |
+
+Reference usage note:
+
+- This file remains reference-only.
+- Active execution planning should be maintained in `00-backlog.md` and category backlog docs.
 
 ---
 

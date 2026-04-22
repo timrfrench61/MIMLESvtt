@@ -56,9 +56,9 @@ Assessment:
 ## 3) Backlog & Planning
 Present:
 - `05-backlog/backlog.md`
-- `05-backlog/master-backlog.md`
+- `05-backlog/90-master-backlog-reference.md`
 - category-specific backlog files
-- `05-backlog/roadmap.md`
+- `05-backlog/01-roadmap.md`
 
 Assessment:
 - Rich backlog content exists.
@@ -163,10 +163,10 @@ Recommended new docs:
 1. `99-admin/docs-index.md`
 - Populate with full docs tree + purpose + source-of-truth markers.
 
-2. `05-backlog/backlog.md` vs `05-backlog/master-backlog.md`
-- Add explicit rule: one is canonical working backlog, the other archive/roll-up.
+2. `05-backlog/00-backlog.md` vs `05-backlog/90-master-backlog-reference.md`
+- Keep explicit rule: working backlog is canonical; master backlog is reference/roll-up only.
 
-3. `05-backlog/roadmap.md` vs `05-backlog/checkers-roadmap.md`
+3. `05-backlog/01-roadmap.md` vs `05-backlog/21-checkers-roadmap.md`
 - Mark one canonical platform roadmap and the other as scoped/reference implementation roadmap.
 
 4. `00-overview/20-module-architecture.md`
@@ -196,7 +196,7 @@ Recommended new docs:
 
 ## Immediate (next 1–2 blocks)
 1. Add docs governance file and canonical-source rules.
-2. Resolve backlog duplication policy in writing (`backlog.md` vs `master-backlog.md`).
+2. Resolve backlog duplication policy in writing (`00-backlog.md` vs `90-master-backlog-reference.md`).
 3. Add developer getting-started + run/build/test workflow docs.
 4. Add a lightweight docs change checklist to PR workflow notes.
 5. Add QA run-log template and adopt packet execution log cadence.

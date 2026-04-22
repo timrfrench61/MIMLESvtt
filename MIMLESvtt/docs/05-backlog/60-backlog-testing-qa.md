@@ -42,13 +42,13 @@ Not included:
 
 Primary dependencies:
 
-- `master-backlog.md`
+- `90-master-backlog-reference.md`
 - `backlog-table-engine.md`
-- `backlog-checkers-reference.md`
+- `20-backlog-checkers-reference.md`
 - `backlog-rules-framework.md`
-- `backlog-content-import.md`
-- `backlog-networking.md`
-- `backlog-persistence-infrastructure.md`
+- `09-backlog-content-import.md`
+- `08-backlog-networking.md`
+- `09-backlog-persistence-infrastructure.md`
 
 Testing work depends on stable or semi-stable designs from those subsystems.
 

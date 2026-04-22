@@ -95,43 +95,44 @@ Data ingestion and validation.
 All planning and execution tracking.
 
 - **backlog.md**  
+- **00-backlog.md**  
   Canonical working backlog
 
-- **roadmap.md**  
+- **01-roadmap.md**  
   Canonical platform implementation roadmap
 
-- **checkers-roadmap.md**  
+- **21-checkers-roadmap.md**  
   Scoped reference implementation roadmap (prototype track)
 
-- **master-backlog.md**  
+- **90-master-backlog-reference.md**  
   Roll-up/reference backlog
 
 - **backlog-table-engine.md**  
   Core engine (board, pieces, turns)
 
-- **backlog-ui-presentation.md**  
+- **05-backlog-ui-presentation.md**  
   Layout, rendering, and UI behavior
 
-- **backlog-persistence-infrastructure.md**  
+- **09-backlog-persistence-infrastructure.md**  
   Database, storage, and services
 
-- **backlog-checkers-reference.md**  
+- **20-backlog-checkers-reference.md**  
   Reference implementation for engine validation
 
 - **backlog-rules-framework.md**  
   Rules plugin system and shared mechanics
 
-- **backlog-content-import.md**  
+- **09-backlog-content-import.md**  
   Content models, CSV import, validation
 
-- **backlog-networking.md**  
+- **08-backlog-networking.md**  
   Multiplayer session and synchronization
 
-- **backlog-testing-qa.md**  
+- **60-backlog-testing-qa.md**  
   Testing strategy, regression, and validation
 
-- **backlog-documentation-planning.md**  
-  Documentation maintenance and planning control
+- **90-master-backlog-reference.md**  
+  Reference-only historical roll-up and documentation-planning traceability catalog
 
 ---
 

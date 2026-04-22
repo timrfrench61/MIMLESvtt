@@ -9,7 +9,7 @@ Entry point for planning and implementation sequencing.
 - `roadmap.md`  
   Canonical platform implementation roadmap.
 
-- `backlog.md`  
+- `00-backlog.md`  
   Canonical working backlog.
 
 ## Scoped / Reference Planning Docs
@@ -17,7 +17,7 @@ Entry point for planning and implementation sequencing.
 - `checkers-roadmap.md`  
   Checkers-focused prototype/reference roadmap.
 
-- `master-backlog.md`  
+- `90-master-backlog-reference.md`  
   Roll-up/reference backlog view.
 
 ## Category Backlogs
@@ -30,4 +30,3 @@ Entry point for planning and implementation sequencing.
 - `backlog-content-import.md`
 - `backlog-networking.md`
 - `backlog-testing-qa.md`
-- `backlog-documentation-planning.md`
