@@ -25,9 +25,12 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
         private readonly VttScenarioPlanApplyService _vttScenarioPlanApplyService;
         private readonly VttScenarioCandidateActivationService _vttScenarioCandidateActivationService;
         private readonly SnapshotFileLibraryService _snapshotFileLibraryService;
+        private readonly KnownGameSessionRegistryPersistenceService _knownGameSessionRegistryPersistenceService;
         private readonly VttSessionWorkspaceStatePersistenceService _workspaceStatePersistenceService;
         private readonly ActionProcessor _actionProcessor;
         private readonly ActionValidationService _actionValidationService;
+        private readonly Dictionary<string, string> _persistedJoinCodesByPath = new(StringComparer.OrdinalIgnoreCase);
+        private readonly string _knownGameSessionRegistryPath;
 
         public WorkspaceRecoveryDiagnostics? LastRestoreDiagnostics { get; private set; }
 
@@ -40,7 +43,8 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
                 new SnapshotFileLibraryService(),
                 new VttSessionWorkspaceStatePersistenceService(),
                 new ActionProcessor(),
-                new ActionValidationService())
+                new ActionValidationService(),
+                null)
         {
         }
 
@@ -52,26 +56,304 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
             SnapshotFileLibraryService snapshotFileLibraryService,
             VttSessionWorkspaceStatePersistenceService workspaceStatePersistenceService,
             ActionProcessor actionProcessor,
-            ActionValidationService actionValidationService)
+            ActionValidationService actionValidationService,
+            KnownGameSessionRegistryPersistenceService? knownGameSessionRegistryPersistenceService)
         {
             _snapshotFileWorkflowService = snapshotFileWorkflowService ?? throw new ArgumentNullException(nameof(snapshotFileWorkflowService));
             _snapshotFileImportApplyWorkflowService = snapshotFileImportApplyWorkflowService ?? throw new ArgumentNullException(nameof(snapshotFileImportApplyWorkflowService));
             _vttScenarioPlanApplyService = vttScenarioPlanApplyService ?? throw new ArgumentNullException(nameof(vttScenarioPlanApplyService ));
             _vttScenarioCandidateActivationService = vttScenarioCandidateActivationService ?? throw new ArgumentNullException(nameof(vttScenarioCandidateActivationService));
             _snapshotFileLibraryService = snapshotFileLibraryService ?? throw new ArgumentNullException(nameof(snapshotFileLibraryService));
+            _knownGameSessionRegistryPersistenceService = knownGameSessionRegistryPersistenceService ?? new KnownGameSessionRegistryPersistenceService(_snapshotFileLibraryService);
             _workspaceStatePersistenceService = workspaceStatePersistenceService ?? throw new ArgumentNullException(nameof(workspaceStatePersistenceService));
             _actionProcessor = actionProcessor ?? throw new ArgumentNullException(nameof(actionProcessor));
             _actionValidationService = actionValidationService ?? throw new ArgumentNullException(nameof(actionValidationService));
+            _knownGameSessionRegistryPath = BuildKnownGameSessionRegistryPath();
 
             State = new VttSessionWorkspaceState();
+            LoadKnownGameSessionRegistry();
         }
 
         public VttSessionWorkspaceState State { get; }
 
         public VttSession? CurrentVttSession => State.CurrentVttSession;
 
+        public IReadOnlyList<SnapshotFileDescriptor> ListKnownSnapshotFiles()
+        {
+            return _snapshotFileLibraryService.ListEntries();
+        }
+
+        public IReadOnlyList<SnapshotFileDescriptor> ListKnownVttSessionFiles()
+        {
+            return _snapshotFileLibraryService
+                .ListEntries()
+                .Where(e => e.DetectedFormatKind == SnapshotFormatKind.VttSessionSnapshot)
+                .ToList();
+        }
+
+        public IReadOnlyList<KnownGameSession> ListKnownGameSessions()
+        {
+            var hasNewJoinCodeAssignments = false;
+            var sessions = ListKnownVttSessionFiles()
+                .Select(entry =>
+                {
+                    var joinCode = ResolvePersistedJoinCode(entry.FullPath, entry.FileName, out var joinCodeAssigned);
+                    hasNewJoinCodeAssignments = hasNewJoinCodeAssignments || joinCodeAssigned;
+
+                    return new KnownGameSession
+                    {
+                        FilePath = entry.FullPath,
+                        FileName = entry.FileName,
+                        JoinCode = joinCode,
+                        Exists = entry.Exists,
+                        LastWriteTimeUtc = entry.LastWriteTimeUtc
+                    };
+                })
+                .ToList();
+
+            if (hasNewJoinCodeAssignments)
+            {
+                PersistKnownGameSessionRegistry();
+            }
+
+            return sessions;
+        }
+
+        public void AddKnownSnapshotPath(string path)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+            var fullPath = Path.GetFullPath(path);
+            _snapshotFileLibraryService.AddPath(fullPath);
+            _snapshotFileLibraryService.RefreshEntry(fullPath);
+            EnsurePersistedJoinCodeForSessionPath(fullPath);
+            PersistKnownGameSessionRegistry();
+        }
+
+        public bool RemoveKnownSnapshotPath(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return false;
+            }
+
+            var fullPath = Path.GetFullPath(path);
+            _snapshotFileLibraryService.RemovePath(fullPath);
+            _persistedJoinCodesByPath.Remove(fullPath);
+            PersistKnownGameSessionRegistry();
+            return true;
+        }
+
+        public void SetCanCreateSession(bool canCreateSession)
+        {
+            State.CanCreateSession = canCreateSession;
+        }
+
+        public string GetKnownGameSessionRegistryPath()
+        {
+            return _knownGameSessionRegistryPath;
+        }
+
+        public bool HasKnownGameSessionRegistry()
+        {
+            return File.Exists(_knownGameSessionRegistryPath);
+        }
+
+        public void SaveKnownGameSessionRegistry()
+        {
+            PersistKnownGameSessionRegistry();
+        }
+
+        private void EnsurePersistedJoinCodeForSessionPath(string fullPath)
+        {
+            if (!fullPath.EndsWith(SnapshotFileExtensions.VttSession, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (_persistedJoinCodesByPath.ContainsKey(fullPath))
+            {
+                return;
+            }
+
+            _persistedJoinCodesByPath[fullPath] = BuildJoinCode(Path.GetFileName(fullPath));
+        }
+
+        private string ResolvePersistedJoinCode(string fullPath, string fileName, out bool joinCodeAssigned)
+        {
+            joinCodeAssigned = false;
+
+            if (_persistedJoinCodesByPath.TryGetValue(fullPath, out var existingJoinCode)
+                && !string.IsNullOrWhiteSpace(existingJoinCode))
+            {
+                return existingJoinCode;
+            }
+
+            var generatedJoinCode = BuildJoinCode(fileName);
+            _persistedJoinCodesByPath[fullPath] = generatedJoinCode;
+            joinCodeAssigned = true;
+            return generatedJoinCode;
+        }
+
+        private void PersistKnownGameSessionRegistry()
+        {
+            _knownGameSessionRegistryPersistenceService.SaveRegistry(_knownGameSessionRegistryPath, _persistedJoinCodesByPath);
+        }
+
+        private void LoadKnownGameSessionRegistry()
+        {
+            var loadedJoinCodes = _knownGameSessionRegistryPersistenceService.LoadRegistry(_knownGameSessionRegistryPath);
+            foreach (var entry in loadedJoinCodes)
+            {
+                _persistedJoinCodesByPath[entry.Key] = entry.Value;
+            }
+        }
+
+        private static string BuildKnownGameSessionRegistryPath()
+        {
+            return Path.Combine(AppContext.BaseDirectory, "App_Data", "known-game-sessions.json");
+        }
+
+        public bool TryJoinExistingGame(string? joinCode, out string message)
+        {
+            if (string.IsNullOrWhiteSpace(joinCode))
+            {
+                message = "Join code is required.";
+                return false;
+            }
+
+            var normalizedCode = joinCode.Trim();
+            var knownSessions = ListKnownGameSessions();
+
+            var matched = knownSessions.FirstOrDefault(entry =>
+                string.Equals(entry.JoinCode, normalizedCode, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(entry.FileName, normalizedCode, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(entry.FilePath, normalizedCode, StringComparison.OrdinalIgnoreCase));
+
+            if (matched is not null)
+            {
+                if (!matched.Exists)
+                {
+                    message = "Selected game session file is not available.";
+                    return false;
+                }
+
+                return TryOpenJoinSession(matched.FilePath, "Joined existing game session.", out message);
+            }
+
+            var samplePath = TryResolveSessionFromDocsSamples(normalizedCode);
+            if (!string.IsNullOrWhiteSpace(samplePath))
+            {
+                return TryOpenJoinSession(samplePath, "Joined existing game session from sample snapshots.", out message);
+            }
+
+            message = "Join code did not match any known game session.";
+            return false;
+        }
+
+        private bool TryOpenJoinSession(string path, string successMessage, out string message)
+        {
+            try
+            {
+                OpenVttSessionFromFile(path);
+                message = successMessage;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                message = ex.Message;
+                return false;
+            }
+        }
+
+        private static string? TryResolveSessionFromDocsSamples(string joinCode)
+        {
+            var sampleDir = FindDocsPersistenceDirectory();
+            if (string.IsNullOrWhiteSpace(sampleDir))
+            {
+                return null;
+            }
+
+            var candidate = Directory
+                .EnumerateFiles(sampleDir, $"*{SnapshotFileExtensions.VttSession}", SearchOption.TopDirectoryOnly)
+                .FirstOrDefault(path =>
+                    string.Equals(BuildJoinCode(Path.GetFileName(path)), joinCode, StringComparison.OrdinalIgnoreCase));
+
+            return candidate;
+        }
+
+        private static string? FindDocsPersistenceDirectory()
+        {
+            var roots = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(AppContext.BaseDirectory))
+            {
+                roots.Add(AppContext.BaseDirectory);
+            }
+
+            var currentDirectory = Directory.GetCurrentDirectory();
+            if (!string.IsNullOrWhiteSpace(currentDirectory))
+            {
+                roots.Add(currentDirectory);
+            }
+
+            foreach (var root in roots.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                var directory = new DirectoryInfo(root);
+                while (directory is not null)
+                {
+                    var direct = Path.Combine(directory.FullName, "docs", "03-persistence");
+                    if (Directory.Exists(direct))
+                    {
+                        return direct;
+                    }
+
+                    var nested = Path.Combine(directory.FullName, "MIMLESvtt", "docs", "03-persistence");
+                    if (Directory.Exists(nested))
+                    {
+                        return nested;
+                    }
+
+                    directory = directory.Parent;
+                }
+            }
+
+            return null;
+        }
+
+        private static string BuildJoinCode(string fileName)
+        {
+            var baseName = Path.GetFileNameWithoutExtension(fileName);
+            if (string.IsNullOrWhiteSpace(baseName))
+            {
+                return string.Empty;
+            }
+
+            var withoutSnapshotSuffix = baseName.EndsWith(".vttsession", StringComparison.OrdinalIgnoreCase)
+                ? baseName[..^".vttsession".Length]
+                : baseName;
+
+            if (string.IsNullOrWhiteSpace(withoutSnapshotSuffix))
+            {
+                return fileName;
+            }
+
+            return withoutSnapshotSuffix.ToUpperInvariant();
+        }
+
         public void CreateNewSession()
         {
+            if (!State.CanCreateSession)
+            {
+                RecordFailureOperation(
+                    WorkspaceOperationKind.CreateNewSession,
+                    filePath: null,
+                    snapshotFormat: SnapshotFormatKind.VttSessionSnapshot,
+                    message: "Only admins can create new sessions from Game Selector.");
+
+                throw new InvalidOperationException("Only admins can create new sessions from Game Selector.");
+            }
+
             ExecuteWorkspaceOperation(
                 WorkspaceOperationKind.CreateNewSession,
                 filePath: null,
@@ -142,6 +424,7 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
                     var fullPath = Path.GetFullPath(path);
                     _snapshotFileLibraryService.AddPath(fullPath);
                     _snapshotFileLibraryService.RefreshEntry(fullPath);
+                    PersistKnownGameSessionRegistry();
                 });
         }
 
@@ -618,6 +901,8 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
 
                     _snapshotFileLibraryService.AddPath(fullPath);
                     _snapshotFileLibraryService.RefreshEntry(fullPath);
+                    EnsurePersistedJoinCodeForSessionPath(fullPath);
+                    PersistKnownGameSessionRegistry();
                 });
         }
 
@@ -645,6 +930,8 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
 
                     _snapshotFileLibraryService.AddPath(State.CurrentFilePath);
                     _snapshotFileLibraryService.RefreshEntry(State.CurrentFilePath);
+                    EnsurePersistedJoinCodeForSessionPath(State.CurrentFilePath);
+                    PersistKnownGameSessionRegistry();
                 });
         }
 
@@ -671,6 +958,8 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
 
                     _snapshotFileLibraryService.AddPath(fullPath);
                     _snapshotFileLibraryService.RefreshEntry(fullPath);
+                    EnsurePersistedJoinCodeForSessionPath(fullPath);
+                    PersistKnownGameSessionRegistry();
                 });
         }
 
@@ -837,6 +1126,8 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
 
                             _snapshotFileLibraryService.AddPath(fullSessionPath);
                             _snapshotFileLibraryService.RefreshEntry(fullSessionPath);
+                            EnsurePersistedJoinCodeForSessionPath(fullSessionPath);
+                            PersistKnownGameSessionRegistry();
                         }
 
                         if (!string.IsNullOrWhiteSpace(recoveryState.PendingVttScenarioSourcePath))

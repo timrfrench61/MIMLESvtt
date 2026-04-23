@@ -25,6 +25,8 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
 
         public WorkspaceMode Mode { get; internal set; } = WorkspaceMode.Edit;
 
+        public bool CanCreateSession { get; internal set; }
+
         public WorkspaceSettings Settings { get; } = new();
 
         public List<WorkspaceOperationEntry> OperationHistory { get; } = [];

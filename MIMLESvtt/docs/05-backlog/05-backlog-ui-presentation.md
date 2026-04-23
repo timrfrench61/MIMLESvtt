@@ -30,7 +30,7 @@ The UI must prioritize practical use at the table over decorative complexity.
 **Title:** Define application shell layout  
 **Master ID:** MB-043  
 **Priority:** High  
-**Status:** Pending  
+**Status:** In Progress  
 
 **Description:**  
 Define the primary app shell with left navigation, top bar, main workspace, and optional side panels.
@@ -48,7 +48,7 @@ Define the primary app shell with left navigation, top bar, main workspace, and 
 **Title:** Define navigation model  
 **Master ID:** MB-043  
 **Priority:** High  
-**Status:** Pending  
+**Status:** In Progress  
 
 **Description:**  
 Define how users reach table views, content libraries, import screens, sessions, and settings.
@@ -66,7 +66,7 @@ Define how users reach table views, content libraries, import screens, sessions,
 **Title:** Define board presentation rules  
 **Master ID:** MB-044  
 **Priority:** High  
-**Status:** Pending  
+**Status:** In Progress  
 
 **Description:**  
 Define how grids, boards, pieces, selection, hover, legal moves, and overlays are shown.
@@ -84,7 +84,7 @@ Define how grids, boards, pieces, selection, hover, legal moves, and overlays ar
 **Title:** Define piece visual states  
 **Master ID:** MB-044  
 **Priority:** High  
-**Status:** Pending  
+**Status:** In Progress  
 
 **Description:**  
 Document how pieces visually represent side, status, selection, disabled state, and promotion/elite/leader style markers where applicable.
@@ -102,7 +102,7 @@ Document how pieces visually represent side, status, selection, disabled state, 
 **Title:** Define checkers reference UI flow  
 **Master ID:** MB-012, MB-013  
 **Priority:** High  
-**Status:** Pending  
+**Status:** In Progress  
 
 **Description:**  
 Define the simple interaction flow for the reference game.
@@ -320,6 +320,8 @@ Implement session list rendering and selection behavior for opening existing ses
 - Selecting a session enables Open action.
 - Open action loads selected session and routes to Workspace.
 - Empty/error/loading list states are shown clearly.
+- Known session list supports add/remove and refresh operations.
+- List supports filter/search/sort behaviors for practical session lookup.
 
 ---
 
@@ -338,6 +340,7 @@ Implement join flow using join code or existing hosted-game selector from the Ga
 - Join input is available in dialog.
 - Join action validates input and reports user-visible errors.
 - Successful join routes user into Workspace.
+- Join flow supports friendly join-code matching (not only full file path input).
 
 ---
 
@@ -356,6 +359,7 @@ Add permission-gated new-session creation from the Game Selector dialog so only 
 - Start New Session action is visible/enabled only for admin users.
 - Non-admin invocation attempts return explicit access-denied feedback.
 - Admin path creates a new session and routes to Workspace.
+- Admin flow supports create+save session from selector so saved game appears in My Games list.
 
 ---
 

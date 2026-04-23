@@ -1,0 +1,27 @@
+@page "/login"
+
+<PageTitle>Login</PageTitle>
+
+<h1>Sign in</h1>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="alert alert-success">You are already signed in.</div>
+        <a class="btn btn-outline-primary" href="/">Go to Home</a>
+    </Authorized>
+    <NotAuthorized>
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        <form method="post" action="/auth/login" class="d-flex flex-column gap-2" style="max-width: 360px;">
+            <input class="form-control" type="text" name="userName" value="@userName" placeholder="Username" autocomplete="username" />
+            <input class="form-control" type="password" name="password" placeholder="Password" autocomplete="current-password" />
+            <input type="hidden" name="returnUrl" value="@resolvedReturnUrl" />
+            <button class="btn btn-primary" type="submit">Sign in</button>
+        </form>
+
+        <small class="text-muted mt-2 d-block">Default admin: <strong>admin</strong> / <strong>admin123</strong></small>
+    </NotAuthorized>
+</AuthorizeView>

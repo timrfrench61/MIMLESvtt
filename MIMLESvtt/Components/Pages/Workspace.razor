@@ -1,4 +1,5 @@
 @page "/workspace"
+@attribute [Authorize]
 @using MIMLESvtt.src
 @using MIMLESvtt.src.Domain.Models.Surfaces
 @using MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
@@ -37,7 +38,10 @@
 <aside class="workspace-slide-panel @(isWorkspacePanelOpen ? "open" : string.Empty)">
     <div class="workspace-slide-panel-header">
         <strong>Workspace Controls</strong>
-        <button class="btn btn-sm btn-outline-secondary" @onclick="CloseWorkspacePanel">Close</button>
+        <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-outline-primary" href="/">Back to Selector</a>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="CloseWorkspacePanel">Close</button>
+        </div>
     </div>
     <div class="workspace-slide-panel-body">
 
@@ -76,6 +80,29 @@
     <div class="alert @GetLastOperationAlertClass()">@WorkspaceService.State.LastOperationMessage</div>
 }
 
+@if (WorkspaceService.State.CurrentVttSession is not null)
+{
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.SessionSummary ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.SessionSummary">Session Summary</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.SessionEntryEdit ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.SessionEntryEdit">Session Entry/Edit</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.Surfaces ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.Surfaces">Surfaces</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.PiecesEntryEdit ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.PiecesEntryEdit">Pieces Entry/Edit</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.MarkerEntryEdit ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.MarkerEntryEdit">Marker Entry/Edit</button>
+        </li>
+    </ul>
+}
+
+@if (activeWorkspacePanelTab == WorkspacePanelTab.SessionSummary)
+{
 <WorkspaceSessionSettingsPanel
     CurrentVttSession="WorkspaceService.State.CurrentVttSession"
     WorkspaceState="WorkspaceService.State"
@@ -223,7 +250,10 @@
         }
     </div>
 }
+}
 
+@if (activeWorkspacePanelTab == WorkspacePanelTab.SessionEntryEdit)
+{
 @if (WorkspaceService.State.CurrentVttSession is not null)
 {
     <h3>Setup</h3>
@@ -284,7 +314,13 @@
             <button class="btn btn-outline-secondary" @onclick="AddPiece">Add Piece</button>
         </div>
     </div>
+}
+}
 
+@if (activeWorkspacePanelTab == WorkspacePanelTab.Surfaces)
+{
+@if (WorkspaceService.State.CurrentVttSession is not null)
+{
     <h3>Surfaces</h3>
     @if (WorkspaceService.State.CurrentVttSession.Surfaces.Count == 0)
     {
@@ -867,7 +903,13 @@
             </div>
         }
     }
+}
+}
 
+@if (activeWorkspacePanelTab == WorkspacePanelTab.PiecesEntryEdit)
+{
+@if (WorkspaceService.State.CurrentVttSession is not null)
+{
     <h3>Pieces</h3>
 
     @if (WorkspaceService.State.CurrentVttSession.Pieces.Count == 0)
@@ -943,26 +985,6 @@
             </div>
         </div>
 
-        <h4>Add Marker</h4>
-        <div class="row g-2 mb-3">
-            <div class="col">
-                <InputText @bind-Value="markerId" class="form-control" placeholder="Marker Id" />
-            </div>
-            <div class="col-auto">
-                <button class="btn btn-outline-primary" @onclick="AddMarker">Add Marker</button>
-            </div>
-        </div>
-
-        <h4>Remove Marker</h4>
-        <div class="row g-2 mb-3">
-            <div class="col">
-                <InputText @bind-Value="markerId" class="form-control" placeholder="Marker Id" />
-            </div>
-            <div class="col-auto">
-                <button class="btn btn-outline-primary" @onclick="RemoveMarker">Remove Marker</button>
-            </div>
-        </div>
-
         <h4>Change Piece State</h4>
         <div class="row g-2 mb-3">
             <div class="col">
@@ -976,6 +998,46 @@
             </div>
         </div>
     }
+}
+}
+
+@if (activeWorkspacePanelTab == WorkspacePanelTab.MarkerEntryEdit)
+{
+@if (WorkspaceService.State.CurrentVttSession is not null)
+{
+    <h3>Marker Entry/Edit</h3>
+
+    <div class="mb-3">
+        <label class="form-label">Select piece</label>
+        <select class="form-select" @bind="selectedPieceId" @bind:after="OnSelectedPieceChangedFromList">
+            <option value="">(select piece)</option>
+            @foreach (var piece in WorkspaceService.State.CurrentVttSession.Pieces)
+            {
+                <option value="@piece.Id">@piece.Id (@piece.DefinitionId)</option>
+            }
+        </select>
+    </div>
+
+    <h4>Add Marker</h4>
+    <div class="row g-2 mb-3">
+        <div class="col">
+            <InputText @bind-Value="markerId" class="form-control" placeholder="Marker Id" />
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-primary" @onclick="AddMarker">Add Marker</button>
+        </div>
+    </div>
+
+    <h4>Remove Marker</h4>
+    <div class="row g-2 mb-3">
+        <div class="col">
+            <InputText @bind-Value="markerId" class="form-control" placeholder="Marker Id" />
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-primary" @onclick="RemoveMarker">Remove Marker</button>
+        </div>
+    </div>
+}
 }
 
     </div>

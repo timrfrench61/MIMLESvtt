@@ -1,7 +1,118 @@
 ﻿@page "/"
+@attribute [Authorize]
+@using MIMLESvtt.src.Domain.Persistence.Snapshot
+@using MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Launch</h1>
 
-Welcome to your new app.
+<button class="btn btn-primary mb-3" @onclick="OpenGameSelector">Open Game Selector</button>
+
+@if (isGameSelectorOpen)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="mb-0">Game Selection</h3>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="CloseGameSelector">Close</button>
+            </div>
+
+            <div class="mb-4">
+                <h5>My Games (Subscribed / Saved Sessions)</h5>
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                    <span class="text-muted">Registry: <strong>@(knownSessionRegistryLoadedFromDisk ? "Loaded from disk" : "Not found yet")</strong></span>
+                    <code>@knownSessionRegistryPath</code>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="SaveKnownSessionRegistryNow">Save Registry Now</button>
+                </div>
+                <div class="d-flex gap-2 align-items-center mb-2">
+                    <InputText @bind-Value="newKnownSessionPath" class="form-control" style="max-width: 460px;" placeholder="Add known session path (.vttsession.json)" />
+                    <button class="btn btn-outline-secondary" @onclick="AddKnownSessionPath">Add</button>
+                    <button class="btn btn-outline-danger" @onclick="RemoveSelectedSession" disabled="@string.IsNullOrWhiteSpace(selectedSessionPath)">Remove Selected</button>
+                </div>
+                <div class="d-flex gap-2 align-items-center mb-2">
+                    <InputText @bind-Value="sessionSearchQuery" class="form-control" style="max-width: 320px;" placeholder="Filter sessions by file/path" />
+                    <InputSelect @bind-Value="savedSessionSort" class="form-select" style="max-width: 260px;">
+                        <option value="@SavedSessionSort.LastUpdatedDesc">Sort: Last updated (newest)</option>
+                        <option value="@SavedSessionSort.LastUpdatedAsc">Sort: Last updated (oldest)</option>
+                        <option value="@SavedSessionSort.FileNameAsc">Sort: File name (A-Z)</option>
+                        <option value="@SavedSessionSort.FileNameDesc">Sort: File name (Z-A)</option>
+                    </InputSelect>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(savedSessionStatusMessage))
+                {
+                    <div class="alert alert-info py-2">@savedSessionStatusMessage</div>
+                }
+                @if (GetVisibleSavedSessions().Count == 0)
+                {
+                    <div class="text-muted">No saved sessions are currently known.</div>
+                }
+                else
+                {
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Join Code</th>
+                                <th>Session File</th>
+                                <th>Last Updated (UTC)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var entry in GetVisibleSavedSessions())
+                            {
+                                var selected = string.Equals(selectedSessionPath, entry.FilePath, StringComparison.OrdinalIgnoreCase);
+                                <tr class="@(selected ? "table-primary" : string.Empty)" @onclick="() => SelectSession(entry.FilePath)">
+                                    <td><code>@entry.JoinCode</code></td>
+                                    <td>@entry.FileName</td>
+                                    <td>@(entry.LastWriteTimeUtc?.ToString("u") ?? "(unknown)")</td>
+                                    <td>@(entry.Exists ? "Available" : "Missing")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div class="d-flex gap-2 align-items-center">
+                        <button class="btn btn-outline-primary" @onclick="OpenSelectedSession" disabled="@string.IsNullOrWhiteSpace(selectedSessionPath)">Open Selected Session</button>
+                        <button class="btn btn-outline-secondary" @onclick="RefreshKnownSessions">Refresh</button>
+                    </div>
+                }
+            </div>
+
+            <div class="mb-4">
+                <h5>Join Existing Game</h5>
+                <div class="d-flex gap-2 align-items-center mb-2">
+                    <InputText @bind-Value="joinCode" class="form-control" style="max-width: 260px;" placeholder="Join code" />
+                    <button class="btn btn-outline-secondary" @onclick="JoinExistingGame">Join</button>
+                    <button class="btn btn-outline-secondary" @onclick="UseSelectedSessionAsJoinCode" disabled="@string.IsNullOrWhiteSpace(selectedSessionPath)">Use Selected Session</button>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(joinStatusMessage))
+                {
+                    <div class="alert alert-warning py-2">@joinStatusMessage</div>
+                }
+            </div>
+
+            <div>
+                <h5>Start New Session</h5>
+                <div class="mb-2">
+                    <span class="text-muted">Signed in as <strong>@currentUserName</strong> (@(isCurrentUserAdmin ? "Admin" : "Player"))</span>
+                </div>
+                <div class="d-flex gap-2 align-items-center mb-2">
+                    <InputText @bind-Value="newSessionTitle" class="form-control" style="max-width: 240px;" placeholder="New session title" />
+                    <InputText @bind-Value="newSessionSavePath" class="form-control" style="max-width: 460px;" placeholder="Optional save path (.vttsession.json)" />
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <button class="btn btn-success" @onclick="StartNewSession" disabled="@(!WorkspaceService.State.CanCreateSession)">Start New Session</button>
+                    <button class="btn btn-outline-success" @onclick="CreateAndSaveNewSession" disabled="@(!WorkspaceService.State.CanCreateSession)">Create + Save Session</button>
+                    @if (!WorkspaceService.State.CanCreateSession)
+                    {
+                        <span class="text-muted">Admin rights required.</span>
+                    }
+                </div>
+                @if (!string.IsNullOrWhiteSpace(newSessionStatusMessage))
+                {
+                    <div class="alert alert-info py-2 mt-2">@newSessionStatusMessage</div>
+                }
+            </div>
+        </div>
+    </div>
+}

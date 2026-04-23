@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using MIMLESvtt.src;
 using MIMLESvtt.src.Application.Workspace;
@@ -11,6 +12,8 @@ namespace MIMLESvtt.Components.Pages;
 
 public partial class Workspace : ComponentBase
 {
+    [Inject] public AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+
     private enum TabletopSurfaceState
     {
         DefaultXyGrid,
@@ -18,9 +21,19 @@ public partial class Workspace : ComponentBase
         PageNotLoading
     }
 
+    private enum WorkspacePanelTab
+    {
+        SessionSummary,
+        SessionEntryEdit,
+        Surfaces,
+        PiecesEntryEdit,
+        MarkerEntryEdit
+    }
+
     private readonly WorkspaceBoardState board = new();
     private bool isWorkspacePanelOpen = true;
     private TabletopSurfaceState tabletopSurfaceState = TabletopSurfaceState.DefaultXyGrid;
+    private WorkspacePanelTab activeWorkspacePanelTab = WorkspacePanelTab.SessionSummary;
 
     private string? sessionPath;
     private string? scenarioPath;
@@ -99,12 +112,24 @@ public partial class Workspace : ComponentBase
     private string boardVisibilityDefinitionFilter = string.Empty;
     private string boardVisibilityOwnerFilter = string.Empty;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await ApplyAuthorizationStateAsync();
+
         if (WorkspaceService.State.CurrentVttSession is null)
         {
-            WorkspaceService.CreateNewSession();
-            sessionCounter = 1;
+            if (WorkspaceService.State.CanCreateSession)
+            {
+                WorkspaceService.CreateNewSession();
+                sessionCounter = 1;
+            }
+            else
+            {
+                WorkspaceService.State.LastOperationMessage = "Join an existing game from Home to begin.";
+                WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
+                sessionCounter = 0;
+                return;
+            }
         }
         else
         {
@@ -123,6 +148,12 @@ public partial class Workspace : ComponentBase
         previousActiveSurfaceId = board.ActiveSurfaceId;
         phaseInput = WorkspaceService.State.CurrentVttSession.CurrentPhase;
         sessionTitleInput = WorkspaceService.State.CurrentVttSession.Title;
+    }
+
+    private async Task ApplyAuthorizationStateAsync()
+    {
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        WorkspaceService.SetCanCreateSession(authenticationState.User.IsInRole("Admin"));
     }
 
     private void AddSurface()

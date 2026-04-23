@@ -1,0 +1,72 @@
+{
+  "Version": 1,
+  "VttSession": {
+    "Id": "session-sample-001",
+    "Title": "Sample Tabletop Session",
+    "Participants": [
+      {
+        "Id": "gm",
+        "Name": "GM",
+        "Role": "GM"
+      },
+      {
+        "Id": "player-1",
+        "Name": "Player 1",
+        "Role": "Player"
+      }
+    ],
+    "Surfaces": [
+      {
+        "Id": "surface-1",
+        "DefinitionId": "def-surface-1",
+        "Type": "Map",
+        "CoordinateSystem": "Square",
+        "Transform": {
+          "OffsetX": 0,
+          "OffsetY": 0,
+          "Scale": 1
+        },
+        "Layers": [],
+        "Zones": []
+      }
+    ],
+    "Pieces": [
+      {
+        "Id": "piece-1",
+        "DefinitionId": "def-piece-1",
+        "OwnerParticipantId": "player-1",
+        "Location": {
+          "SurfaceId": "surface-1",
+          "Coordinate": {
+            "X": 100,
+            "Y": 120
+          },
+          "ZoneId": "",
+          "LayerId": ""
+        },
+        "Rotation": {
+          "Degrees": 0
+        },
+        "MarkerIds": [],
+        "State": {}
+      }
+    ],
+    "TurnOrder": [
+      "player-1"
+    ],
+    "CurrentTurnIndex": 0,
+    "TurnNumber": 1,
+    "CurrentPhase": "Setup",
+    "Options": {
+      "EnableFog": false,
+      "EnableTurnTracker": true,
+      "Options": {}
+    },
+    "Visibility": {
+      "IsHidden": false,
+      "VisibleToParticipantIds": []
+    },
+    "ActionLog": [],
+    "ModuleState": {}
+  }
+}

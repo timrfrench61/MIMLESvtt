@@ -230,6 +230,7 @@ Each item should be small enough to implement independently.
 - [~] build gameplay mode controls (Edit/Play toggle and indicator wired; policy depth pending)
 - [ ] build module UI hooks
 - [~] build session management UI (create/open/save/save-as/import/activate flows wired; production UX polish pending)
+- [~] build launch game-selector UI (saved/subscribed sessions list, join flow baseline, admin-gated create + create/save path wired; hosted-session join + UX polish pending)
 
 ---
 

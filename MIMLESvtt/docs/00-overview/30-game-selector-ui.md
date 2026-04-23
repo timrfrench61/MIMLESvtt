@@ -32,6 +32,7 @@ Show sessions the user can open directly.
 
 ### Data shown per row
 
+- join code
 - session title
 - game/system label (if available)
 - last updated timestamp
@@ -41,7 +42,8 @@ Show sessions the user can open directly.
 ### Actions
 
 - **Open** selected session
-- optional filter/search/sort
+- filter/search/sort for known sessions
+- add/remove known session paths for subscription-like session list management
 
 ### Behavior
 
@@ -71,6 +73,21 @@ Allow user to join a running/hosted session they are not opening from local save
 - if valid: connect and route to Workspace
 - if invalid: show user-visible error
 
+Current single-user implementation note:
+
+- join code resolves to known local session entries from My Games.
+- if no known-session match is found, launcher also checks docs sample snapshots (`docs/03-persistence/*.vttsession.json`).
+
+### Friendly join code (current)
+
+- Join code is derived from the session file name.
+- Example:
+  - `sample-session.vttsession.json` -> `SAMPLE-SESSION`
+- The Join action accepts:
+  - friendly join code (preferred)
+  - session file name
+  - full session path (fallback)
+
 ---
 
 ## 3) Start New Session (Admin-only)
@@ -87,6 +104,8 @@ Create a new session from launch flow.
 
 - if admin:
   - create new `VttSession`
+  - optional title assignment
+  - optional create+save in one step (when save path provided)
   - optional scenario/setup selection
   - route to Workspace
 - if not admin:

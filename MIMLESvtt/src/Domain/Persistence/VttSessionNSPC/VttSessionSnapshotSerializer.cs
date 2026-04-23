@@ -1,6 +1,7 @@
 using MIMLESvtt.src.Domain.Models;
 using MIMLESvtt.src.Domain.Persistence.Models;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
 {
@@ -8,7 +9,14 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
     {
         public const int CurrentVersion = 1;
 
-        private static readonly JsonSerializerOptions SerializerOptions = new();
+        private static readonly JsonSerializerOptions SerializerOptions = new()
+        {
+            Converters =
+            {
+                new ParticipantRoleJsonConverter(),
+                new JsonStringEnumConverter()
+            }
+        };
 
         public string Save(VttSession vttSession)
         {
@@ -64,6 +72,76 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
             if (snapshot.VttSession is null)
             {
                 throw new InvalidOperationException("VttSession is required in the snapshot.");
+            }
+        }
+
+        private sealed class ParticipantRoleJsonConverter : JsonConverter<ParticipantRole>
+        {
+            public override ParticipantRole Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                if (reader.TokenType == JsonTokenType.String)
+                {
+                    var raw = reader.GetString()?.Trim();
+                    if (TryParseParticipantRole(raw, out var parsed))
+                    {
+                        return parsed;
+                    }
+
+                    throw new JsonException($"Invalid ParticipantRole value '{raw}'.");
+                }
+
+                if (reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var roleValue))
+                {
+                    if (Enum.IsDefined(typeof(ParticipantRole), roleValue))
+                    {
+                        return (ParticipantRole)roleValue;
+                    }
+
+                    throw new JsonException($"Invalid numeric ParticipantRole value '{roleValue}'.");
+                }
+
+                throw new JsonException("ParticipantRole must be a string or integer value.");
+            }
+
+            private static bool TryParseParticipantRole(string? raw, out ParticipantRole role)
+            {
+                role = default;
+
+                if (string.IsNullOrWhiteSpace(raw))
+                {
+                    return false;
+                }
+
+                if (Enum.TryParse<ParticipantRole>(raw, ignoreCase: true, out role))
+                {
+                    return true;
+                }
+
+                var normalized = raw
+                    .Replace(" ", string.Empty, StringComparison.Ordinal)
+                    .Replace("-", string.Empty, StringComparison.Ordinal)
+                    .Replace("_", string.Empty, StringComparison.Ordinal);
+
+                if (normalized.Equals("DM", StringComparison.OrdinalIgnoreCase)
+                    || normalized.Equals("DungeonMaster", StringComparison.OrdinalIgnoreCase)
+                    || normalized.Equals("GameMaster", StringComparison.OrdinalIgnoreCase))
+                {
+                    role = ParticipantRole.GM;
+                    return true;
+                }
+
+                if (normalized.Equals("Spectator", StringComparison.OrdinalIgnoreCase))
+                {
+                    role = ParticipantRole.Observer;
+                    return true;
+                }
+
+                return false;
+            }
+
+            public override void Write(Utf8JsonWriter writer, ParticipantRole value, JsonSerializerOptions options)
+            {
+                writer.WriteStringValue(value.ToString());
             }
         }
     }
