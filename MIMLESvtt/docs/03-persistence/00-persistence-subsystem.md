@@ -1,271 +1,145 @@
-# Persistence Subsystem (Implementation Guide)
+# Persistence Subsystem
 
 ## Purpose
 
-This document explains the current persistence subsystem implementation and how session/scenario import/apply flows are structured in code.
+This document describes save/load for the four persisted records:
 
-It complements:
-- `01-session-state-persistence.md` (domain persistence concepts)
+- Session
+- Scenario
+- Gamebox
+- Action Log
 
-This document now includes both:
-
-- persistence policy/contracts (what and why)
-- persistence subsystem implementation map (how and where in code)
+It focuses on what each record stores and which services save/load it.
 
 ---
 
-## Policy and Contracts
+## Shared Rules
 
-## Core Principles
+- All records are JSON snapshots.
+- All snapshots include `Version`.
+- File extension must match snapshot type.
+- Invalid input is rejected (no partial apply).
 
-### Separation of Runtime State and Definitions
+Extension constants:
+- `src/Domain/Persistence/SnapshotFileExtensions.cs`
 
-The system distinguishes between:
+Primary save/load facade:
+- `src/Domain/Persistence/SnapshotFileWorkflowService.cs`
 
-- runtime state (`VttSession`)
-- reusable definitions (content)
+---
 
-Runtime state represents current live or saved session state.
+## 1) Session Save/Load
 
-Reusable definitions represent authored data such as:
+File type:
+- `.vttsession.json`
 
-- piece definitions
-- surface definitions
-- marker definitions
-- item definitions
-- creature definitions
-- scenario definitions
+Snapshot root:
+- `VttSession` (`{ Version, VttSession }`)
 
-Runtime state references definitions by identifiers (for example `DefinitionId`).
-
-### Domain-Only Persistence
-
-Persist domain-relevant state, not UI transients.
-
-Persisted data includes:
-
-- session identity and metadata
-- surfaces and pieces
-- placement/coordinates
-- ownership/visibility
+Main components persisted:
+- session id/title
+- participants
+- surfaces
+- pieces
+- turn/phase state
+- tabletop options
+- visibility state
+- action log
 - module state
-- action history
 
-Excluded data includes:
-
-- UI-only state
-- temporary interaction state
-- client-only rendering state
-
-### Versioning
-
-All persisted structures must include a `Version` field.
-
-### Validation Before Acceptance
-
-All imports must validate:
-
-- structure
-- references
-- domain invariants
-
-Invalid import input is rejected as a whole (no partial apply).
+Code:
+- `TableSessionSnapshot`
+- `TableSessionSnapshotSerializer`
+- `TableSessionFilePersistenceService`
 
 ---
 
-## Persistence Types
+## 2) Scenario Save/Load
 
-The subsystem supports:
+File type:
+- `.vttscenario.json`
 
-- Session Save (`.vttsession.json`)
-- Scenario Snapshot (`.vttscenario.json`)
-- VTT Content Pack (`.vttcontentpack.json`)
-- Action Log Snapshot (`.actionlog.json`)
+Snapshot root:
+- `Scenario` (`{ Version, Scenario }`)
 
-Conceptual shapes:
+Main components persisted:
+- scenario title
+- scenario surfaces
+- scenario pieces
+- scenario tabletop options
 
-```json
-{ "Version": 1, "VttSession": {} }
-```
+Code:
+- model: `src/Domain/Models/VttScenario.cs`
+- `ScenarioSnapshot`
+- `ScenarioSnapshotSerializer`
+- `ScenarioFilePersistenceService`
 
-```json
-{ "Version": 1, "Scenario": {} }
-```
-
-```json
-{ "Version": 1, "Manifest": {}, "Definitions": [], "Assets": [] }
-```
-
-```json
-{ "Version": 1, "SessionId": "id", "Actions": [] }
-```
+Notes:
+- Scenario is a prepared starting layout.
+- It is separate from live session progress.
 
 ---
 
-## Import and Export Rules
+## 3) Gamebox Save/Load
 
-### Import Rules
+File type:
+- `.vttgamebox.json`
 
-Validate:
+Snapshot root:
+- `VttGameboxSnapshot` (`{ Version, Manifest, Definitions, Assets }`)
 
-- required root shape + version
-- reference integrity (`DefinitionId`, `SurfaceId`, `ParticipantId`, etc.)
-- invariant integrity (no duplicate ids, coherent placement/visibility links)
+Main components persisted:
+- manifest metadata
+- reusable definitions
+- asset references
 
-On failure:
-
-- reject import
-- do not mutate runtime session
-
-### Export Rules
-
-- export domain state only
-- keep references valid
-- always include `Version`
-- keep output predictable where practical (debugging/diffing/testing)
+Code:
+- app model: `src/Domain/Models/VttGamebox.cs`
+- envelope: `VttGameboxSnapshot`
+- `VttGameboxSnapshotSerializer`
+- `VttGameboxFilePersistenceService`
+- mapper: `VttGameboxMapper` (`VttGamebox` <-> `VttGameboxSnapshot`)
 
 ---
 
-## Storage Strategy
+## 4) Action Log Save/Load
 
-- structured metadata: database-ready model (future-friendly)
-- runtime/session snapshots: JSON
-- assets: file/blob storage references
+File type:
+- `.actionlog.json`
 
----
+Snapshot root:
+- `ActionLogSnapshot` (`{ Version, SessionId, Actions }`)
 
-## Snapshot Types
+Main components persisted:
+- session id
+- ordered action records
 
-The subsystem currently supports four persisted snapshot families:
-
-- Table Session (`.vttsession.json`)
-- Scenario (`.vttscenario.json`)
-- VTT Content Pack (`.vttcontentpack.json`)
-- Action Log (`.actionlog.json`)
-
-Extension constants are defined in:
-- `src/Domain/Persistence/Snapshot/SnapshotFileExtensions.cs`
-
----
-
-## Scenario Model (Current)
-
-Scenario persistence now uses a unified **Scenario** model:
-
-- `src/Domain/Models/VttScenario.cs`
-- `src/Domain/Persistence/Scenario/ScenarioSnapshot.cs`
-- `src/Domain/Persistence/Scenario/ScenarioSnapshotSerializer.cs`
-
-Snapshot shape remains:
-
-```json
-{
-  "Version": 1,
-  "Scenario": { }
-}
-```
-
-This is intentionally separate from live `VttSession` runtime state.
-
----
-
-## Core Services by Responsibility
-
-## File persistence services (single format)
-
-- `VttSessionFilePersistenceService`
-- `VttScenarioFilePersistenceService`
-- `VttContentPackFilePersistenceService`
+Code:
+- `ActionLogSnapshot`
+- `ActionLogSnapshotSerializer`
 - `ActionLogFilePersistenceService`
 
-Responsibility:
-- read/write one snapshot type to disk
-- serialize/deserialize and throw clear errors
+---
 
-## Snapshot workflow facade (extension-guarded)
+## Import/Application (Current)
 
-- `SnapshotFileWorkflowService`
-
-Responsibility:
-- save/load by snapshot family
-- enforce file extension guardrails per format
-
-## Import/dispatch/application pipeline
-
+Import format detection and apply orchestration:
 - `SnapshotImportService`
-- `SnapshotImportApplicationService`
-- `SnapshotImportIntentService`
-- `SnapshotImportApplyExecutor`
-- `SnapshotImportApplyWorkflowService`
 - `SnapshotFileImportApplyWorkflowService`
 
-Responsibility:
-- import raw snapshot
-- map to application outcome
-- produce explicit apply intent
-- execute allowed operations against runtime context
-- return structured success/error response
-
-## Scenario-specific activation pipeline
-
-- `VttScenarioActivationWorkflowService`
-- `VttScenarioPlanApplyService`
-- `VttScenarioCandidateActivationService`
-- `VttScenarioPendingApplicationPlan`
-
-Responsibility:
-- convert imported scenario into pending plan
-- build isolated table-session candidate
-- activate candidate (dry-run or live activation modes)
-
-## Workspace orchestration
-
-- `SessionWorkspaceService`
-
-Responsibility:
-- user-facing create/open/save/import/activate operations
-- operation history + feedback + dirty state updates
+Current apply behavior:
+- Session: supported for runtime replace
+- Scenario: supported through pending-plan/activation flow
+- Gamebox: import recognized; runtime apply not enabled in this pass
+- Action Log: import recognized; runtime apply not enabled in this pass
 
 ---
 
-## Why there are multiple Scenario* classes
+## Workspace State (Related)
 
-The Scenario pipeline separates concerns deliberately:
+Workspace recovery save/load is separate from the four snapshot families:
 
-- snapshot payload model (`Scenario`, `ScenarioSnapshot`)
-- serializer/persistence I/O (`ScenarioSnapshotSerializer`, `ScenarioFilePersistenceService`)
-- import/apply orchestration (`ScenarioActivationWorkflowService` + apply services)
-- pending activation state (`PendingScenarioApplicationPlan`)
+- `SessionWorkspaceRecoveryState`
+- `SessionWorkspaceStatePersistenceService`
 
-This avoids overloading one class with all responsibilities and preserves explicit phase boundaries.
-
----
-
-## Runtime Relationship: Scenario vs Session
-
-- **Scenario**: prepared starting layout/template
-- **VttSession**: live runtime game state
-
-Activation flow:
-1. import `.scenario.json`
-2. build `PendingScenarioApplicationPlan`
-3. create isolated `VttSession` candidate
-4. activate candidate into current workspace context
-
----
-
-## Current Constraints
-
-- Single-user architecture remains authoritative.
-- No multiplayer/network persistence semantics in this pass.
-- Serializer contracts remain conservative and versioned.
-
----
-
-## Maintenance Rule of Thumb
-
-When changing persistence behavior:
-1. preserve snapshot contract shape unless versioning is planned
-2. keep import/apply pipeline phase boundaries explicit
-3. update this doc and related persistence docs in `03-persistence/`
-4. add/adjust tests for serializer + workflow + workspace behavior
+This stores workspace context (current file references, pending scenario references, operation history), not the core four content/session snapshot records above.

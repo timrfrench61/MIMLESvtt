@@ -31,13 +31,13 @@ Implemented persisted object families:
 - Root shape: `{ Version, Scenario }`
 - Types: `ScenarioSnapshot`, `ScenarioSnapshotSerializer`, `ScenarioFilePersistenceService`
 
-3. **VTT content pack snapshot** (`.vttcontentpack.json`)
+3. **VTT gamebox snapshot** (`.vttgamebox.json`)
 - Root shape: `{ Version, Manifest, Definitions, Assets }`
-- Types: `VttContentPackSnapshot`, `VttContentPackSnapshotSerializer`, `VttContentPackFilePersistenceService`
+- Types: `VttGameboxSnapshot`, `VttGameboxSnapshotSerializer`, `VttGameboxFilePersistenceService`
 
 3b. **App-facing VTT content pack model**
-- Type: `VttContentPack`
-- Mapping: `VttContentPackMapper` (`VttContentPack` <-> `VttContentPackSnapshot`)
+- Type: `VttGamebox`
+- Mapping: `VttGameboxMapper` (`VttGamebox` <-> `VttGameboxSnapshot`)
 
 4. **Action log snapshot** (`.actionlog.json`)
 - Root shape: `{ Version, SessionId, Actions }`
@@ -72,9 +72,9 @@ From `SnapshotFileWorkflowService`:
 - `LoadVttSession`
 - `SaveScenario`
 - `LoadScenario`
-- `SaveVttContentPack` (snapshot + app-model overloads)
-- `LoadVttContentPack` (snapshot)
-- `LoadVttContentPackModel` (app model)
+- `SaveVttGamebox` (snapshot + app-model overloads)
+- `LoadVttGamebox` (snapshot)
+- `LoadVttGameboxModel` (app model)
 - `SaveActionLog`
 - `LoadActionLog`
 
@@ -86,8 +86,8 @@ From `SnapshotFileImportApplyWorkflowService`:
 - detect format by extension
 - import and apply:
   - VttSession path -> replace runtime session (policy-controlled)
-  - Scenario path -> scenario activation workflow (dry-run/activate)
-  - ContentPack/ActionLog path -> import-only outcome
+  - VttScenario path -> scenario activation workflow (dry-run/activate)
+  - VttGamebox/ActionLog path -> import-only outcome
 
 ## C. Workspace-facing persistence actions
 
@@ -228,13 +228,13 @@ Interpretation:
 
 Completed in code:
 
-1. Added app-facing model: `VttContentPack`.
-2. Added explicit mapper: `VttContentPackMapper`.
+1. Added app-facing model: `VttGamebox`.
+2. Added explicit mapper: `VttGameboxMapper`.
 3. Added app-facing save/load surfaces:
-   - `VttContentPackFilePersistenceService.SaveToFile(VttContentPack, path)`
-   - `VttContentPackFilePersistenceService.LoadModelFromFile(path)`
-   - `SnapshotFileWorkflowService.SaveVttContentPack(VttContentPack, path)`
-   - `SnapshotFileWorkflowService.LoadVttContentPack(path)`
+   - `VttGameboxFilePersistenceService.SaveToFile(VttGamebox, path)`
+   - `VttGameboxFilePersistenceService.LoadModelFromFile(path)`
+   - `SnapshotFileWorkflowService.SaveVttGamebox(VttGamebox, path)`
+   - `SnapshotFileWorkflowService.LoadVttGamebox(path)`
 4. Preserved snapshot APIs for compatibility.
 
 ## Refactor Progress Update (Phase 3)
@@ -242,11 +242,11 @@ Completed in code:
 Completed in code:
 
 1. Promoted app-facing content-pack workflow methods as primary API names:
-   - `SaveVttContentPack(VttContentPack, path)`
-   - `LoadVttContentPack(path)` returns `VttContentPack`
+   - `SaveVttGamebox(VttGamebox, path)`
+   - `LoadVttGamebox(path)` returns `VttGamebox`
 2. Kept explicit snapshot methods for infra-focused use:
-   - `SaveVttContentPackSnapshot(VttContentPackSnapshot, path)`
-   - `LoadVttContentPackSnapshot(path)`
+   - `SaveVttGameboxSnapshot(VttGameboxSnapshot, path)`
+   - `LoadVttGameboxSnapshot(path)`
 
 Phase 3 variance reduction result:
 - Non-persistence-facing naming is now model-first at workflow surface.

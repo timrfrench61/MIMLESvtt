@@ -175,7 +175,7 @@ Verify that imported and exported data follows the defined contract.
 
 - session save format
 - scenario export format
-- content pack format
+- gamebox format
 - action log export format
 - structural validation
 - reference validation
@@ -312,8 +312,8 @@ The project should maintain reusable test fixtures for:
 - session with multiple pieces
 - session with visibility state
 - session with module state
-- valid content pack
-- invalid content pack
+- valid gamebox
+- invalid gamebox
 - valid scenario export
 - invalid scenario export
 

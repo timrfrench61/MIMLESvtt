@@ -1,37 +1,36 @@
 using MIMLESvtt.src.Domain.Models;
-using MIMLESvtt.src.Domain.Models.VttContentPack;
+using MIMLESvtt.src.Domain.Models.VttGamebox;
 using MIMLESvtt.src.Domain.Persistence.Models;
 using MIMLESvtt.src.Domain.Persistence.Services.VttFile;
 using MIMLESvtt.src.Domain.Persistence.Snapshot;
-using MIMLESvtt.src.Domain.Persistence.VttContentPackNSPC;
-
+using MIMLESvtt.src.Domain.Persistence.VttGameboxNSPC;
 namespace MIMLESvtt.src.Domain.Persistence.Services.Import
 {
     public class SnapshotFileWorkflowService
     {
         private readonly VttSessionFilePersistenceService _vttSessionFilePersistenceService;
         private readonly VttScenarioFilePersistenceService _scenarioFilePersistenceService;
-        private readonly VttContentPackFilePersistenceService _vttContentPackFilePersistenceService;
+        private readonly VttGameboxFilePersistenceService _vttGameboxFilePersistenceService;
         private readonly ActionLogFilePersistenceService _actionLogFilePersistenceService;
 
         public SnapshotFileWorkflowService()
             : this(
                 new VttSessionFilePersistenceService(),
                 new VttScenarioFilePersistenceService(),
-                new VttContentPackFilePersistenceService(),
+                new VttGameboxFilePersistenceService(),
                 new ActionLogFilePersistenceService())
         {
         }
 
         public SnapshotFileWorkflowService(
             VttSessionFilePersistenceService vttSessionFilePersistenceService,
-            VttScenarioFilePersistenceService scenarioFilePersistenceService,
-            VttContentPackFilePersistenceService vttContentPackFilePersistenceService,
+            VttScenarioFilePersistenceService vttScenarioFilePersistenceService,
+            VttGameboxFilePersistenceService vttGameboxFilePersistenceService,
             ActionLogFilePersistenceService actionLogFilePersistenceService)
         {
             _vttSessionFilePersistenceService = vttSessionFilePersistenceService ?? throw new ArgumentNullException(nameof(vttSessionFilePersistenceService));
-            _scenarioFilePersistenceService = scenarioFilePersistenceService ?? throw new ArgumentNullException(nameof(scenarioFilePersistenceService));
-            _vttContentPackFilePersistenceService = vttContentPackFilePersistenceService ?? throw new ArgumentNullException(nameof(vttContentPackFilePersistenceService));
+            _scenarioFilePersistenceService = vttScenarioFilePersistenceService ?? throw new ArgumentNullException(nameof(vttScenarioFilePersistenceService));
+            _vttGameboxFilePersistenceService = vttGameboxFilePersistenceService ?? throw new ArgumentNullException(nameof(vttGameboxFilePersistenceService));
             _actionLogFilePersistenceService = actionLogFilePersistenceService ?? throw new ArgumentNullException(nameof(actionLogFilePersistenceService));
         }
 
@@ -59,28 +58,28 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
             return _scenarioFilePersistenceService.LoadFromFile(path);
         }
 
-        public void SaveVttContentPack(VttContentPack contentPack, string path)
+        public void SaveVttGamebox(VttGamebox gamebox, string path)
         {
-            ValidatePathExtension(path, SnapshotFileExtensions.VttContentPack, "VttContentPack");
-            _vttContentPackFilePersistenceService.SaveToFile(contentPack, path);
+            ValidatePathExtension(path, SnapshotFileExtensions.VttGamebox, "VttGamebox");
+            _vttGameboxFilePersistenceService.SaveToFile(gamebox, path);
         }
 
-        public void SaveVttContentPackSnapshot(VttContentPackSnapshot contentPack, string path)
+        public void SaveVttGameboxSnapshot(VttGameboxSnapshot gamebox, string path)
         {
-            ValidatePathExtension(path, SnapshotFileExtensions.VttContentPack, "VttContentPack");
-            _vttContentPackFilePersistenceService.SaveToFile(contentPack, path);
+            ValidatePathExtension(path, SnapshotFileExtensions.VttGamebox, "VttGamebox");
+            _vttGameboxFilePersistenceService.SaveToFile(gamebox, path);
         }
 
-        public VttContentPack LoadVttContentPack(string path)
+        public VttGamebox LoadVttGamebox(string path)
         {
-            ValidatePathExtension(path, SnapshotFileExtensions.VttContentPack, "VttContentPack");
-            return _vttContentPackFilePersistenceService.LoadModelFromFile(path);
+            ValidatePathExtension(path, SnapshotFileExtensions.VttGamebox, "VttGamebox");
+            return _vttGameboxFilePersistenceService.LoadModelFromFile(path);
         }
 
-        public VttContentPackSnapshot LoadVttContentPackSnapshot(string path)
+        public VttGameboxSnapshot LoadVttGameboxSnapshot(string path)
         {
-            ValidatePathExtension(path, SnapshotFileExtensions.VttContentPack, "VttContentPack");
-            return _vttContentPackFilePersistenceService.LoadFromFile(path);
+            ValidatePathExtension(path, SnapshotFileExtensions.VttGamebox, "VttGamebox");
+            return _vttGameboxFilePersistenceService.LoadFromFile(path);
         }
 
         public void SaveActionLog(ActionLogSnapshot actionLog, string path)

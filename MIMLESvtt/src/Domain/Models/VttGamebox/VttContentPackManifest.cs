@@ -1,6 +1,6 @@
-namespace MIMLESvtt.src.Domain.Models.VttContentPack
+namespace MIMLESvtt.src.Domain.Models.VttGamebox
 {
-    public class VttContentPackManifest
+    public class VttGameboxManifest
     {
         public string Name { get; set; } = string.Empty;
 

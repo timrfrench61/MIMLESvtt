@@ -120,7 +120,7 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
             {
                 SnapshotFormatKind.VttSessionSnapshot => SnapshotFileExtensions.VttSession,
                 SnapshotFormatKind.VttScenarioSnapshot => SnapshotFileExtensions.VttScenario,
-                SnapshotFormatKind.VttContentPackSnapshot => SnapshotFileExtensions.VttContentPack,
+                SnapshotFormatKind.VttGameboxSnapshot => SnapshotFileExtensions.VttGamebox,
                 SnapshotFormatKind.ActionLogSnapshot => SnapshotFileExtensions.ActionLog,
                 _ => string.Empty
             };
@@ -144,9 +144,9 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
                 return SnapshotFormatKind.VttScenarioSnapshot;
             }
 
-            if (path.EndsWith(SnapshotFileExtensions.VttContentPack, StringComparison.OrdinalIgnoreCase))
+            if (path.EndsWith(SnapshotFileExtensions.VttGamebox, StringComparison.OrdinalIgnoreCase))
             {
-                return SnapshotFormatKind.VttContentPackSnapshot;
+                return SnapshotFormatKind.VttGameboxSnapshot;
             }
 
             if (path.EndsWith(SnapshotFileExtensions.ActionLog, StringComparison.OrdinalIgnoreCase))

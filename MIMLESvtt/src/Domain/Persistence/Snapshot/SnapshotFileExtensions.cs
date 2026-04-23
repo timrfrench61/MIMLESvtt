@@ -6,7 +6,7 @@ namespace MIMLESvtt.src.Domain.Persistence.Snapshot
 
         public const string VttScenario = ".vttscenario.json";
 
-        public const string VttContentPack = ".vttcontentpack.json";
+        public const string VttGamebox = ".vttgamebox.json";
 
         public const string ActionLog = ".actionlog.json";
     }

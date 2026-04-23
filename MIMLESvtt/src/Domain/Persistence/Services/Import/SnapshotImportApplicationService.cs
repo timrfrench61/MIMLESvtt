@@ -14,11 +14,11 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
             {
                 SnapshotFormatKind.VttSessionSnapshot => ApplyVttSession(importResult.Payload),
                 SnapshotFormatKind.VttScenarioSnapshot => ApplyScenario(importResult.Payload),
-                SnapshotFormatKind.VttContentPackSnapshot => new SnapshotImportApplicationOutcome(
-                    SnapshotFormatKind.VttContentPackSnapshot,
+                SnapshotFormatKind.VttGameboxSnapshot => new SnapshotImportApplicationOutcome(
+                    SnapshotFormatKind.VttGameboxSnapshot,
                     false,
                     null,
-                    "VttContentPackSnapshot is not supported for application in this pass."),
+                    "VttGameboxSnapshot is not supported for application in this pass."),
                 SnapshotFormatKind.ActionLogSnapshot => new SnapshotImportApplicationOutcome(
                     SnapshotFormatKind.ActionLogSnapshot,
                     false,

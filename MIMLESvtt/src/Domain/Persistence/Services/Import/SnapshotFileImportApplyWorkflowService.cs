@@ -78,7 +78,7 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
                 {
                     SnapshotFormatKind.VttSessionSnapshot => RunVttSessionFlow(requestId, path, json, context, policy),
                     SnapshotFormatKind.VttScenarioSnapshot => RunScenarioFlow(requestId, path, json, context, scenarioActivationMode, policy),
-                    SnapshotFormatKind.VttContentPackSnapshot => RunImportOnlyFlow(requestId, path, json, detectedFormat.Value, context),
+                    SnapshotFormatKind.VttGameboxSnapshot => RunImportOnlyFlow(requestId, path, json, detectedFormat.Value, context),
                     SnapshotFormatKind.ActionLogSnapshot => RunImportOnlyFlow(requestId, path, json, detectedFormat.Value, context),
                     _ => CreateFailureResponse(
                         requestId,
@@ -272,9 +272,9 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
                 return SnapshotFormatKind.VttScenarioSnapshot;
             }
 
-            if (path.EndsWith(SnapshotFileExtensions.VttContentPack, StringComparison.OrdinalIgnoreCase))
+            if (path.EndsWith(SnapshotFileExtensions.VttGamebox, StringComparison.OrdinalIgnoreCase))
             {
-                return SnapshotFormatKind.VttContentPackSnapshot;
+                return SnapshotFormatKind.VttGameboxSnapshot;
             }
 
             if (path.EndsWith(SnapshotFileExtensions.ActionLog, StringComparison.OrdinalIgnoreCase))

@@ -12,7 +12,7 @@ namespace MIMLESvtt.src.Domain.Persistence.Snapshot
             {
                 SnapshotFormatKind.VttSessionSnapshot => CreateVttSessionIntent(applicationOutcome),
                 SnapshotFormatKind.VttScenarioSnapshot => CreateVttScenarioIntent(applicationOutcome),
-                SnapshotFormatKind.VttContentPackSnapshot => CreateUnsupportedIntent(applicationOutcome),
+                SnapshotFormatKind.VttGameboxSnapshot => CreateUnsupportedIntent(applicationOutcome),
                 SnapshotFormatKind.ActionLogSnapshot => CreateUnsupportedIntent(applicationOutcome),
                 _ => throw new InvalidOperationException("Unsupported snapshot format kind.")
             };

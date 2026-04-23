@@ -4,7 +4,7 @@ namespace MIMLESvtt.src.Domain.Persistence.Snapshot
     {
         VttSessionSnapshot,
         VttScenarioSnapshot,
-        VttContentPackSnapshot,
+        VttGameboxSnapshot,
         ActionLogSnapshot
     }
 }

@@ -94,7 +94,7 @@ Stabilize persistence and data exchange.
 
 - session save/load
 - scenario export/import
-- content pack import/export
+- gamebox export/import
 - validation rules implemented
 - versioning added
 

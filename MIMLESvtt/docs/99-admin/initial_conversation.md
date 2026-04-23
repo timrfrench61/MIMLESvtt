@@ -63,7 +63,7 @@ The core principle is:
 * state persistence
 * event/action log
 * multiplayer synchronization
-* import/export for scenarios and content packs
+* import/export for scenarios and gamebox
 
 ### Phase 2 practical VTT features
 
@@ -284,7 +284,7 @@ Responsible for saving and loading.
 Includes:
 
 * snapshot save/load
-* content pack import/export
+* gamebox import/export
 * session archive
 * schema versioning
 * migration support
@@ -384,7 +384,7 @@ Use cases and orchestration:
 * AddMarker
 * SaveSession
 * ImportScenario
-* ExportContentPack
+* ExportGamebox
 
 ### 3. Infrastructure
 
@@ -666,12 +666,11 @@ I would organize the backlog into epics like this.
 # 9. Import / Export Strategy
 
 The Russian-learning prompt mentioned wordlists and sentence generation.
-The VTT equivalent is **content packs and scenario/state exchange**.
+The VTT equivalent is **gamebox and scenario/state exchange**.
 
 ## Import/Export types
 
-### A. Content Pack
-
+### A. Gamebox
 Reusable assets:
 
 * maps
@@ -773,7 +772,7 @@ Examples:
 * API + persistence + serialization
 * SignalR session sync across two clients
 * save/load across versions
-* content pack import with media assets
+* gamebox import with media assets
 
 ## E. Regression Fixtures
 
@@ -856,7 +855,7 @@ For your VTT, I would lean hybrid:
 ## Likely support packages
 
 * image processing library for thumbnails and normalization
-* zip/package handling for content packs
+* zip/package handling for gameboxes
 * validation library for DTO/editor flows
 * structured logging
 * caching for asset metadata/session state

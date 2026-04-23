@@ -8,7 +8,7 @@ In code, the current names are:
 
 - `VttSession` 
 - `VttScenario`
-- `VttContentPack`
+- `VttGamebox`
 
 ---
 
@@ -65,25 +65,25 @@ Represents a prepared starting layout/template that can be imported and activate
 
 ---
 
-## 3) `VttContentPack` (Content Pack Root)
+## 3) `VttGamebox` (Content Pack Root)
 
 **Namespace:** `MIMLESvtt.src`  
-**Source:** `src/Domain/Models/VttContentPack.cs`
+**Source:** `src/Domain/Models/VttGamebox.cs`
 
 Represents a persisted content-pack envelope containing definitions and assets.
 
 ### Properties
 
 - `int Version`  -  Content pack schema version.
-- `VttContentPackManifest? Manifest`  -  High-level metadata.
-- `List<VttContentPackDefinition>? Definitions`  -  Included reusable definitions.
-- `List<VttContentPackAsset>? Assets`  -  Included asset references.
+- `VttGameboxManifest? Manifest`  -  High-level metadata.
+- `List<VttGameboxDefinition>? Definitions`  -  Included reusable definitions.
+- `List<VttGameboxAsset>? Assets`  -  Included asset references.
 
 ### Related Types
 
-- `VttContentPackManifest` (`Name`, `Description`)
-- `VttContentPackDefinition` (`Id`, `Type`)
-- `VttContentPackAsset` (`Id`, `AssetPath`)
+- `VttGameboxManifest` (`Name`, `Description`)
+- `VttGameboxDefinition` (`Id`, `Type`)
+- `VttGameboxAsset` (`Id`, `AssetPath`)
 
 ---
 
@@ -91,4 +91,4 @@ Represents a persisted content-pack envelope containing definitions and assets.
 
 - `VttSession` = live gameplay/runtime state.
 - `VttScenario` = prepared starting state template.
-- `VttContentPack` = package of reusable definitions/assets.
+- `VttGamebox` = package of reusable definitions/assets.

@@ -1,65 +1,65 @@
-using MIMLESvtt.src.Domain.Models.VttContentPack;
-using MIMLESvtt.src.Domain.Persistence.VttContentPackNSPC;
+using MIMLESvtt.src.Domain.Models.VttGamebox;
+using MIMLESvtt.src.Domain.Persistence.VttGameboxNSPC;
 using System.Text;
 
 namespace MIMLESvtt.src.Domain.Persistence.Services
 {
-    public class VttContentPackFilePersistenceService
+    public class VttGameboxFilePersistenceService
     {
-        private readonly VttContentPackSnapshotSerializer _serializer;
+        private readonly VttGameboxSnapshotSerializer _serializer;
 
-        public VttContentPackFilePersistenceService()
-            : this(new VttContentPackSnapshotSerializer())
+        public VttGameboxFilePersistenceService()
+            : this(new VttGameboxSnapshotSerializer())
         {
         }
 
-        public VttContentPackFilePersistenceService(VttContentPackSnapshotSerializer serializer)
+        public VttGameboxFilePersistenceService(VttGameboxSnapshotSerializer serializer)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
         }
 
-        public void SaveToFile(VttContentPackSnapshot contentPack, string path)
+        public void SaveToFile(VttGameboxSnapshot gamebox, string path)
         {
-            ArgumentNullException.ThrowIfNull(contentPack);
+            ArgumentNullException.ThrowIfNull(gamebox);
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-            var json = _serializer.SerializeContentPack(contentPack);
+            var json = _serializer.SerializeVttGamebox(gamebox);
             File.WriteAllText(path, json, Encoding.UTF8);
         }
 
-        public void SaveToFile(VttContentPack contentPack, string path)
+        public void SaveToFile(VttGamebox gamebox, string path)
         {
-            ArgumentNullException.ThrowIfNull(contentPack);
+            ArgumentNullException.ThrowIfNull(gamebox);
 
-            var snapshot = VttContentPackMapper.ToSnapshot(contentPack, VttContentPackSnapshotSerializer.CurrentVersion);
+            var snapshot = VttGameboxMapper.ToSnapshot(gamebox, VttGameboxSnapshotSerializer.CurrentVersion);
             SaveToFile(snapshot, path);
         }
 
-        public VttContentPackSnapshot LoadFromFile(string path)
+        public VttGameboxSnapshot LoadFromFile(string path)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
             if (!File.Exists(path))
             {
-                throw new FileNotFoundException("ContentPack snapshot file was not found.", path);
+                throw new FileNotFoundException("Gamebox snapshot file was not found.", path);
             }
 
             var json = File.ReadAllText(path, Encoding.UTF8);
 
             try
             {
-                return _serializer.DeserializeContentPack(json);
+                return _serializer.DeserializeVttGamebox(json);
             }
             catch (System.Text.Json.JsonException ex)
             {
-                throw new InvalidOperationException("ContentPack snapshot file contains malformed JSON.", ex);
+                throw new InvalidOperationException("Gamebox snapshot file contains malformed JSON.", ex);
             }
         }
 
-        public VttContentPack LoadModelFromFile(string path)
+        public VttGamebox LoadModelFromFile(string path)
         {
             var snapshot = LoadFromFile(path);
-            return VttContentPackMapper.FromSnapshot(snapshot);
+            return VttGameboxMapper.FromSnapshot(snapshot);
         }
     }
 }

@@ -1,8 +1,8 @@
-# Refactor Plan - Make VttContentPack
+# Refactor Plan - Make VttGamebox
 
 ## Purpose
 
-Define a code-first refactor plan to introduce `VttContentPack` as the core content model name and move snapshot naming fully into persistence code.
+Define a code-first refactor plan to introduce `VttGamebox` as the core content model name and move snapshot naming fully into persistence code.
 
 Given current project state, we are **not contract-locked yet**. The goal is to get clean structure now.
 
@@ -12,21 +12,21 @@ Given current project state, we are **not contract-locked yet**. The goal is to 
 
 Current naming mixes two concerns in one type surface:
 
-- content model identity (`VttContentPack` concept)
-- persistence envelope (`ContentPackSnapshot`)
+- content model identity (`VttGamebox` concept)
+- persistence envelope (`VttGameboxSnapshot`)
 
-Using `ContentPackSnapshot` outside persistence makes persistence wrappers look like core runtime/content models.
+Using `VttGameboxSnapshot` outside persistence makes persistence wrappers look like core runtime/content models.
 
 Desired direction:
-- core content model named `VttContentPack`
+- core content model named `VttGamebox`
 - snapshot wrappers strictly persistence-only
 
 ---
 
 ## Current State (Observed)
 
-- Core docs previously listed `ContentPackSnapshot` as root content class.
-- Code currently has `ContentPackManifest`, `ContentPackDefinition`, `ContentPackAsset` and snapshot serializers/services.
+- Core docs previously listed `VttGameboxSnapshot` as root content class.
+- Code currently has `VttGameboxManifest`, `VttGameboxDefinition`, `VttGameboxAsset` and snapshot serializers/services.
 - Snapshot envelope currently represented as:
   - `Version`
   - `Manifest`
@@ -38,10 +38,10 @@ Desired direction:
 ## Refactor Goal
 
 Introduce and adopt:
-- `VttContentPack` as the primary content package model used by core/application flows
+- `VttGamebox` as the primary content package model used by core/application flows
 
 Keep persistence-specific naming:
-- `ContentPackSnapshot` remains the persistence envelope type
+- `VttGameboxSnapshot` remains the persistence envelope type
 
 ---
 
@@ -49,7 +49,7 @@ Keep persistence-specific naming:
 
 ## A) Core content model (non-snapshot, app-facing)
 
-- `VttContentPack`
+- `VttGamebox`
   - `Manifest`
   - `Definitions`
   - `Assets`
@@ -61,7 +61,7 @@ Use in:
 
 ## B) Persistence envelope (snapshot, infra-facing)
 
-- `ContentPackSnapshot`
+- `VttGameboxSnapshot`
   - `Version`
   - `Manifest`
   - `Definitions`
@@ -78,18 +78,18 @@ Use in:
 
 ## Phase 1 - Add core model type
 
-1. Create `VttContentPack` class.
-2. Move app-facing usage toward `VttContentPack` (core docs, class lists, feature-facing contracts).
-3. Keep `ContentPackSnapshot` unchanged for now.
+1. Create `VttGamebox` class.
+2. Move app-facing usage toward `VttGamebox` (core docs, class lists, feature-facing contracts).
+3. Keep `VttGameboxSnapshot` unchanged for now.
 
 Definition target:
 
 ```csharp
-public class VttContentPack
+public class VttGamebox
 {
-    public ContentPackManifest Manifest { get; set; } = new();
-    public List<ContentPackDefinition> Definitions { get; set; } = [];
-    public List<ContentPackAsset> Assets { get; set; } = [];
+    public VttGameboxManifest Manifest { get; set; } = new();
+    public List<VttGameboxDefinition> Definitions { get; set; } = [];
+    public List<VttGameboxAsset> Assets { get; set; } = [];
 }
 ```
 
@@ -97,32 +97,32 @@ public class VttContentPack
 
 Add a small mapper class:
 
-- `ToSnapshot(VttContentPack model, int version)`
-- `FromSnapshot(ContentPackSnapshot snapshot)`
+- `ToSnapshot(VttGamebox model, int version)`
+- `FromSnapshot(VttGameboxSnapshot snapshot)`
 
 This creates a clear code-layer split:
 
-- app/core uses `VttContentPack`
-- persistence uses `ContentPackSnapshot`
+- app/core uses `VttGamebox`
+- persistence uses `VttGameboxSnapshot`
 
 ## Phase 3 - Refactor persistence service surfaces
 
-Refactor service signatures so app-facing entry points accept/return `VttContentPack`, while serialization remains snapshot-based internally.
+Refactor service signatures so app-facing entry points accept/return `VttGamebox`, while serialization remains snapshot-based internally.
 
 Target pattern:
 
-- external/public app call: `SaveContentPack(VttContentPack pack, path)`
-- internal persistence call: serialize `ContentPackSnapshot`
+- external/public app call: `SaveVttGamebox(VttGamebox pack, path)`
+- internal persistence call: serialize `VttGameboxSnapshot`
 
 ## Phase 4 - Remove snapshot bleed into non-persistence code
 
-Replace `ContentPackSnapshot` usage in:
+Replace `VttGameboxSnapshot` usage in:
 
 - overview/core class docs
 - non-persistence feature/service APIs
 - any workflow method that is not directly serializer/file I/O
 
-Keep `ContentPackSnapshot` in:
+Keep `VttGameboxSnapshot` in:
 
 - serializer classes
 - file persistence classes
@@ -132,7 +132,7 @@ Keep `ContentPackSnapshot` in:
 
 1. Remove compatibility shims if no longer needed.
 2. Ensure `03-persistence` docs clearly state snapshot envelope is infra-only.
-3. Ensure `00-overview` docs list `VttContentPack` as root content model.
+3. Ensure `00-overview` docs list `VttGamebox` as root content model.
 
 ---
 
@@ -160,7 +160,7 @@ Keep `ContentPackSnapshot` in:
 
 Track these as refactor checkpoints:
 
-- Any core/root docs still naming `ContentPackSnapshot` as core model.
+- Any core/root docs still naming `VttGameboxSnapshot` as core model.
 - Any non-persistence service API exposing snapshot types directly.
 - Any persistence service exposing snapshot type in app-facing signatures.
 
@@ -168,7 +168,7 @@ Track these as refactor checkpoints:
 
 ## Success Criteria
 
-- Core docs consistently use `VttContentPack` for content model naming.
-- Non-persistence code surfaces no longer expose `ContentPackSnapshot`.
+- Core docs consistently use `VttGamebox` for content model naming.
+- Non-persistence code surfaces no longer expose `VttGameboxSnapshot`.
 - Persistence code owns snapshot envelope naming.
 - Build passes and content-pack tests (or equivalent regression checks) pass.

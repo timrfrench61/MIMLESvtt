@@ -6,6 +6,7 @@
 - Shift strategy to larger UI-connected vertical slices delivering visible working capability, avoiding micro-infrastructure passes unless directly required by the UI slice.
 - Avoid architecture jargon like 'boundaries'; use direct programming terms like 'code layers' and keep explanations concrete.
 - Maintain a clean separation where root domain classes are data models located in a root/domain models directory, not placed under persistence.
+- Consider using a more user-facing name like 'GameBox' instead of 'VttGamebox' for content package naming.
 
 ## Component Refactoring
 - When refactoring a Razor component to use code-behind, move the `@code` block into a `.razor.cs` partial class instead of making unrelated fixes.

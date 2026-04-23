@@ -148,8 +148,8 @@ Each item should be small enough to implement independently.
 - [x] implement session load
 - [x] implement scenario export
 - [x] implement scenario import
-- [x] implement content pack export
-- [x] implement content pack import
+- [x] implement gamebox export (gamebox snapshot)
+- [x] implement gamebox import (gamebox snapshot)
 - [x] implement action log export
 - [x] implement version field handling
 - [x] implement validation during import
@@ -160,7 +160,7 @@ Each item should be small enough to implement independently.
 - [x] add pending scenario application plan support (non-mutating)
 - [x] add scenario candidate activation boundary (DryRun/Activate policy-controlled)
 - [x] add scenario activation orchestration service
-- [x] add thin file persistence services for VttSession/Scenario/ContentPack/ActionLog
+- [x] add thin file persistence services for VttSession/Scenario/Gamebox/ActionLog
 - [x] add snapshot file extension constants helper
 - [x] add snapshot file workflow orchestration with extension guardrails
 - [x] add single-file import/apply workflow from path

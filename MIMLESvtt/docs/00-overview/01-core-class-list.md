@@ -15,7 +15,7 @@ Use this as the primary “what exists in code” map.
 
 - `VttSession` — live runtime game/session object.
 - `VttScenario` (compat: `Scenario`) — prepared starting layout/template.
-- `VttContentPack` (target) — reusable content package model (non-snapshot runtime/content contract).
+- `VttGamebox` (target) — reusable content package model (non-snapshot runtime/content contract).
 
 ---
 
@@ -78,10 +78,10 @@ Responsibility:
 
 Primary classes (target content shape + current persisted shape):
 
-- `VttContentPack` (target)
-- `VttContentPackManifest`
-- `VttContentPackDefinition`
-- `VttContentPackAsset`
+- `VttGamebox` (target)
+- `VttGameboxManifest`
+- `VttGameboxDefinition`
+- `VttGameboxAsset`
 - `VttScenario`
 
 Responsibility:
@@ -152,7 +152,7 @@ Primary classes:
 
 - `VttSessionSnapshot`, `VttSessionSnapshotSerializer`
 - `VttScenarioSnapshot`, `VttScenarioSnapshotSerializer`
-- `VttContentPackSnapshot`, `VttContentPackSnapshotSerializer`
+- `VttGameboxSnapshot`, `VttGameboxSnapshotSerializer`
 - `SnapshotFileWorkflowService`
 - `SnapshotFileImportApplyWorkflowService`
 
@@ -187,7 +187,7 @@ Responsibility:
 
 Primary classes:
 
-- `VttContentPackAsset`
+- `VttGameboxAsset`
 - content-pack persistence services
 
 Responsibility:

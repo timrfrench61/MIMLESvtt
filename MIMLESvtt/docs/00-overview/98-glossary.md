@@ -275,7 +275,7 @@ Includes:
 
 ---
 
-### Content Pack
+### Gamebox
 A packaged set of definitions and assets.
 
 Used for:
