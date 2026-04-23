@@ -139,6 +139,34 @@ Game selector UI state should include:
 
 ---
 
+## Interaction States and Operator Feedback
+
+### Saved Session Open Path
+
+- User selects a session row in **My Games**.
+- **Open Selected Session** action loads the session and routes to `/workspace`.
+- If session file is missing or unreadable, selector shows a user-visible error message and does not navigate.
+
+### Join Path
+
+- Empty join code returns an explicit validation message.
+- Join code supports friendly join-code, file-name, and full-path matching.
+- Successful join routes to `/workspace`.
+- Invalid join code returns a user-visible message without navigation.
+
+### Admin-Gated New Session Path
+
+- Start/create+save actions are enabled only for admin users.
+- Non-admin attempts are denied with explicit feedback.
+
+### List State Handling
+
+- **Empty state:** selector displays "No saved sessions are currently known." style messaging.
+- **Error state:** add/open/join failures are surfaced in selector status messages.
+- **Loading state note:** current implementation is synchronous in-process list refresh, so no separate spinner state is currently exposed.
+
+---
+
 ## Related Docs
 
 - `04-workspace-use-case-flows.md` (launch and workspace flow diagrams)

@@ -12,6 +12,8 @@ namespace MIMLESvtt.src.Domain.Models
 
         public List<Participant> Participants { get; set; } = [];
 
+        public List<PlayerSeat> PlayerSeats { get; set; } = [];
+
         public List<SurfaceInstance> Surfaces { get; set; } = [];
 
         public List<PieceInstance> Pieces { get; set; } = [];
@@ -23,6 +25,8 @@ namespace MIMLESvtt.src.Domain.Models
         public int TurnNumber { get; set; } = 1;
 
         public string CurrentPhase { get; set; } = string.Empty;
+
+        public TurnState TurnState { get; set; } = new();
 
         public TabletopOptions Options { get; set; } = new();
 

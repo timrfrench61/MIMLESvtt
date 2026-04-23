@@ -1,5 +1,15 @@
 # Backlog — Tabletop Engine
 
+> Status note: All tabletop engine backlog items (TE-001 through TE-017) are currently completed.
+
+## Next Slice Handoff
+
+Tabletop engine foundation work is complete. Next implementation slices should continue in adjacent backlogs such as:
+
+- `docs/05-backlog/05-backlog-ui-presentation.md` for UI/presentation capabilities on top of engine models
+- `docs/05-backlog/08-backlog-networking.md` for hosted join/sync behavior
+- `docs/05-backlog/60-backlog-testing-qa.md` for deeper integration/regression coverage
+
 ## Purpose
 
 This backlog covers the generic tabletop foundation:
@@ -48,7 +58,7 @@ Related master backlog items:
 **Title:** Define core domain glossary  
 **Master Ref:** MB-005  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create the standard terminology for the engine.
@@ -64,7 +74,7 @@ Create the standard terminology for the engine.
 **Title:** Define board definition model  
 **Master Ref:** MB-006  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Design the reusable model describing a board or play surface.
@@ -81,7 +91,7 @@ Design the reusable model describing a board or play surface.
 **Title:** Define space/cell model  
 **Master Ref:** MB-006  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Define the smallest board-addressable play unit for square and later hex boards.
@@ -98,7 +108,7 @@ Define the smallest board-addressable play unit for square and later hex boards.
 **Title:** Define zone model  
 **Master Ref:** MB-006, MB-020  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Support logical areas on a board such as rooms, regions, terrain sectors, deployment zones, or private areas.
@@ -115,7 +125,7 @@ Support logical areas on a board such as rooms, regions, terrain sectors, deploy
 **Title:** Define piece definition model  
 **Master Ref:** MB-007  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create the reusable piece template for counters, units, monsters, characters, and tokens.
@@ -132,7 +142,7 @@ Create the reusable piece template for counters, units, monsters, characters, an
 **Title:** Define piece instance model  
 **Master Ref:** MB-007  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create the live in-session instance of a piece, separate from the reusable definition.
@@ -149,7 +159,7 @@ Create the live in-session instance of a piece, separate from the reusable defin
 **Title:** Define player seat model  
 **Master Ref:** MB-008  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Model the seat or role a participant occupies during a session.
@@ -166,7 +176,7 @@ Model the seat or role a participant occupies during a session.
 **Title:** Define turn state model  
 **Master Ref:** MB-009  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Design the generic turn container for all game types.
@@ -183,7 +193,7 @@ Design the generic turn container for all game types.
 **Title:** Define phase and sequence model  
 **Master Ref:** MB-009, MB-037  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Support configurable phases for games that do not use identical round structures.
@@ -199,7 +209,7 @@ Support configurable phases for games that do not use identical round structures
 **Title:** Define move and event log model  
 **Master Ref:** MB-010  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Record state changes in a structured way for audit, replay, and networking.
@@ -215,7 +225,7 @@ Record state changes in a structured way for audit, replay, and networking.
 **Title:** Define session state aggregate  
 **Master Ref:** MB-011  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create the root aggregate for a live tabletop session.
@@ -231,7 +241,7 @@ Create the root aggregate for a live tabletop session.
 **Title:** Add square-grid coordinate helpers  
 **Master Ref:** MB-018  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Implement coordinate helpers for square-grid indexing, adjacency, and range basics.
@@ -247,7 +257,7 @@ Implement coordinate helpers for square-grid indexing, adjacency, and range basi
 **Title:** Add hex-grid coordinate model  
 **Master Ref:** MB-019  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Extend board coordinates to support hex play.
@@ -263,7 +273,7 @@ Extend board coordinates to support hex play.
 **Title:** Add terrain metadata support  
 **Master Ref:** MB-020  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Support terrain properties at space or zone level.
@@ -279,7 +289,7 @@ Support terrain properties at space or zone level.
 **Title:** Add tactical piece attribute bag  
 **Master Ref:** MB-021  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Support movement, facing, status, and tactical tags without hard-coding one ruleset.
@@ -295,7 +305,7 @@ Support movement, facing, status, and tactical tags without hard-coding one rule
 **Title:** Define strategic map abstraction  
 **Master Ref:** MB-036  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Extend the tabletop engine to support region/area maps in addition to grid maps.
@@ -311,7 +321,7 @@ Extend the tabletop engine to support region/area maps in addition to grid maps.
 **Title:** Implement session save/load contract  
 **Master Ref:** MB-011  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Define the serialization boundary for session state.

@@ -1,4 +1,5 @@
 using MIMLESvtt.src.Domain.Persistence.Snapshot;
+using System.Text;
 using System.Text.Json;
 
 namespace MIMLESvtt.src.Domain.Persistence.Services.Import
@@ -8,29 +9,54 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
         private const int CurrentVersion = 1;
         private readonly SnapshotFileLibraryService _libraryService;
 
+        public sealed class KnownGameSessionRegistryRecord
+        {
+            public string JoinCode { get; set; } = string.Empty;
+
+            public DateTime? LastJoinCodeUpdatedUtc { get; set; }
+
+            public DateTime? LastJoinedUtc { get; set; }
+        }
+
         public KnownGameSessionRegistryPersistenceService(SnapshotFileLibraryService libraryService)
         {
             _libraryService = libraryService ?? throw new ArgumentNullException(nameof(libraryService));
         }
 
-        public Dictionary<string, string> LoadRegistry(string path)
+        public Dictionary<string, KnownGameSessionRegistryRecord> LoadRegistry(string path)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
             var fullPath = Path.GetFullPath(path);
             if (!File.Exists(fullPath))
             {
-                return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                return new Dictionary<string, KnownGameSessionRegistryRecord>(StringComparer.OrdinalIgnoreCase);
             }
 
-            var json = File.ReadAllText(fullPath);
-            var document = JsonSerializer.Deserialize<KnownGameSessionRegistryDocument>(json);
-            if (document is null)
+            KnownGameSessionRegistryDocument document;
+            try
             {
-                throw new InvalidOperationException("Failed to load known game session registry.");
+                document = LoadDocumentCore(fullPath);
+            }
+            catch (InvalidOperationException mainException)
+            {
+                var backupPath = GetBackupPath(fullPath);
+                if (!File.Exists(backupPath))
+                {
+                    throw;
+                }
+
+                try
+                {
+                    document = LoadDocumentCore(backupPath);
+                }
+                catch (Exception backupException)
+                {
+                    throw new InvalidOperationException("Known game session registry and backup are invalid and could not be loaded.", new AggregateException(mainException, backupException));
+                }
             }
 
-            var joinCodeByPath = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var registryByPath = new Dictionary<string, KnownGameSessionRegistryRecord>(StringComparer.OrdinalIgnoreCase);
 
             var normalizedPaths = new List<string>();
             if (document.Entries is not null && document.Entries.Count > 0)
@@ -51,10 +77,12 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
                     normalizedPaths.Add(normalizedPath);
 
                     var joinCode = NormalizeJoinCode(entry.JoinCode, Path.GetFileName(normalizedPath));
-                    if (!string.IsNullOrWhiteSpace(joinCode))
+                    registryByPath[normalizedPath] = new KnownGameSessionRegistryRecord
                     {
-                        joinCodeByPath[normalizedPath] = joinCode;
-                    }
+                        JoinCode = joinCode,
+                        LastJoinCodeUpdatedUtc = entry.LastJoinCodeUpdatedUtc,
+                        LastJoinedUtc = entry.LastJoinedUtc
+                    };
                 }
             }
             else
@@ -73,20 +101,23 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
                     }
 
                     normalizedPaths.Add(normalizedPath);
-                    joinCodeByPath[normalizedPath] = NormalizeJoinCode(null, Path.GetFileName(normalizedPath));
+                    registryByPath[normalizedPath] = new KnownGameSessionRegistryRecord
+                    {
+                        JoinCode = NormalizeJoinCode(null, Path.GetFileName(normalizedPath))
+                    };
                 }
             }
 
             _libraryService.ReplaceKnownPaths(normalizedPaths);
             _libraryService.RefreshAll();
 
-            return joinCodeByPath;
+            return registryByPath;
         }
 
-        public void SaveRegistry(string path, IReadOnlyDictionary<string, string> joinCodeByPath)
+        public void SaveRegistry(string path, IReadOnlyDictionary<string, KnownGameSessionRegistryRecord> registryByPath)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
-            ArgumentNullException.ThrowIfNull(joinCodeByPath);
+            ArgumentNullException.ThrowIfNull(registryByPath);
 
             var fullPath = Path.GetFullPath(path);
             var directoryPath = Path.GetDirectoryName(fullPath);
@@ -100,15 +131,19 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
                 .Where(entry => entry.DetectedFormatKind == SnapshotFormatKind.VttSessionSnapshot)
                 .Select(entry =>
                 {
-                    var joinCode = joinCodeByPath.TryGetValue(entry.FullPath, out var persistedJoinCode)
-                        ? NormalizeJoinCode(persistedJoinCode, entry.FileName)
-                        : NormalizeJoinCode(null, entry.FileName);
+                    var registryRecord = registryByPath.TryGetValue(entry.FullPath, out var persistedRecord)
+                        ? persistedRecord
+                        : null;
+
+                    var joinCode = NormalizeJoinCode(registryRecord?.JoinCode, entry.FileName);
 
                     return new KnownGameSessionRegistryEntry
                     {
                         SessionPath = entry.FullPath,
                         JoinCode = joinCode,
-                        LastWriteTimeUtc = entry.LastWriteTimeUtc
+                        LastWriteTimeUtc = entry.LastWriteTimeUtc,
+                        LastJoinCodeUpdatedUtc = registryRecord?.LastJoinCodeUpdatedUtc,
+                        LastJoinedUtc = registryRecord?.LastJoinedUtc
                     };
                 })
                 .OrderBy(entry => entry.SessionPath, StringComparer.OrdinalIgnoreCase)
@@ -122,7 +157,54 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
             };
 
             var json = JsonSerializer.Serialize(document);
-            File.WriteAllText(fullPath, json);
+
+            var tempPath = GetTempPath(fullPath);
+            var backupPath = GetBackupPath(fullPath);
+
+            File.WriteAllText(tempPath, json, Encoding.UTF8);
+            if (File.Exists(fullPath))
+            {
+                File.Replace(tempPath, fullPath, backupPath, ignoreMetadataErrors: true);
+            }
+            else
+            {
+                File.Move(tempPath, fullPath);
+            }
+
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
+
+        private static KnownGameSessionRegistryDocument LoadDocumentCore(string path)
+        {
+            var json = File.ReadAllText(path, Encoding.UTF8);
+
+            try
+            {
+                var document = JsonSerializer.Deserialize<KnownGameSessionRegistryDocument>(json);
+                if (document is null)
+                {
+                    throw new InvalidOperationException("Failed to load known game session registry.");
+                }
+
+                return document;
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException("Known game session registry contains malformed JSON.", ex);
+            }
+        }
+
+        private static string GetBackupPath(string fullPath)
+        {
+            return fullPath + ".bak";
+        }
+
+        private static string GetTempPath(string fullPath)
+        {
+            return fullPath + ".tmp";
         }
 
         private static string NormalizeJoinCode(string? joinCode, string fileName)
@@ -165,6 +247,10 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
             public string JoinCode { get; set; } = string.Empty;
 
             public DateTime? LastWriteTimeUtc { get; set; }
+
+            public DateTime? LastJoinCodeUpdatedUtc { get; set; }
+
+            public DateTime? LastJoinedUtc { get; set; }
         }
     }
 }

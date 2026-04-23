@@ -16,7 +16,7 @@ namespace MIMLESvtt.src
             Validate(vttSesstion, actionRequest);
             Apply(vttSesstion, actionRequest);
 
-            var actionRecord = CreateActionRecord(actionRequest);
+            var actionRecord = CreateActionRecord(vttSesstion, actionRequest);
             Log(vttSesstion, actionRecord);
 
             return actionRecord;
@@ -169,15 +169,42 @@ namespace MIMLESvtt.src
             }
         }
 
-        private static ActionRecord CreateActionRecord(ActionRequest actionRequest)
+        private static ActionRecord CreateActionRecord(VttSession vttSesstion, ActionRequest actionRequest)
         {
+            var referencedPieceId = ExtractReferencedPieceId(actionRequest.Payload);
+
             return new ActionRecord
             {
                 Id = Guid.NewGuid().ToString("N"),
                 ActionType = actionRequest.ActionType,
                 ActorParticipantId = actionRequest.ActorParticipantId,
                 TimestampUtc = DateTime.UtcNow,
+                EventCategory = ResolveEventCategory(actionRequest.ActionType),
+                ReferencedPieceId = referencedPieceId,
+                ReferencedTurnNumber = vttSesstion.TurnNumber,
                 Payload = actionRequest.Payload
+            };
+        }
+
+        private static ActionEventCategory ResolveEventCategory(string actionType)
+        {
+            return actionType switch
+            {
+                MovePieceActionType => ActionEventCategory.Move,
+                _ => ActionEventCategory.Gameplay
+            };
+        }
+
+        private static string ExtractReferencedPieceId(object? payload)
+        {
+            return payload switch
+            {
+                MovePiecePayload move => move.PieceId,
+                RotatePiecePayload rotate => rotate.PieceId,
+                AddMarkerPayload addMarker => addMarker.PieceId,
+                RemoveMarkerPayload removeMarker => removeMarker.PieceId,
+                ChangePieceStatePayload changeState => changeState.PieceId,
+                _ => string.Empty
             };
         }
 

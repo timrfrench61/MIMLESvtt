@@ -15,6 +15,7 @@ public partial class Home : ComponentBase
     private readonly List<KnownGameSession> savedSessionFiles = [];
     private string? selectedSessionPath;
     private string newKnownSessionPath = string.Empty;
+    private string customJoinCodeInput = string.Empty;
     private string joinCode = string.Empty;
     private string currentUserName = "(unknown)";
     private bool isCurrentUserAdmin;
@@ -27,6 +28,7 @@ public partial class Home : ComponentBase
     private string? newSessionStatusMessage;
     private string knownSessionRegistryPath = string.Empty;
     private bool knownSessionRegistryLoadedFromDisk;
+    private string? knownSessionRegistryWarning;
 
     internal bool IsGameSelectorOpen => isGameSelectorOpen;
     internal IReadOnlyList<KnownGameSession> SavedSessionFiles => savedSessionFiles;
@@ -39,6 +41,10 @@ public partial class Home : ComponentBase
     {
         LastUpdatedDesc,
         LastUpdatedAsc,
+        LastJoinedDesc,
+        LastJoinedAsc,
+        JoinCodeUpdatedDesc,
+        JoinCodeUpdatedAsc,
         FileNameAsc,
         FileNameDesc
     }
@@ -54,6 +60,7 @@ public partial class Home : ComponentBase
     {
         knownSessionRegistryPath = WorkspaceService.GetKnownGameSessionRegistryPath();
         knownSessionRegistryLoadedFromDisk = WorkspaceService.HasKnownGameSessionRegistry();
+        knownSessionRegistryWarning = WorkspaceService.GetKnownGameSessionRegistryWarning();
     }
 
     private async Task ApplyAuthorizationStateAsync()
@@ -92,6 +99,61 @@ public partial class Home : ComponentBase
         }
     }
 
+    private void ReloadKnownSessionRegistryNow()
+    {
+        try
+        {
+            WorkspaceService.ReloadKnownGameSessionRegistry();
+            RefreshKnownSessionRegistryStatus();
+            RefreshSavedSessions();
+            savedSessionStatusMessage = "Reloaded known game session registry from disk.";
+        }
+        catch (Exception ex)
+        {
+            savedSessionStatusMessage = ex.Message;
+        }
+    }
+
+    private void ResetSelectedSessionJoinCodeToDefault()
+    {
+        if (string.IsNullOrWhiteSpace(selectedSessionPath))
+        {
+            savedSessionStatusMessage = "Select a session first.";
+            return;
+        }
+
+        try
+        {
+            customJoinCodeInput = WorkspaceService.ResetKnownGameSessionJoinCodeToDefault(selectedSessionPath);
+            RefreshSavedSessions();
+            savedSessionStatusMessage = "Reset selected join code to default.";
+        }
+        catch (Exception ex)
+        {
+            savedSessionStatusMessage = ex.Message;
+        }
+    }
+
+    private void GenerateSelectedSessionJoinCode()
+    {
+        if (string.IsNullOrWhiteSpace(selectedSessionPath))
+        {
+            savedSessionStatusMessage = "Select a session first.";
+            return;
+        }
+
+        try
+        {
+            customJoinCodeInput = WorkspaceService.GenerateKnownGameSessionJoinCode(selectedSessionPath);
+            RefreshSavedSessions();
+            savedSessionStatusMessage = "Generated a new join code for selected session.";
+        }
+        catch (Exception ex)
+        {
+            savedSessionStatusMessage = ex.Message;
+        }
+    }
+
     private void UseSelectedSessionAsJoinCode()
     {
         if (string.IsNullOrWhiteSpace(selectedSessionPath))
@@ -100,8 +162,34 @@ public partial class Home : ComponentBase
             return;
         }
 
-        joinCode = selectedSessionPath;
+        joinCode = WorkspaceService.GetKnownGameSessionJoinCode(selectedSessionPath);
         joinStatusMessage = "Join code prefilled from selected session.";
+    }
+
+    private void SaveSelectedSessionJoinCode()
+    {
+        if (string.IsNullOrWhiteSpace(selectedSessionPath))
+        {
+            savedSessionStatusMessage = "Select a session first.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(customJoinCodeInput))
+        {
+            savedSessionStatusMessage = "Enter a join code first.";
+            return;
+        }
+
+        try
+        {
+            WorkspaceService.SetKnownGameSessionJoinCode(selectedSessionPath, customJoinCodeInput);
+            RefreshSavedSessions();
+            savedSessionStatusMessage = "Saved custom join code for selected session.";
+        }
+        catch (Exception ex)
+        {
+            savedSessionStatusMessage = ex.Message;
+        }
     }
 
     private void AddKnownSessionPath()
@@ -142,6 +230,10 @@ public partial class Home : ComponentBase
         sessions = savedSessionSort switch
         {
             SavedSessionSort.LastUpdatedAsc => sessions.OrderBy(s => s.LastWriteTimeUtc ?? DateTime.MinValue),
+            SavedSessionSort.LastJoinedDesc => sessions.OrderByDescending(s => s.LastJoinedUtc ?? DateTime.MinValue),
+            SavedSessionSort.LastJoinedAsc => sessions.OrderBy(s => s.LastJoinedUtc ?? DateTime.MinValue),
+            SavedSessionSort.JoinCodeUpdatedDesc => sessions.OrderByDescending(s => s.LastJoinCodeUpdatedUtc ?? DateTime.MinValue),
+            SavedSessionSort.JoinCodeUpdatedAsc => sessions.OrderBy(s => s.LastJoinCodeUpdatedUtc ?? DateTime.MinValue),
             SavedSessionSort.FileNameAsc => sessions.OrderBy(s => s.FileName, StringComparer.OrdinalIgnoreCase),
             SavedSessionSort.FileNameDesc => sessions.OrderByDescending(s => s.FileName, StringComparer.OrdinalIgnoreCase),
             _ => sessions.OrderByDescending(s => s.LastWriteTimeUtc ?? DateTime.MinValue)
@@ -165,6 +257,7 @@ public partial class Home : ComponentBase
         }
 
         selectedSessionPath = null;
+        customJoinCodeInput = string.Empty;
         RefreshKnownSessionRegistryStatus();
         RefreshSavedSessions();
         savedSessionStatusMessage = "Removed selected session from known list.";
@@ -194,12 +287,23 @@ public partial class Home : ComponentBase
             savedSessionFiles.All(s => !string.Equals(s.FilePath, selectedSessionPath, StringComparison.OrdinalIgnoreCase)))
         {
             selectedSessionPath = null;
+            customJoinCodeInput = string.Empty;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectedSessionPath))
+        {
+            var selected = savedSessionFiles.FirstOrDefault(s => string.Equals(s.FilePath, selectedSessionPath, StringComparison.OrdinalIgnoreCase));
+            customJoinCodeInput = selected?.JoinCode ?? string.Empty;
         }
     }
 
     private void SelectSession(string path)
     {
         selectedSessionPath = path;
+        customJoinCodeInput = savedSessionFiles
+            .FirstOrDefault(s => string.Equals(s.FilePath, path, StringComparison.OrdinalIgnoreCase))?.JoinCode
+            ?? string.Empty;
     }
 
     private void OpenSelectedSession()

@@ -69,6 +69,8 @@ No task should bypass:
 - Session controls now clearly represent game-state save/load flow, separate from scenario authoring/import flow.
 - Game-state save/load now explicitly preserves live progress fields (participants, turn state, action log).
 - Scenario load remains starting-layout focused and does not carry live game progress state.
+- Authentication slice now includes default admin login/logout, cookie auth routing, and admin-gated create-session workflow.
+- Known-session join-code registry is now persisted across restarts, with manual save, admin join-code edit/reset/generate, and join audit timestamps.
 
 ---
 
@@ -114,16 +116,16 @@ Each item should be small enough to implement independently.
 - [x] implement validation step
 - [x] implement execution step
 - [x] implement ActionLog storage
-- [~] implement core actions:
-  - [ ] CreatePiece
-  - [ ] DeletePiece
+- [x] implement core actions:
+  - [x] CreatePiece
+  - [x] DeletePiece
   - [x] MovePiece
   - [x] RotatePiece
   - [x] ChangePieceState
   - [x] AddMarker
   - [x] RemoveMarker
-  - [ ] SetPieceVisibility
-  - [ ] UpdateTableOptions
+  - [x] SetPieceVisibility
+  - [x] UpdateTableOptions
 
 ---
 
@@ -131,14 +133,14 @@ Each item should be small enough to implement independently.
 
 - [x] create table creation workflow
 - [x] create table load workflow
-- [ ] create surface creation
-- [ ] create piece creation
-- [ ] implement piece placement
+- [x] create surface creation
+- [x] create piece creation
+- [x] implement piece placement
 - [x] implement piece movement
 - [x] implement piece rotation
 - [x] implement piece state editing
-- [ ] implement selection model
-- [ ] implement rendering of surfaces and pieces
+- [x] implement selection model
+- [x] implement rendering of surfaces and pieces
 
 ---
 
@@ -173,6 +175,9 @@ Each item should be small enough to implement independently.
 - [x] harden workspace-state persistence with temp-write/replace + single backup fallback
 - [x] add structured workspace recovery diagnostics (main vs backup, restored flags, warnings/errors)
 - [x] add restore options for strict vs best-effort pending-scenario recovery (default strict)
+- [x] add persisted known-session join-code registry and startup reload
+- [x] add known-session join-code admin management (set/reset/generate + conflict checks)
+- [x] add known-session join audit metadata (last joined/last code update)
 
 ---
 
@@ -230,7 +235,7 @@ Each item should be small enough to implement independently.
 - [~] build gameplay mode controls (Edit/Play toggle and indicator wired; policy depth pending)
 - [ ] build module UI hooks
 - [~] build session management UI (create/open/save/save-as/import/activate flows wired; production UX polish pending)
-- [~] build launch game-selector UI (saved/subscribed sessions list, join flow baseline, admin-gated create + create/save path wired; hosted-session join + UX polish pending)
+- [~] build launch game-selector UI (saved/subscribed sessions list, auth-gated create, persisted join-code registry, admin join-code management, and join audit visibility wired; hosted-session join + UX polish pending)
 
 ---
 
@@ -257,6 +262,8 @@ Each item should be small enough to implement independently.
 - [ ] test multiplayer synchronization
 - [ ] test module behavior
 - [~] test domain invariants (covered for current action/persistence boundaries, full invariant suite pending)
+- [ ] test auth and role gating flow (default admin sign-in, non-admin restrictions)
+- [ ] test known-session registry persistence and join audit metadata updates
 
 ---
 

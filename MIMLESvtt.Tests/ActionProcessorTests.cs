@@ -1031,6 +1031,70 @@ public class ActionProcessorTests
     }
 
     [TestMethod]
+    public void Process_WithMovePiece_RecordsMoveEventCategoryAndReferences()
+    {
+        var session = new TableSession
+        {
+            TurnNumber = 3
+        };
+
+        session.Surfaces.Add(new SurfaceInstance { Id = "surface-1", DefinitionId = "surface-def-1" });
+        session.Pieces.Add(new PieceInstance
+        {
+            Id = "piece-1",
+            DefinitionId = "def-1",
+            Location = new Location
+            {
+                SurfaceId = "surface-1",
+                Coordinate = new Coordinate { X = 0, Y = 0 }
+            }
+        });
+
+        var request = new ActionRequest
+        {
+            ActionType = "MovePiece",
+            ActorParticipantId = "participant-1",
+            Payload = new MovePiecePayload
+            {
+                PieceId = "piece-1",
+                NewLocation = new Location
+                {
+                    SurfaceId = "surface-1",
+                    Coordinate = new Coordinate { X = 2, Y = 2 }
+                }
+            }
+        };
+
+        var processor = new ActionProcessor();
+
+        var actionRecord = processor.Process(session, request);
+
+        Assert.AreEqual(ActionEventCategory.Move, actionRecord.EventCategory);
+        Assert.AreEqual("piece-1", actionRecord.ReferencedPieceId);
+        Assert.AreEqual(3, actionRecord.ReferencedTurnNumber);
+    }
+
+    [TestMethod]
+    public void Process_WithNonMoveAction_RecordsGameplayEventCategory()
+    {
+        var session = new TableSession();
+        var request = new ActionRequest
+        {
+            ActionType = "NoOpAction",
+            ActorParticipantId = "participant-1",
+            Payload = new { Any = "value" }
+        };
+
+        var processor = new ActionProcessor();
+
+        var actionRecord = processor.Process(session, request);
+
+        Assert.AreEqual(ActionEventCategory.Gameplay, actionRecord.EventCategory);
+        Assert.AreEqual(string.Empty, actionRecord.ReferencedPieceId);
+        Assert.AreEqual(1, actionRecord.ReferencedTurnNumber);
+    }
+
+    [TestMethod]
     public void Process_WithRemoveMarker_WhenPieceMissing_FailsAndDoesNotLog()
     {
         var session = new TableSession();

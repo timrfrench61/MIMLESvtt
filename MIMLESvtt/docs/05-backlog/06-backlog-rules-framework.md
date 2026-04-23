@@ -1,5 +1,7 @@
 # Rules Framework Backlog
 
+> Status note: All backlog items in this document (RF-001 through RF-012) are currently completed/closed.
+
 ## Scope
 
 This backlog covers:
@@ -31,7 +33,7 @@ The rules subsystem must attach to the engine rather than define the engine.
 **Title:** Define rules plugin boundary  
 **Master ID:** MB-031  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Document the service boundaries between engine state and game-specific mechanics.
@@ -49,7 +51,7 @@ Document the service boundaries between engine state and game-specific mechanics
 **Title:** Define rules context and action model  
 **Master ID:** MB-031  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Define how rules modules receive state and evaluate actions such as move, attack, skill check, or objective check.
@@ -67,7 +69,7 @@ Define how rules modules receive state and evaluate actions such as move, attack
 **Title:** Design shared dice/randomization service  
 **Master ID:** MB-032  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create a reusable dice and randomization layer.
@@ -85,7 +87,7 @@ Create a reusable dice and randomization layer.
 **Title:** Define roll expression support strategy  
 **Master ID:** MB-032  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Determine whether the engine needs simple roll expressions, parsed expressions, or both.
@@ -103,7 +105,7 @@ Determine whether the engine needs simple roll expressions, parsed expressions, 
 **Title:** Define RPG combat workflow hook points  
 **Master ID:** MB-035  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Define where initiative, attack, save, damage, and status workflows connect to generic turn state.
@@ -121,7 +123,7 @@ Define where initiative, attack, save, damage, and status workflows connect to g
 **Title:** Define AD&D1 module scope for first release  
 **Master ID:** MB-033  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Constrain the first AD&D1 rules slice so implementation is practical.
@@ -139,7 +141,7 @@ Constrain the first AD&D1 rules slice so implementation is practical.
 **Title:** Design AD&D1 attack and save resolution  
 **Master ID:** MB-033  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Design the first-pass handling of attack resolution and saving throws.
@@ -157,7 +159,7 @@ Design the first-pass handling of attack resolution and saving throws.
 **Title:** Design AD&D1 initiative integration  
 **Master ID:** MB-033, MB-035  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Define how AD&D1 initiative plugs into the generic turn/sequence model.
@@ -175,7 +177,7 @@ Define how AD&D1 initiative plugs into the generic turn/sequence model.
 **Title:** Define BRP module scope for first release  
 **Master ID:** MB-034  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Constrain the first BRP implementation slice.
@@ -193,7 +195,7 @@ Constrain the first BRP implementation slice.
 **Title:** Design BRP percentile and skill resolution  
 **Master ID:** MB-034  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Design first-pass BRP checks and skill resolution.
@@ -211,7 +213,7 @@ Design first-pass BRP checks and skill resolution.
 **Title:** Define objective and victory evaluation hooks  
 **Master ID:** MB-038  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create a general evaluation hook for scenario objectives and victory conditions across game styles.
@@ -229,7 +231,7 @@ Create a general evaluation hook for scenario objectives and victory conditions 
 **Title:** Create rules module test harness design  
 **Master ID:** MB-033, MB-034, MB-052  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Design how rules modules are tested in isolation from the UI.
@@ -245,11 +247,6 @@ Design how rules modules are tested in isolation from the UI.
 
 ## Near-Term Execution Order
 
-1. RF-001 Define rules plugin boundary  
-2. RF-002 Define rules context and action model  
-3. RF-003 Design shared dice/randomization service  
-4. RF-005 Define RPG combat workflow hook points  
-5. RF-006 Define AD&D1 module scope for first release  
-6. RF-007 Design AD&D1 attack and save resolution  
-7. RF-009 Define BRP module scope for first release  
-8. RF-010 Design BRP percentile and skill resolution
+1. Closed in current implementation cycle (RF-001 through RF-012 completed)
+2. Next focus: implement concrete AD&D1 and BRP module code against documented contracts
+3. Next focus: add deterministic rules-harness test suites for module regression coverage

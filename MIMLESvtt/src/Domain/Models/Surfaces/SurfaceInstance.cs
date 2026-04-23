@@ -10,6 +10,10 @@
 
         public CoordinateSystem CoordinateSystem { get; set; }
 
+        public BoardDefinition BoardDefinition { get; set; } = new();
+
+        public List<Space> Spaces { get; set; } = [];
+
         public List<Layer> Layers { get; set; } = [];
 
         public List<Zone> Zones { get; set; } = [];

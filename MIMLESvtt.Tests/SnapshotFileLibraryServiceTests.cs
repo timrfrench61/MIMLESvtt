@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MIMLESvtt.src;
+using MIMLESvtt.src.Domain.Persistence.Services.Import;
 
 namespace MIMLESvtt.Tests;
 
@@ -27,6 +28,135 @@ public class SnapshotFileLibraryServiceTests
         finally
         {
             DeleteFileIfExists(path);
+        }
+    }
+
+    [TestMethod]
+    public void KnownGameSessionRegistry_LoadRegistry_WhenMainMalformed_UsesBackup()
+    {
+        var workflow = new SnapshotFileImportApplyWorkflowService();
+        var library = new SnapshotFileLibraryService(workflow);
+        var persistence = new KnownGameSessionRegistryPersistenceService(library);
+
+        var sessionPath = CreateTempFilePath("known-registry-backup-session", SnapshotFileExtensions.TableSession);
+        var registryPath = CreateTempFilePath("known-registry-backup-store", ".known-sessions.json");
+        var backupPath = registryPath + ".bak";
+
+        try
+        {
+            File.WriteAllText(sessionPath, "{}", Encoding.UTF8);
+            library.AddPath(sessionPath);
+
+            var fullSessionPath = Path.GetFullPath(sessionPath);
+            persistence.SaveRegistry(registryPath, new Dictionary<string, KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord>(StringComparer.OrdinalIgnoreCase)
+            {
+                [fullSessionPath] = new KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord
+                {
+                    JoinCode = "ALPHA"
+                }
+            });
+
+            persistence.SaveRegistry(registryPath, new Dictionary<string, KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord>(StringComparer.OrdinalIgnoreCase)
+            {
+                [fullSessionPath] = new KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord
+                {
+                    JoinCode = "BETA"
+                }
+            });
+
+            File.WriteAllText(registryPath, "{\"Version\":1,\"Entries\":", Encoding.UTF8);
+
+            var reloadedLibrary = new SnapshotFileLibraryService(workflow);
+            var reloadedPersistence = new KnownGameSessionRegistryPersistenceService(reloadedLibrary);
+
+            var loaded = reloadedPersistence.LoadRegistry(registryPath);
+            Assert.AreEqual(1, loaded.Count);
+            Assert.AreEqual("ALPHA", loaded[fullSessionPath].JoinCode);
+            Assert.IsTrue(File.Exists(backupPath));
+        }
+        finally
+        {
+            DeleteFileIfExists(sessionPath);
+            DeleteFileIfExists(registryPath);
+            DeleteFileIfExists(backupPath);
+            DeleteFileIfExists(registryPath + ".tmp");
+        }
+    }
+
+    [TestMethod]
+    public void KnownGameSessionRegistry_LoadRegistry_WhenMainAndBackupMalformed_FailsClearly()
+    {
+        var workflow = new SnapshotFileImportApplyWorkflowService();
+        var library = new SnapshotFileLibraryService(workflow);
+        var persistence = new KnownGameSessionRegistryPersistenceService(library);
+
+        var registryPath = CreateTempFilePath("known-registry-corrupt-store", ".known-sessions.json");
+        var backupPath = registryPath + ".bak";
+
+        try
+        {
+            File.WriteAllText(registryPath, "{\"Version\":1,\"Entries\":", Encoding.UTF8);
+            File.WriteAllText(backupPath, "{\"Version\":1,\"Entries\":", Encoding.UTF8);
+
+            var ex = Assert.ThrowsException<InvalidOperationException>(() => persistence.LoadRegistry(registryPath));
+            StringAssert.Contains(ex.Message, "could not be loaded");
+        }
+        finally
+        {
+            DeleteFileIfExists(registryPath);
+            DeleteFileIfExists(backupPath);
+            DeleteFileIfExists(registryPath + ".tmp");
+        }
+    }
+
+    [TestMethod]
+    public void KnownGameSessionRegistry_SaveRegistry_WhenUpdatingExistingFile_CreatesBackupOfPreviousVersion()
+    {
+        var workflow = new SnapshotFileImportApplyWorkflowService();
+        var library = new SnapshotFileLibraryService(workflow);
+        var persistence = new KnownGameSessionRegistryPersistenceService(library);
+
+        var sessionPath = CreateTempFilePath("known-registry-save-session", SnapshotFileExtensions.TableSession);
+        var registryPath = CreateTempFilePath("known-registry-save-store", ".known-sessions.json");
+        var backupPath = registryPath + ".bak";
+
+        try
+        {
+            File.WriteAllText(sessionPath, "{}", Encoding.UTF8);
+            library.AddPath(sessionPath);
+
+            var fullSessionPath = Path.GetFullPath(sessionPath);
+
+            persistence.SaveRegistry(registryPath, new Dictionary<string, KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord>(StringComparer.OrdinalIgnoreCase)
+            {
+                [fullSessionPath] = new KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord
+                {
+                    JoinCode = "FIRST"
+                }
+            });
+
+            persistence.SaveRegistry(registryPath, new Dictionary<string, KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord>(StringComparer.OrdinalIgnoreCase)
+            {
+                [fullSessionPath] = new KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord
+                {
+                    JoinCode = "SECOND"
+                }
+            });
+
+            Assert.IsTrue(File.Exists(backupPath));
+
+            var backupJson = File.ReadAllText(backupPath, Encoding.UTF8);
+            StringAssert.Contains(backupJson, "FIRST");
+
+            var currentJson = File.ReadAllText(registryPath, Encoding.UTF8);
+            StringAssert.Contains(currentJson, "SECOND");
+        }
+        finally
+        {
+            DeleteFileIfExists(sessionPath);
+            DeleteFileIfExists(registryPath);
+            DeleteFileIfExists(backupPath);
+            DeleteFileIfExists(registryPath + ".tmp");
         }
     }
 

@@ -34,7 +34,7 @@ This subsystem must support both RPG and non-RPG content over time.
 **Title:** Define content library framework  
 **Master ID:** MB-023  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Define the overall structure for reusable content types and shared metadata.
@@ -52,7 +52,7 @@ Define the overall structure for reusable content types and shared metadata.
 **Title:** Define RPG content model: Monster  
 **Master ID:** MB-024  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create the initial monster model for imported and manually entered RPG creatures.
@@ -70,7 +70,7 @@ Create the initial monster model for imported and manually entered RPG creatures
 **Title:** Define RPG content model: Treasure  
 **Master ID:** MB-024  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create the treasure model for coin, loot bundles, and treasure entries.
@@ -88,7 +88,7 @@ Create the treasure model for coin, loot bundles, and treasure entries.
 **Title:** Define RPG content model: Equipment  
 **Master ID:** MB-024  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create the equipment model for mundane gear and weapons/armor.
@@ -106,7 +106,7 @@ Create the equipment model for mundane gear and weapons/armor.
 **Title:** Define RPG content model: Magic Item  
 **Master ID:** MB-024  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create the magic item model.
@@ -124,7 +124,7 @@ Create the magic item model.
 **Title:** Define unit/counter content model  
 **Master ID:** MB-025  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create a content model for tactical or strategic counters and units.

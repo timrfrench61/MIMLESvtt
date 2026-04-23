@@ -11,5 +11,9 @@ namespace MIMLESvtt.src.Domain.Persistence.Models
         public bool Exists { get; init; }
 
         public DateTime? LastWriteTimeUtc { get; init; }
+
+        public DateTime? LastJoinCodeUpdatedUtc { get; init; }
+
+        public DateTime? LastJoinedUtc { get; init; }
     }
 }

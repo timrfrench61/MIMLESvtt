@@ -26,6 +26,56 @@ public class HomeGameSelectorTests
     }
 
     [TestMethod]
+    public void OpenSelectedSession_WithKnownSession_LoadsSessionAndNavigatesToWorkspace()
+    {
+        var workspace = new VttSessionWorkspaceService();
+        var home = CreateHome(workspace);
+
+        var path = CreateTempFilePath("open-selected-session", SnapshotFileExtensions.VttSession);
+
+        try
+        {
+            var serializer = new VttSessionSnapshotSerializer();
+            var session = new VttSession
+            {
+                Id = "session-open-selected",
+                Title = "Open Selected Session"
+            };
+
+            File.WriteAllText(path, serializer.Save(session));
+            workspace.AddKnownSnapshotPath(path);
+
+            home.TestOpenGameSelector();
+            home.TestSelectSession(Path.GetFullPath(path));
+            home.TestOpenSelectedSession();
+
+            Assert.IsNotNull(workspace.CurrentVttSession);
+            Assert.AreEqual("session-open-selected", workspace.CurrentVttSession!.Id);
+            Assert.AreEqual("Opened selected session.", home.SavedSessionStatusMessage);
+        }
+        finally
+        {
+            DeleteFileIfExists(path);
+        }
+    }
+
+    [TestMethod]
+    public void OpenSelectedSession_WithMissingSessionFile_ShowsErrorMessage()
+    {
+        var workspace = new VttSessionWorkspaceService();
+        var home = CreateHome(workspace);
+
+        var missingPath = CreateTempFilePath("open-missing-session", SnapshotFileExtensions.VttSession);
+        workspace.AddKnownSnapshotPath(missingPath);
+
+        home.TestOpenGameSelector();
+        home.TestSelectSession(Path.GetFullPath(missingPath));
+        home.TestOpenSelectedSession();
+
+        StringAssert.Contains(home.SavedSessionStatusMessage, "not found");
+    }
+
+    [TestMethod]
     public void OpenSelectedSession_WithoutSelection_ShowsGuidanceMessage()
     {
         var workspace = new VttSessionWorkspaceService();

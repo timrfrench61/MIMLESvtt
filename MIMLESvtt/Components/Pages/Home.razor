@@ -24,17 +24,36 @@
                     <span class="text-muted">Registry: <strong>@(knownSessionRegistryLoadedFromDisk ? "Loaded from disk" : "Not found yet")</strong></span>
                     <code>@knownSessionRegistryPath</code>
                     <button class="btn btn-sm btn-outline-secondary" @onclick="SaveKnownSessionRegistryNow">Save Registry Now</button>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="ReloadKnownSessionRegistryNow">Reload Registry</button>
                 </div>
+                @if (!string.IsNullOrWhiteSpace(knownSessionRegistryWarning))
+                {
+                    <div class="alert alert-warning py-2">Registry warning: @knownSessionRegistryWarning</div>
+                }
                 <div class="d-flex gap-2 align-items-center mb-2">
                     <InputText @bind-Value="newKnownSessionPath" class="form-control" style="max-width: 460px;" placeholder="Add known session path (.vttsession.json)" />
                     <button class="btn btn-outline-secondary" @onclick="AddKnownSessionPath">Add</button>
                     <button class="btn btn-outline-danger" @onclick="RemoveSelectedSession" disabled="@string.IsNullOrWhiteSpace(selectedSessionPath)">Remove Selected</button>
                 </div>
                 <div class="d-flex gap-2 align-items-center mb-2">
+                    <InputText @bind-Value="customJoinCodeInput" class="form-control" style="max-width: 260px;" placeholder="Custom join code for selected" />
+                    <button class="btn btn-outline-secondary" @onclick="SaveSelectedSessionJoinCode" disabled="@(!isCurrentUserAdmin || string.IsNullOrWhiteSpace(selectedSessionPath))">Save Selected Join Code</button>
+                    <button class="btn btn-outline-secondary" @onclick="ResetSelectedSessionJoinCodeToDefault" disabled="@(!isCurrentUserAdmin || string.IsNullOrWhiteSpace(selectedSessionPath))">Reset To Default</button>
+                    <button class="btn btn-outline-secondary" @onclick="GenerateSelectedSessionJoinCode" disabled="@(!isCurrentUserAdmin || string.IsNullOrWhiteSpace(selectedSessionPath))">Generate New Code</button>
+                    @if (!isCurrentUserAdmin)
+                    {
+                        <span class="text-muted">Admin rights required.</span>
+                    }
+                </div>
+                <div class="d-flex gap-2 align-items-center mb-2">
                     <InputText @bind-Value="sessionSearchQuery" class="form-control" style="max-width: 320px;" placeholder="Filter sessions by file/path" />
                     <InputSelect @bind-Value="savedSessionSort" class="form-select" style="max-width: 260px;">
                         <option value="@SavedSessionSort.LastUpdatedDesc">Sort: Last updated (newest)</option>
                         <option value="@SavedSessionSort.LastUpdatedAsc">Sort: Last updated (oldest)</option>
+                        <option value="@SavedSessionSort.LastJoinedDesc">Sort: Last joined (most recent)</option>
+                        <option value="@SavedSessionSort.LastJoinedAsc">Sort: Last joined (least recent)</option>
+                        <option value="@SavedSessionSort.JoinCodeUpdatedDesc">Sort: Join code updated (newest)</option>
+                        <option value="@SavedSessionSort.JoinCodeUpdatedAsc">Sort: Join code updated (oldest)</option>
                         <option value="@SavedSessionSort.FileNameAsc">Sort: File name (A-Z)</option>
                         <option value="@SavedSessionSort.FileNameDesc">Sort: File name (Z-A)</option>
                     </InputSelect>
@@ -55,6 +74,8 @@
                                 <th>Join Code</th>
                                 <th>Session File</th>
                                 <th>Last Updated (UTC)</th>
+                                <th>Last Joined (UTC)</th>
+                                <th>Join Code Updated (UTC)</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
@@ -66,6 +87,8 @@
                                     <td><code>@entry.JoinCode</code></td>
                                     <td>@entry.FileName</td>
                                     <td>@(entry.LastWriteTimeUtc?.ToString("u") ?? "(unknown)")</td>
+                                    <td>@(entry.LastJoinedUtc?.ToString("u") ?? "(never)")</td>
+                                    <td>@(entry.LastJoinCodeUpdatedUtc?.ToString("u") ?? "(default)")</td>
                                     <td>@(entry.Exists ? "Available" : "Missing")</td>
                                 </tr>
                             }

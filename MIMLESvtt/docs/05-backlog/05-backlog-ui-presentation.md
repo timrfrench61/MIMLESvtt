@@ -1,5 +1,7 @@
 # UI and Presentation Backlog
 
+> Status note: All backlog items in this document (UI-001 through UI-019) are currently completed/closed.
+
 ## Scope
 
 This backlog covers:
@@ -30,7 +32,7 @@ The UI must prioritize practical use at the table over decorative complexity.
 **Title:** Define application shell layout  
 **Master ID:** MB-043  
 **Priority:** High  
-**Status:** In Progress  
+**Status:** Done  
 
 **Description:**  
 Define the primary app shell with left navigation, top bar, main workspace, and optional side panels.
@@ -48,7 +50,7 @@ Define the primary app shell with left navigation, top bar, main workspace, and 
 **Title:** Define navigation model  
 **Master ID:** MB-043  
 **Priority:** High  
-**Status:** In Progress  
+**Status:** Done  
 
 **Description:**  
 Define how users reach table views, content libraries, import screens, sessions, and settings.
@@ -66,7 +68,7 @@ Define how users reach table views, content libraries, import screens, sessions,
 **Title:** Define board presentation rules  
 **Master ID:** MB-044  
 **Priority:** High  
-**Status:** In Progress  
+**Status:** Done  
 
 **Description:**  
 Define how grids, boards, pieces, selection, hover, legal moves, and overlays are shown.
@@ -84,7 +86,7 @@ Define how grids, boards, pieces, selection, hover, legal moves, and overlays ar
 **Title:** Define piece visual states  
 **Master ID:** MB-044  
 **Priority:** High  
-**Status:** In Progress  
+**Status:** Done  
 
 **Description:**  
 Document how pieces visually represent side, status, selection, disabled state, and promotion/elite/leader style markers where applicable.
@@ -102,7 +104,7 @@ Document how pieces visually represent side, status, selection, disabled state, 
 **Title:** Define checkers reference UI flow  
 **Master ID:** MB-012, MB-013  
 **Priority:** High  
-**Status:** In Progress  
+**Status:** Done  
 
 **Description:**  
 Define the simple interaction flow for the reference game.
@@ -120,7 +122,7 @@ Define the simple interaction flow for the reference game.
 **Title:** Define tactical scenario setup screen  
 **Master ID:** MB-022  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Plan a screen for creating a tactical scenario with board, sides, and initial units.
@@ -138,7 +140,7 @@ Plan a screen for creating a tactical scenario with board, sides, and initial un
 **Title:** Define content management screen inventory  
 **Master ID:** MB-045  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Inventory all required content screens for list, detail, create, edit, import, and validation result review.
@@ -156,7 +158,7 @@ Inventory all required content screens for list, detail, create, edit, import, a
 **Title:** Define monster management UI flow  
 **Master ID:** MB-026, MB-045  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Plan list/detail/edit screens for monsters.
@@ -174,7 +176,7 @@ Plan list/detail/edit screens for monsters.
 **Title:** Define treasure management UI flow  
 **Master ID:** MB-026, MB-045  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Plan list/detail/edit screens for treasure.
@@ -192,7 +194,7 @@ Plan list/detail/edit screens for treasure.
 **Title:** Define equipment management UI flow  
 **Master ID:** MB-026, MB-045  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Plan list/detail/edit screens for equipment.
@@ -210,7 +212,7 @@ Plan list/detail/edit screens for equipment.
 **Title:** Define magic item management UI flow  
 **Master ID:** MB-026, MB-045  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Plan list/detail/edit screens for magic items.
@@ -228,7 +230,7 @@ Plan list/detail/edit screens for magic items.
 **Title:** Define import workflow UI  
 **Master ID:** MB-026, MB-045  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Plan file selection, validation preview, import result summary, and error review screens.
@@ -247,7 +249,7 @@ Plan file selection, validation preview, import result summary, and error review
 **Title:** Implement Workspace right-slide controls panel over tabletop  
 **Master ID:** MB-043, MB-044  
 **Priority:** High  
-**Status:** In Progress  
+**Status:** Done  
 
 **Description:**  
 Consolidate Workspace control-heavy UI into a right-side slide-in panel (Android-style interaction pattern) while keeping tabletop visible behind the panel.
@@ -269,7 +271,7 @@ Consolidate Workspace control-heavy UI into a right-side slide-in panel (Android
 **Title:** Document Workspace slide-panel interaction model and fallback tabletop states  
 **Master ID:** MB-044  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Add explicit UI design documentation for the slide-in panel behavior, expected responsiveness, and fallback tabletop states.
@@ -287,7 +289,7 @@ Add explicit UI design documentation for the slide-in panel behavior, expected r
 **Title:** Implement Launch Game Selector dialog shell  
 **Master ID:** MB-043  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Add a launch-stage Game Selector dialog that is opened from Home/Launch and acts as the entry point into session flows.
@@ -308,7 +310,7 @@ Add a launch-stage Game Selector dialog that is opened from Home/Launch and acts
 **Title:** Implement My Games (saved/subscribed sessions) list in Game Selector  
 **Master ID:** MB-043  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Implement session list rendering and selection behavior for opening existing sessions from the Game Selector dialog.
@@ -329,7 +331,7 @@ Implement session list rendering and selection behavior for opening existing ses
 **Title:** Implement Join Existing Game flow in Game Selector  
 **Master ID:** MB-043  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Implement join flow using join code or existing hosted-game selector from the Game Selector dialog.
@@ -348,7 +350,7 @@ Implement join flow using join code or existing hosted-game selector from the Ga
 **Title:** Implement admin-gated Start New Session action in Game Selector  
 **Master ID:** MB-043  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Add permission-gated new-session creation from the Game Selector dialog so only admin users can initiate new sessions.
@@ -367,7 +369,7 @@ Add permission-gated new-session creation from the Game Selector dialog so only 
 **Title:** Document and test Game Selector interaction states  
 **Master ID:** MB-043  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Add UI documentation and test coverage for Game Selector behavior and permission/state handling.
@@ -386,17 +388,6 @@ Add UI documentation and test coverage for Game Selector behavior and permission
 
 ## Near-Term Execution Order
 
-1. UI-001 Define application shell layout  
-2. UI-002 Define navigation model  
-3. UI-003 Define board presentation rules  
-4. UI-004 Define piece visual states  
-5. UI-005 Define checkers reference UI flow  
-6. UI-007 Define content management screen inventory  
-7. UI-012 Define import workflow UI
-8. UI-013 Implement Workspace right-slide controls panel over tabletop
-9. UI-014 Document Workspace slide-panel interaction model and fallback tabletop states
-10. UI-015 Implement Launch Game Selector dialog shell
-11. UI-016 Implement My Games (saved/subscribed sessions) list in Game Selector
-12. UI-017 Implement Join Existing Game flow in Game Selector
-13. UI-018 Implement admin-gated Start New Session action in Game Selector
-14. UI-019 Document and test Game Selector interaction states
+1. Closed in current implementation cycle (UI-001 through UI-019 completed)
+2. Next focus: promote key documented flows into end-to-end UI automation coverage
+3. Next focus: begin networking-era UI extensions once hosted session model is active

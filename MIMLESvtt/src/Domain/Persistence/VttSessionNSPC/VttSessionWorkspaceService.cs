@@ -29,8 +29,9 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
         private readonly VttSessionWorkspaceStatePersistenceService _workspaceStatePersistenceService;
         private readonly ActionProcessor _actionProcessor;
         private readonly ActionValidationService _actionValidationService;
-        private readonly Dictionary<string, string> _persistedJoinCodesByPath = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord> _persistedSessionRegistryByPath = new(StringComparer.OrdinalIgnoreCase);
         private readonly string _knownGameSessionRegistryPath;
+        private string? _knownGameSessionRegistryWarning;
 
         public WorkspaceRecoveryDiagnostics? LastRestoreDiagnostics { get; private set; }
 
@@ -106,7 +107,9 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
                         FileName = entry.FileName,
                         JoinCode = joinCode,
                         Exists = entry.Exists,
-                        LastWriteTimeUtc = entry.LastWriteTimeUtc
+                        LastWriteTimeUtc = entry.LastWriteTimeUtc,
+                        LastJoinCodeUpdatedUtc = GetRegistryRecord(entry.FullPath).LastJoinCodeUpdatedUtc,
+                        LastJoinedUtc = GetRegistryRecord(entry.FullPath).LastJoinedUtc
                     };
                 })
                 .ToList();
@@ -139,7 +142,7 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
 
             var fullPath = Path.GetFullPath(path);
             _snapshotFileLibraryService.RemovePath(fullPath);
-            _persistedJoinCodesByPath.Remove(fullPath);
+            _persistedSessionRegistryByPath.Remove(fullPath);
             PersistKnownGameSessionRegistry();
             return true;
         }
@@ -147,6 +150,63 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
         public void SetCanCreateSession(bool canCreateSession)
         {
             State.CanCreateSession = canCreateSession;
+        }
+
+        public void SetKnownGameSessionJoinCode(string path, string joinCode)
+        {
+            var knownSession = RequireKnownSessionForJoinCodeManagement(path);
+
+            var normalizedJoinCode = NormalizeJoinCode(joinCode);
+
+            var conflict = IsJoinCodeConflict(knownSession.FullPath, normalizedJoinCode);
+
+            if (conflict)
+            {
+                throw new InvalidOperationException("Join code is already assigned to another known session.");
+            }
+
+            var registryRecord = GetRegistryRecord(knownSession.FullPath);
+            registryRecord.JoinCode = normalizedJoinCode;
+            registryRecord.LastJoinCodeUpdatedUtc = DateTime.UtcNow;
+            PersistKnownGameSessionRegistry();
+        }
+
+        public string ResetKnownGameSessionJoinCodeToDefault(string path)
+        {
+            var knownSession = RequireKnownSessionForJoinCodeManagement(path);
+            var defaultJoinCode = BuildJoinCode(knownSession.FileName);
+            var availableJoinCode = BuildAvailableJoinCode(knownSession.FullPath, defaultJoinCode);
+            var registryRecord = GetRegistryRecord(knownSession.FullPath);
+            registryRecord.JoinCode = availableJoinCode;
+            registryRecord.LastJoinCodeUpdatedUtc = DateTime.UtcNow;
+            PersistKnownGameSessionRegistry();
+            return availableJoinCode;
+        }
+
+        public string GenerateKnownGameSessionJoinCode(string path)
+        {
+            var knownSession = RequireKnownSessionForJoinCodeManagement(path);
+            var seed = BuildJoinCode(knownSession.FileName);
+            var availableJoinCode = BuildAvailableJoinCode(knownSession.FullPath, $"{seed}-ALT");
+            var registryRecord = GetRegistryRecord(knownSession.FullPath);
+            registryRecord.JoinCode = availableJoinCode;
+            registryRecord.LastJoinCodeUpdatedUtc = DateTime.UtcNow;
+            PersistKnownGameSessionRegistry();
+            return availableJoinCode;
+        }
+
+        public string GetKnownGameSessionJoinCode(string path)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+            var fullPath = Path.GetFullPath(path);
+            if (_persistedSessionRegistryByPath.TryGetValue(fullPath, out var registryRecord)
+                && !string.IsNullOrWhiteSpace(registryRecord.JoinCode))
+            {
+                return registryRecord.JoinCode;
+            }
+
+            return BuildJoinCode(Path.GetFileName(fullPath));
         }
 
         public string GetKnownGameSessionRegistryPath()
@@ -159,9 +219,69 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
             return File.Exists(_knownGameSessionRegistryPath);
         }
 
+        public string? GetKnownGameSessionRegistryWarning()
+        {
+            return _knownGameSessionRegistryWarning;
+        }
+
         public void SaveKnownGameSessionRegistry()
         {
             PersistKnownGameSessionRegistry();
+            _knownGameSessionRegistryWarning = null;
+        }
+
+        public void ReloadKnownGameSessionRegistry()
+        {
+            _persistedSessionRegistryByPath.Clear();
+            LoadKnownGameSessionRegistry();
+        }
+
+        private SnapshotFileDescriptor RequireKnownSessionForJoinCodeManagement(string path)
+        {
+            if (!State.CanCreateSession)
+            {
+                throw new InvalidOperationException("Admin rights are required to manage join codes.");
+            }
+
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+            var fullPath = Path.GetFullPath(path);
+            var knownSession = ListKnownVttSessionFiles().FirstOrDefault(entry =>
+                string.Equals(entry.FullPath, fullPath, StringComparison.OrdinalIgnoreCase));
+
+            if (knownSession is null)
+            {
+                throw new InvalidOperationException("Known session path was not found.");
+            }
+
+            return knownSession;
+        }
+
+        private bool IsJoinCodeConflict(string sessionPath, string joinCode)
+        {
+            return ListKnownGameSessions().Any(entry =>
+                !string.Equals(entry.FilePath, sessionPath, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(entry.JoinCode, joinCode, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private string BuildAvailableJoinCode(string sessionPath, string seed)
+        {
+            var normalizedSeed = NormalizeJoinCode(seed);
+            if (!IsJoinCodeConflict(sessionPath, normalizedSeed))
+            {
+                return normalizedSeed;
+            }
+
+            for (var suffix = 2; suffix <= 9999; suffix++)
+            {
+                var candidate = NormalizeJoinCode($"{normalizedSeed}-{suffix}");
+                if (!IsJoinCodeConflict(sessionPath, candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            throw new InvalidOperationException("Unable to allocate a unique join code.");
         }
 
         private void EnsurePersistedJoinCodeForSessionPath(string fullPath)
@@ -171,47 +291,83 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
                 return;
             }
 
-            if (_persistedJoinCodesByPath.ContainsKey(fullPath))
+            if (_persistedSessionRegistryByPath.ContainsKey(fullPath))
             {
                 return;
             }
 
-            _persistedJoinCodesByPath[fullPath] = BuildJoinCode(Path.GetFileName(fullPath));
+            _persistedSessionRegistryByPath[fullPath] = new KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord
+            {
+                JoinCode = BuildJoinCode(Path.GetFileName(fullPath))
+            };
         }
 
         private string ResolvePersistedJoinCode(string fullPath, string fileName, out bool joinCodeAssigned)
         {
             joinCodeAssigned = false;
 
-            if (_persistedJoinCodesByPath.TryGetValue(fullPath, out var existingJoinCode)
-                && !string.IsNullOrWhiteSpace(existingJoinCode))
+            if (_persistedSessionRegistryByPath.TryGetValue(fullPath, out var existingRecord)
+                && !string.IsNullOrWhiteSpace(existingRecord.JoinCode))
             {
-                return existingJoinCode;
+                return existingRecord.JoinCode;
             }
 
             var generatedJoinCode = BuildJoinCode(fileName);
-            _persistedJoinCodesByPath[fullPath] = generatedJoinCode;
+            _persistedSessionRegistryByPath[fullPath] = new KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord
+            {
+                JoinCode = generatedJoinCode
+            };
             joinCodeAssigned = true;
             return generatedJoinCode;
         }
 
         private void PersistKnownGameSessionRegistry()
         {
-            _knownGameSessionRegistryPersistenceService.SaveRegistry(_knownGameSessionRegistryPath, _persistedJoinCodesByPath);
+            _knownGameSessionRegistryPersistenceService.SaveRegistry(_knownGameSessionRegistryPath, _persistedSessionRegistryByPath);
         }
 
         private void LoadKnownGameSessionRegistry()
         {
-            var loadedJoinCodes = _knownGameSessionRegistryPersistenceService.LoadRegistry(_knownGameSessionRegistryPath);
-            foreach (var entry in loadedJoinCodes)
+            try
             {
-                _persistedJoinCodesByPath[entry.Key] = entry.Value;
+                var loadedRegistry = _knownGameSessionRegistryPersistenceService.LoadRegistry(_knownGameSessionRegistryPath);
+                foreach (var entry in loadedRegistry)
+                {
+                    _persistedSessionRegistryByPath[entry.Key] = entry.Value;
+                }
+
+                _knownGameSessionRegistryWarning = null;
             }
+            catch (InvalidOperationException ex)
+            {
+                _knownGameSessionRegistryWarning = ex.Message;
+            }
+        }
+
+        private KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord GetRegistryRecord(string fullPath)
+        {
+            if (_persistedSessionRegistryByPath.TryGetValue(fullPath, out var existingRecord))
+            {
+                return existingRecord;
+            }
+
+            var createdRecord = new KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord
+            {
+                JoinCode = BuildJoinCode(Path.GetFileName(fullPath))
+            };
+            _persistedSessionRegistryByPath[fullPath] = createdRecord;
+            return createdRecord;
         }
 
         private static string BuildKnownGameSessionRegistryPath()
         {
             return Path.Combine(AppContext.BaseDirectory, "App_Data", "known-game-sessions.json");
+        }
+
+        private static string NormalizeJoinCode(string joinCode)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(joinCode);
+            return joinCode.Trim().ToUpperInvariant();
         }
 
         public bool TryJoinExistingGame(string? joinCode, out string message)
@@ -238,24 +394,35 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
                     return false;
                 }
 
-                return TryOpenJoinSession(matched.FilePath, "Joined existing game session.", out message);
+                return TryOpenJoinSession(matched.FilePath, "Joined existing game session.", out message, markJoined: true);
             }
 
             var samplePath = TryResolveSessionFromDocsSamples(normalizedCode);
             if (!string.IsNullOrWhiteSpace(samplePath))
             {
-                return TryOpenJoinSession(samplePath, "Joined existing game session from sample snapshots.", out message);
+                return TryOpenJoinSession(samplePath, "Joined existing game session from sample snapshots.", out message, markJoined: false);
             }
 
             message = "Join code did not match any known game session.";
             return false;
         }
 
-        private bool TryOpenJoinSession(string path, string successMessage, out string message)
+        private bool TryOpenJoinSession(string path, string successMessage, out string message, bool markJoined)
         {
             try
             {
                 OpenVttSessionFromFile(path);
+
+                if (markJoined)
+                {
+                    var fullPath = Path.GetFullPath(path);
+                    if (_persistedSessionRegistryByPath.TryGetValue(fullPath, out var registryRecord))
+                    {
+                        registryRecord.LastJoinedUtc = DateTime.UtcNow;
+                        PersistKnownGameSessionRegistry();
+                    }
+                }
+
                 message = successMessage;
                 return true;
             }

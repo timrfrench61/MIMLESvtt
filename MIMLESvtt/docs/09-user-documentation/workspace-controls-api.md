@@ -21,6 +21,29 @@ This is a user-facing control reference for pre-alpha.
 - **Missing tabletop**: shows tabletop unavailable message.
 - **Page not loading**: shows page-loading error message.
 
+### Slide-panel interaction model (layering and state)
+- Workspace uses a right-side slide panel above the tabletop layer.
+- Opening panel state:
+  - tabletop remains visible behind the panel,
+  - panel backdrop is active and closes panel when clicked.
+- Closing panel state:
+  - panel is hidden,
+  - tabletop remains interactive/visible,
+  - workspace session state is preserved (no reset on panel close).
+
+### Controls grouping and expected flow
+- Grouping in panel follows this practical order:
+  1. Session/file operations
+  2. Session summary/title
+  3. Mode/dev/turn/participant controls
+  4. Setup/surface/board interaction controls
+  5. Piece and marker editing controls
+- Expected user flow:
+  - open panel,
+  - perform setup or play control action,
+  - close panel to focus on tabletop,
+  - reopen as needed without losing board/session context.
+
 ---
 
 ## 2. Session and File Controls

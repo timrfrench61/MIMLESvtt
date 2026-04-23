@@ -216,3 +216,16 @@ Define tests for multi-client consistency, reconnect, authority, and ordering.
 5. NW-006 Define permissions and visibility rules  
 6. NW-007 Define reconnect behavior  
 7. NW-009 Define minimal networking MVP
+
+## Progress Snapshot (Pre-networking Foundation)
+
+- Completed foundation relevant to networking join flow:
+  - authenticated entry points with default admin role gating
+  - persisted known-session join-code registry across restarts
+  - admin-managed join-code lifecycle (set/reset/generate)
+  - join audit timestamps for operational visibility
+
+- Next networking-aligned steps:
+  1. Define hosted-session identity model independent of local file path.
+  2. Define join-code claim and ownership rules for host and reconnect scenarios.
+  3. Integrate join-code registry policy with future server-authoritative session directory.
