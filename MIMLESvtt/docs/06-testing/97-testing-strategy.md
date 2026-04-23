@@ -301,6 +301,30 @@ Prevent previously working behavior from breaking during refactor or feature gro
 
 Every bug that exposes a domain or persistence defect should result in a regression test.
 
+### Regression Promotion Checklist
+
+Promote a test path into regression when:
+
+1. The behavior is part of an active gameplay/import workflow.
+2. A defect fix or high-risk branch recently touched the behavior.
+3. The fixture is deterministic and practical for local + CI execution.
+4. Assertion output is diagnosis-ready without extra repro steps.
+
+---
+
+## Automated Execution Guidance
+
+For engine-affecting feature slices:
+
+1. Run targeted unit tests for modified validators/mappers/models.
+2. Run integration tests for changed service handoff and summary propagation.
+3. Run applicable regression cases when fixing defects or stabilizing a slice.
+
+For UI-heavy slices:
+
+- run page/component tests first,
+- run integration tests when UI behavior now invokes new service-stage behavior.
+
 ---
 
 ## Test Data and Fixtures
@@ -389,3 +413,7 @@ The highest priority is always:
 - correct action behavior
 - reliable persistence
 - stable module boundaries
+
+See implementation companion:
+
+- `docs/06-testing/67-engine-test-strategy-implementation-notes.md`

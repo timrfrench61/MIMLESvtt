@@ -168,6 +168,46 @@ public static class ContentValidationUtilities
             }
         }
 
+        if (entry is UnitCounterContentEntry unitCounter)
+        {
+            if (string.IsNullOrWhiteSpace(unitCounter.UnitType))
+            {
+                result.Errors.Add("UnitCounter UnitType is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(unitCounter.Side))
+            {
+                result.Errors.Add("UnitCounter Side is required.");
+            }
+
+            if (unitCounter.StrengthOrValue < 0)
+            {
+                result.Errors.Add("UnitCounter StrengthOrValue must be 0 or greater.");
+            }
+
+            if (unitCounter.Movement < 0)
+            {
+                result.Errors.Add("UnitCounter Movement must be 0 or greater.");
+            }
+
+            if (unitCounter.DefenseOrArmor < 0)
+            {
+                result.Errors.Add("UnitCounter DefenseOrArmor must be 0 or greater.");
+            }
+
+            if (unitCounter.RangeOrReach is < 0)
+            {
+                result.Errors.Add("UnitCounter RangeOrReach must be 0 or greater when provided.");
+            }
+
+            if (entry.Metadata.Extensions.TryGetValue("ScenarioMode", out var mode)
+                && string.Equals(mode?.ToString(), "Scenario", StringComparison.OrdinalIgnoreCase)
+                && string.IsNullOrWhiteSpace(unitCounter.Faction))
+            {
+                result.Errors.Add("UnitCounter Faction is required when ScenarioMode is Scenario.");
+            }
+        }
+
         return result;
     }
 }

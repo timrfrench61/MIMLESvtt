@@ -1,0 +1,95 @@
+@using MIMLESvtt.src.Application.Content.ManualEntry
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="card-title mb-0">Manual GM Entry Workflow Shell</h5>
+            <span class="badge text-bg-secondary">Reusable Workflow</span>
+        </div>
+
+        <div class="mb-2">
+            <label class="form-label">Content Type</label>
+            <InputSelect class="form-select" @bind-Value="SelectedRoute">
+                @foreach (var adapter in adapters)
+                {
+                    <option value="@adapter.ListRoute">@adapter.ContentTypeName</option>
+                }
+            </InputSelect>
+        </div>
+
+        @if (currentAdapter is not null)
+        {
+            <ol class="mb-3">
+                <li><strong>List:</strong> Navigate to <code>@currentAdapter.ListRoute</code></li>
+                <li><strong>Create / Edit:</strong> Use @currentAdapter.EntryLabel mode on selected page.</li>
+                <li><strong>Detail / Review:</strong> Confirm saved values in @currentAdapter.DetailLabel section.</li>
+                <li><strong>Return / Continue:</strong> Repeat for additional entries.</li>
+            </ol>
+        }
+
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-sm btn-primary" @onclick="MarkSaveSuccess">Simulate Save Success</button>
+            <button class="btn btn-sm btn-outline-danger" @onclick="MarkSaveFailure">Simulate Save Failure</button>
+            <button class="btn btn-sm btn-outline-warning" @onclick="MarkCancel">Simulate Cancel</button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(statusMessage))
+        {
+            <div class="alert @(statusSucceeded ? "alert-success" : "alert-danger") mt-3 mb-0">@statusMessage</div>
+        }
+    </div>
+</div>
+
+@code {
+    private readonly ContentManualEntryWorkflowRegistry registry = new();
+    private List<IContentManualEntryWorkflowAdapter> adapters = [];
+    private string selectedRoute = string.Empty;
+    private IContentManualEntryWorkflowAdapter? currentAdapter;
+    private string statusMessage = string.Empty;
+    private bool statusSucceeded;
+
+    protected override void OnInitialized()
+    {
+        adapters = registry.ListAdapters().ToList();
+        selectedRoute = adapters.FirstOrDefault()?.ListRoute ?? string.Empty;
+        ResolveAdapter();
+    }
+
+    private string SelectedRoute
+    {
+        get => selectedRoute;
+        set
+        {
+            selectedRoute = value;
+            ResolveAdapter();
+        }
+    }
+
+    private void ResolveAdapter()
+    {
+        currentAdapter = adapters.FirstOrDefault(a => string.Equals(a.ListRoute, selectedRoute, StringComparison.Ordinal));
+    }
+
+    private void MarkSaveSuccess()
+    {
+        ResolveAdapter();
+        statusSucceeded = true;
+        statusMessage = currentAdapter is null
+            ? "Saved entry through manual workflow."
+            : $"Saved {currentAdapter.ContentTypeName} entry and returned to list/detail flow.";
+    }
+
+    private void MarkSaveFailure()
+    {
+        ResolveAdapter();
+        statusSucceeded = false;
+        statusMessage = "Save failed. Validation summary should block persistence and keep user on entry form.";
+    }
+
+    private void MarkCancel()
+    {
+        ResolveAdapter();
+        statusSucceeded = true;
+        statusMessage = "Canceled edit. No mutation persisted and workflow returned safely.";
+    }
+}

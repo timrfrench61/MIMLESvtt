@@ -74,6 +74,20 @@ Reference usage note:
 - This file remains reference-only.
 - Active execution planning should be maintained in `00-backlog.md` and category backlog docs.
 
+Recent backlog intake references from `00-overview` (58-68):
+
+- `docs/05-backlog/58-backlog-unit-counter-content-model.md`
+- `docs/05-backlog/59-backlog-manual-gm-entry-workflow.md`
+- `docs/05-backlog/60-backlog-gm-monster-entry-screen-slice.md`
+- `docs/05-backlog/61-backlog-gm-treasure-entry-screen-slice.md`
+- `docs/05-backlog/62-backlog-gm-equipment-entry-screen-slice.md`
+- `docs/05-backlog/63-backlog-gm-magic-item-entry-screen-slice.md`
+- `docs/05-backlog/64-backlog-reusable-csv-import-pipeline.md`
+- `docs/05-backlog/65-backlog-import-validation-model.md`
+- `docs/05-backlog/66-backlog-test-data-packet-format.md`
+- `docs/05-backlog/67-backlog-engine-test-strategy.md`
+- `docs/05-backlog/68-backlog-subsystem-test-boundaries.md`
+
 ---
 
 ## Backlog Items

@@ -24,6 +24,17 @@ public partial class ContentEquipment
         public string Type { get; init; } = string.Empty;
         public decimal Cost { get; init; }
         public decimal Weight { get; init; }
+        public string WeightUnit { get; init; } = string.Empty;
+        public string Description { get; init; } = string.Empty;
+        public string Source { get; init; } = string.Empty;
+        public string Tags { get; init; } = string.Empty;
+        public Dictionary<string, string> Extensions { get; init; } = new(StringComparer.Ordinal);
+    }
+
+    private sealed class ExtensionEditorRow
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
     }
 
     private string searchQuery = string.Empty;
@@ -37,6 +48,11 @@ public partial class ContentEquipment
     private string editType = string.Empty;
     private decimal? editCost;
     private decimal? editWeight;
+    private string editWeightUnit = string.Empty;
+    private string editDescription = string.Empty;
+    private string editSource = string.Empty;
+    private string editTags = string.Empty;
+    private List<ExtensionEditorRow> extensionRows = [];
     private string editorValidationMessage = string.Empty;
     private bool editorValidationPassed;
     private string editorSaveMessage = string.Empty;
@@ -44,10 +60,10 @@ public partial class ContentEquipment
 
     private readonly List<EquipmentListItem> equipmentItems =
     [
-        new() { Id = "EQ001", Name = "Longsword", Category = "Weapon", Type = "Melee", Cost = 15, Weight = 3 },
-        new() { Id = "EQ002", Name = "Shield", Category = "Armor", Type = "Defense", Cost = 10, Weight = 6 },
-        new() { Id = "EQ003", Name = "Rope", Category = "Tool", Type = "Utility", Cost = 1, Weight = 5 },
-        new() { Id = "EQ004", Name = "Ration Pack", Category = "Consumable", Type = "Supply", Cost = 2, Weight = 1 }
+        new() { Id = "EQ001", Name = "Longsword", Category = "Weapon", Type = "Melee", Cost = 15, Weight = 3, WeightUnit = "lb", Description = "Standard martial blade", Source = "Manual", Tags = "weapon,starter", Extensions = new Dictionary<string, string>(StringComparer.Ordinal) { ["AD&D1.WeaponSpeed"] = "5" } },
+        new() { Id = "EQ002", Name = "Shield", Category = "Armor", Type = "Defense", Cost = 10, Weight = 6, WeightUnit = "lb", Description = "Basic defensive shield", Source = "Manual", Tags = "armor", Extensions = new Dictionary<string, string>(StringComparer.Ordinal) },
+        new() { Id = "EQ003", Name = "Rope", Category = "Tool", Type = "Utility", Cost = 1, Weight = 5, WeightUnit = "lb", Description = "General utility rope", Source = "Import", Tags = "tool", Extensions = new Dictionary<string, string>(StringComparer.Ordinal) },
+        new() { Id = "EQ004", Name = "Ration Pack", Category = "Consumable", Type = "Supply", Cost = 2, Weight = 1, WeightUnit = "lb", Description = "Travel food pack", Source = "Pack", Tags = "consumable", Extensions = new Dictionary<string, string>(StringComparer.Ordinal) }
     ];
 
     private List<string> AvailableCategories => equipmentItems
@@ -115,6 +131,11 @@ public partial class ContentEquipment
         editType = selected.Type;
         editCost = selected.Cost;
         editWeight = selected.Weight;
+        editWeightUnit = selected.WeightUnit;
+        editDescription = selected.Description;
+        editSource = selected.Source;
+        editTags = selected.Tags;
+        extensionRows = selected.Extensions.Select(e => new ExtensionEditorRow { Key = e.Key, Value = e.Value }).ToList();
         editorValidationMessage = string.Empty;
         editorValidationPassed = false;
         editorSaveMessage = string.Empty;
@@ -137,6 +158,11 @@ public partial class ContentEquipment
         editType = string.Empty;
         editCost = null;
         editWeight = null;
+        editWeightUnit = "lb";
+        editDescription = string.Empty;
+        editSource = "Manual";
+        editTags = string.Empty;
+        extensionRows = [];
         editorValidationMessage = string.Empty;
         editorValidationPassed = false;
         editorSaveMessage = string.Empty;
@@ -166,13 +192,6 @@ public partial class ContentEquipment
         {
             editorValidationPassed = false;
             editorValidationMessage = "Name is required.";
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(editCategory))
-        {
-            editorValidationPassed = false;
-            editorValidationMessage = "Category is required.";
             return;
         }
 
@@ -211,8 +230,19 @@ public partial class ContentEquipment
             return;
         }
 
+        for (var i = 0; i < extensionRows.Count; i++)
+        {
+            var row = extensionRows[i];
+            if (string.IsNullOrWhiteSpace(row.Key) && !string.IsNullOrWhiteSpace(row.Value))
+            {
+                editorValidationPassed = false;
+                editorValidationMessage = $"Extension row {i + 1} requires a non-empty key.";
+                return;
+            }
+        }
+
         editorValidationPassed = true;
-        editorValidationMessage = "Equipment editor form passed required-field and numeric validation.";
+        editorValidationMessage = "Equipment editor form passed required-field, numeric, and extension validation.";
     }
 
     private void SaveEquipment()
@@ -229,6 +259,14 @@ public partial class ContentEquipment
         var normalizedName = editName.Trim();
         var normalizedCategory = editCategory.Trim();
         var normalizedType = editType.Trim();
+        var normalizedWeightUnit = string.IsNullOrWhiteSpace(editWeightUnit) ? "lb" : editWeightUnit.Trim();
+        var normalizedDescription = editDescription?.Trim() ?? string.Empty;
+        var normalizedSource = string.IsNullOrWhiteSpace(editSource) ? "Manual" : editSource.Trim();
+        var normalizedTags = editTags?.Trim() ?? string.Empty;
+        var normalizedExtensions = extensionRows
+            .Where(r => !string.IsNullOrWhiteSpace(r.Key))
+            .GroupBy(r => r.Key.Trim(), StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Last().Value?.Trim() ?? string.Empty, StringComparer.Ordinal);
 
         if (editorMode == EquipmentEditorMode.Create)
         {
@@ -246,13 +284,18 @@ public partial class ContentEquipment
                 Category = normalizedCategory,
                 Type = normalizedType,
                 Cost = editCost!.Value,
-                Weight = editWeight!.Value
+                Weight = editWeight!.Value,
+                WeightUnit = normalizedWeightUnit,
+                Description = normalizedDescription,
+                Source = normalizedSource,
+                Tags = normalizedTags,
+                Extensions = normalizedExtensions
             });
 
             selectedEquipmentId = normalizedId;
             editorMode = EquipmentEditorMode.Edit;
             editorSaveSucceeded = true;
-            editorSaveMessage = "Saved new equipment.";
+            editorSaveMessage = "Saved new equipment and returned to detail/list flow.";
             return;
         }
 
@@ -282,12 +325,32 @@ public partial class ContentEquipment
             Category = normalizedCategory,
             Type = normalizedType,
             Cost = editCost!.Value,
-            Weight = editWeight!.Value
+            Weight = editWeight!.Value,
+            WeightUnit = normalizedWeightUnit,
+            Description = normalizedDescription,
+            Source = normalizedSource,
+            Tags = normalizedTags,
+            Extensions = normalizedExtensions
         };
 
         selectedEquipmentId = normalizedId;
         editorSaveSucceeded = true;
-        editorSaveMessage = "Saved equipment changes.";
+        editorSaveMessage = "Saved equipment changes and returned to detail/list flow.";
+    }
+
+    private void AddExtensionRow()
+    {
+        extensionRows.Add(new ExtensionEditorRow());
+    }
+
+    private void RemoveExtensionRow(int index)
+    {
+        if (index < 0 || index >= extensionRows.Count)
+        {
+            return;
+        }
+
+        extensionRows.RemoveAt(index);
     }
 
     private void CancelEdit()
@@ -303,6 +366,11 @@ public partial class ContentEquipment
                 editType = selected.Type;
                 editCost = selected.Cost;
                 editWeight = selected.Weight;
+                editWeightUnit = selected.WeightUnit;
+                editDescription = selected.Description;
+                editSource = selected.Source;
+                editTags = selected.Tags;
+                extensionRows = selected.Extensions.Select(e => new ExtensionEditorRow { Key = e.Key, Value = e.Value }).ToList();
             }
         }
         else
@@ -313,12 +381,17 @@ public partial class ContentEquipment
             editType = string.Empty;
             editCost = null;
             editWeight = null;
+            editWeightUnit = "lb";
+            editDescription = string.Empty;
+            editSource = "Manual";
+            editTags = string.Empty;
+            extensionRows = [];
         }
 
         editorValidationMessage = string.Empty;
         editorValidationPassed = false;
         editorSaveSucceeded = true;
-        editorSaveMessage = "Canceled edit changes.";
+        editorSaveMessage = "Canceled edit changes. No mutation persisted; returned to detail/list flow.";
     }
 
     internal void TestSelectEquipment(string id) => SelectEquipment(id);
@@ -332,6 +405,17 @@ public partial class ContentEquipment
         editCost = cost;
         editWeight = weight;
     }
+    internal void TestSetOptionalFields(string weightUnit, string description, string source, string tags)
+    {
+        editWeightUnit = weightUnit;
+        editDescription = description;
+        editSource = source;
+        editTags = tags;
+    }
+    internal void TestSetExtensions(params (string Key, string Value)[] entries)
+    {
+        extensionRows = entries.Select(e => new ExtensionEditorRow { Key = e.Key, Value = e.Value }).ToList();
+    }
 
     internal void TestValidateEditorForm() => ValidateEditorForm();
     internal void TestSaveEquipment() => SaveEquipment();
@@ -341,6 +425,11 @@ public partial class ContentEquipment
     internal string TestEditorSaveMessage => editorSaveMessage;
     internal bool TestEditorSaveSucceeded => editorSaveSucceeded;
     internal string TestSelectedEquipmentName => SelectedEquipment?.Name ?? string.Empty;
+    internal string TestSelectedEquipmentId => SelectedEquipment?.Id ?? string.Empty;
+    internal string TestSelectedEquipmentExtensionValue(string key)
+        => SelectedEquipment is null
+            ? string.Empty
+            : (SelectedEquipment.Extensions.TryGetValue(key, out var value) ? value : string.Empty);
     internal bool TestEquipmentExists(string id, string expectedName)
         => equipmentItems.Any(i => string.Equals(i.Id, id, StringComparison.Ordinal) && string.Equals(i.Name, expectedName, StringComparison.Ordinal));
 }

@@ -23,6 +23,16 @@ public partial class ContentTreasure
         public string TreasureType { get; init; } = string.Empty;
         public decimal Value { get; init; }
         public int Quantity { get; init; }
+        public List<TreasureComponentRow> Components { get; init; } = [];
+    }
+
+    private sealed class TreasureComponentRow
+    {
+        public string ComponentId { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string ComponentType { get; set; } = string.Empty;
+        public decimal? Quantity { get; set; }
+        public decimal? ValueContribution { get; set; }
     }
 
     private string searchQuery = string.Empty;
@@ -34,6 +44,7 @@ public partial class ContentTreasure
     private string editTreasureType = string.Empty;
     private decimal? editValue;
     private int? editQuantity;
+    private List<TreasureComponentRow> editComponents = [];
     private string editorValidationMessage = string.Empty;
     private bool editorValidationPassed;
     private string editorSaveMessage = string.Empty;
@@ -41,10 +52,10 @@ public partial class ContentTreasure
 
     private readonly List<TreasureListItem> treasureItems =
     [
-        new() { Id = "TRS001", Name = "Goblin Coin Pouch", TreasureType = "Coin", Value = 27, Quantity = 1 },
-        new() { Id = "TRS002", Name = "Small Gem Cache", TreasureType = "Bundle", Value = 150, Quantity = 3 },
-        new() { Id = "TRS003", Name = "Ancient Relic", TreasureType = "Artifact", Value = 900, Quantity = 1 },
-        new() { Id = "TRS004", Name = "Bandit Stash", TreasureType = "Hoard", Value = 320, Quantity = 2 }
+        new() { Id = "TRS001", Name = "Goblin Coin Pouch", TreasureType = "Coin", Value = 27, Quantity = 1, Components = [] },
+        new() { Id = "TRS002", Name = "Small Gem Cache", TreasureType = "Bundle", Value = 150, Quantity = 3, Components = [new TreasureComponentRow { ComponentId = "GEM001", Name = "Small Ruby", ComponentType = "Gem", Quantity = 3, ValueContribution = 50 }] },
+        new() { Id = "TRS003", Name = "Ancient Relic", TreasureType = "Artifact", Value = 900, Quantity = 1, Components = [new TreasureComponentRow { ComponentId = "REL001", Name = "Relic Core", ComponentType = "Artifact", Quantity = 1, ValueContribution = 900 }] },
+        new() { Id = "TRS004", Name = "Bandit Stash", TreasureType = "Hoard", Value = 320, Quantity = 2, Components = [] }
     ];
 
     private List<TreasureListItem> VisibleTreasure
@@ -94,6 +105,7 @@ public partial class ContentTreasure
         editTreasureType = selected.TreasureType;
         editValue = selected.Value;
         editQuantity = selected.Quantity;
+        editComponents = selected.Components.Select(CloneComponent).ToList();
         editorValidationMessage = string.Empty;
         editorValidationPassed = false;
         editorSaveMessage = string.Empty;
@@ -114,6 +126,7 @@ public partial class ContentTreasure
         editTreasureType = string.Empty;
         editValue = null;
         editQuantity = null;
+        editComponents = [];
         editorValidationMessage = string.Empty;
         editorValidationPassed = false;
         editorSaveMessage = string.Empty;
@@ -171,8 +184,65 @@ public partial class ContentTreasure
             return;
         }
 
+        for (var i = 0; i < editComponents.Count; i++)
+        {
+            var row = editComponents[i];
+            var rowHasValues = !string.IsNullOrWhiteSpace(row.ComponentId)
+                || !string.IsNullOrWhiteSpace(row.Name)
+                || !string.IsNullOrWhiteSpace(row.ComponentType)
+                || row.Quantity.HasValue
+                || row.ValueContribution.HasValue;
+
+            if (!rowHasValues)
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(row.ComponentId) && string.IsNullOrWhiteSpace(row.Name))
+            {
+                editorValidationPassed = false;
+                editorValidationMessage = $"Component row {i + 1} requires a Component Id or Name.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(row.ComponentType))
+            {
+                editorValidationPassed = false;
+                editorValidationMessage = $"Component row {i + 1} requires a Component Type.";
+                return;
+            }
+
+            if (!row.Quantity.HasValue)
+            {
+                editorValidationPassed = false;
+                editorValidationMessage = $"Component row {i + 1} requires Quantity.";
+                return;
+            }
+
+            if (row.Quantity.Value < 0)
+            {
+                editorValidationPassed = false;
+                editorValidationMessage = $"Component row {i + 1} Quantity must be 0 or greater.";
+                return;
+            }
+
+            if (!row.ValueContribution.HasValue)
+            {
+                editorValidationPassed = false;
+                editorValidationMessage = $"Component row {i + 1} requires Value Contribution.";
+                return;
+            }
+
+            if (row.ValueContribution.Value < 0)
+            {
+                editorValidationPassed = false;
+                editorValidationMessage = $"Component row {i + 1} Value Contribution must be 0 or greater.";
+                return;
+            }
+        }
+
         editorValidationPassed = true;
-        editorValidationMessage = "Treasure editor form passed required-field and numeric validation.";
+        editorValidationMessage = "Treasure editor form passed required, numeric, and composition validation.";
     }
 
     private void SaveTreasure()
@@ -188,6 +258,22 @@ public partial class ContentTreasure
         var normalizedId = editId.Trim();
         var normalizedName = editName.Trim();
         var normalizedType = editTreasureType.Trim();
+        var normalizedComponents = editComponents
+            .Where(row =>
+                !string.IsNullOrWhiteSpace(row.ComponentId)
+                || !string.IsNullOrWhiteSpace(row.Name)
+                || !string.IsNullOrWhiteSpace(row.ComponentType)
+                || row.Quantity.HasValue
+                || row.ValueContribution.HasValue)
+            .Select(row => new TreasureComponentRow
+            {
+                ComponentId = row.ComponentId.Trim(),
+                Name = row.Name.Trim(),
+                ComponentType = row.ComponentType.Trim(),
+                Quantity = row.Quantity,
+                ValueContribution = row.ValueContribution
+            })
+            .ToList();
 
         if (editorMode == TreasureEditorMode.Create)
         {
@@ -204,13 +290,14 @@ public partial class ContentTreasure
                 Name = normalizedName,
                 TreasureType = normalizedType,
                 Value = editValue!.Value,
-                Quantity = editQuantity!.Value
+                Quantity = editQuantity!.Value,
+                Components = normalizedComponents
             });
 
             selectedTreasureId = normalizedId;
             editorMode = TreasureEditorMode.Edit;
             editorSaveSucceeded = true;
-            editorSaveMessage = "Saved new treasure.";
+            editorSaveMessage = "Saved new treasure and returned to detail/list flow.";
             return;
         }
 
@@ -239,12 +326,28 @@ public partial class ContentTreasure
             Name = normalizedName,
             TreasureType = normalizedType,
             Value = editValue!.Value,
-            Quantity = editQuantity!.Value
+            Quantity = editQuantity!.Value,
+            Components = normalizedComponents
         };
 
         selectedTreasureId = normalizedId;
         editorSaveSucceeded = true;
-        editorSaveMessage = "Saved treasure changes.";
+        editorSaveMessage = "Saved treasure changes and returned to detail/list flow.";
+    }
+
+    private void AddComponentRow()
+    {
+        editComponents.Add(new TreasureComponentRow());
+    }
+
+    private void RemoveComponentRow(int index)
+    {
+        if (index < 0 || index >= editComponents.Count)
+        {
+            return;
+        }
+
+        editComponents.RemoveAt(index);
     }
 
     private void CancelEdit()
@@ -259,6 +362,7 @@ public partial class ContentTreasure
                 editTreasureType = selected.TreasureType;
                 editValue = selected.Value;
                 editQuantity = selected.Quantity;
+                editComponents = selected.Components.Select(CloneComponent).ToList();
             }
         }
         else
@@ -268,12 +372,25 @@ public partial class ContentTreasure
             editTreasureType = string.Empty;
             editValue = null;
             editQuantity = null;
+            editComponents = [];
         }
 
         editorValidationMessage = string.Empty;
         editorValidationPassed = false;
         editorSaveSucceeded = true;
-        editorSaveMessage = "Canceled edit changes.";
+        editorSaveMessage = "Canceled edit changes. No mutation persisted; returned to detail/list flow.";
+    }
+
+    private static TreasureComponentRow CloneComponent(TreasureComponentRow row)
+    {
+        return new TreasureComponentRow
+        {
+            ComponentId = row.ComponentId,
+            Name = row.Name,
+            ComponentType = row.ComponentType,
+            Quantity = row.Quantity,
+            ValueContribution = row.ValueContribution
+        };
     }
 
     internal void TestSelectTreasure(string id) => SelectTreasure(id);
@@ -286,6 +403,19 @@ public partial class ContentTreasure
         editValue = value;
         editQuantity = quantity;
     }
+    internal void TestSetComponentRows(params (string ComponentId, string Name, string ComponentType, decimal? Quantity, decimal? ValueContribution)[] rows)
+    {
+        editComponents = rows
+            .Select(r => new TreasureComponentRow
+            {
+                ComponentId = r.ComponentId,
+                Name = r.Name,
+                ComponentType = r.ComponentType,
+                Quantity = r.Quantity,
+                ValueContribution = r.ValueContribution
+            })
+            .ToList();
+    }
 
     internal void TestValidateEditorForm() => ValidateEditorForm();
     internal void TestSaveTreasure() => SaveTreasure();
@@ -295,6 +425,7 @@ public partial class ContentTreasure
     internal string TestEditorSaveMessage => editorSaveMessage;
     internal bool TestEditorSaveSucceeded => editorSaveSucceeded;
     internal string TestSelectedTreasureName => SelectedTreasure?.Name ?? string.Empty;
+    internal int TestSelectedTreasureComponentCount => SelectedTreasure?.Components.Count ?? 0;
     internal bool TestTreasureExists(string id, string expectedName)
         => treasureItems.Any(t => string.Equals(t.Id, id, StringComparison.Ordinal) && string.Equals(t.Name, expectedName, StringComparison.Ordinal));
 }

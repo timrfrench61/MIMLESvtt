@@ -109,8 +109,31 @@
                 <dt class="col-sm-3">Charges</dt>
                 <dd class="col-sm-9">@(SelectedMagicItem.Charges?.ToString() ?? "(none)")</dd>
 
+                <dt class="col-sm-3">Description</dt>
+                <dd class="col-sm-9">@SelectedMagicItem.Description</dd>
+
+                <dt class="col-sm-3">Source</dt>
+                <dd class="col-sm-9">@SelectedMagicItem.Source</dd>
+
+                <dt class="col-sm-3">Tags</dt>
+                <dd class="col-sm-9">@SelectedMagicItem.Tags</dd>
+
                 <dt class="col-sm-3">Effect Metadata</dt>
-                <dd class="col-sm-9">@SelectedMagicItem.EffectMetadata</dd>
+                <dd class="col-sm-9">
+                    @if (SelectedMagicItem.EffectMetadataRows.Count == 0)
+                    {
+                        <span class="text-muted">(none)</span>
+                    }
+                    else
+                    {
+                        <ul class="mb-0">
+                            @foreach (var effect in SelectedMagicItem.EffectMetadataRows)
+                            {
+                                <li><strong>@effect.Section</strong> - <code>@effect.Key</code>: @effect.Value</li>
+                            }
+                        </ul>
+                    }
+                </dd>
             </dl>
         }
     </div>
@@ -150,9 +173,60 @@
                     <label class="form-check-label" for="magic-item-attunement">Attunement Required</label>
                 </div>
             </div>
+            <div class="col-md-4">
+                <label class="form-label">Source</label>
+                <InputText class="form-control" @bind-Value="editSource" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Tags</label>
+                <InputText class="form-control" @bind-Value="editTags" />
+            </div>
             <div class="col-12">
-                <label class="form-label">Effect Metadata</label>
-                <InputTextArea class="form-control" @bind-Value="editEffectMetadata" rows="3" />
+                <label class="form-label">Description</label>
+                <InputTextArea class="form-control" @bind-Value="editDescription" rows="2" />
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">Structured Effect Metadata</h6>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="AddEffectMetadataRow">Add Effect Row</button>
+                </div>
+
+                @if (effectMetadataRows.Count == 0)
+                {
+                    <div class="alert alert-light border mb-0">No effect metadata rows. Add passive/activated/trigger/duration hints as needed.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Section</th>
+                                    <th>Key (required when row has values)</th>
+                                    <th>Value</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (var i = 0; i < effectMetadataRows.Count; i++)
+                                {
+                                    var row = effectMetadataRows[i];
+                                    <tr>
+                                        <td><InputText class="form-control" @bind-Value="row.Section" placeholder="Passive / Activated / Trigger / Duration" /></td>
+                                        <td><InputText class="form-control" @bind-Value="row.Key" /></td>
+                                        <td><InputText class="form-control" @bind-Value="row.Value" /></td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveEffectMetadataRow(i)">Remove</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
             </div>
         </div>
 

@@ -1,3 +1,5 @@
+@using MIMLESvtt.src.Domain.Models.Content.Import
+
 <div class="card mb-3">
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -6,13 +8,13 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2 mb-3">
-            <button class="btn btn-sm @(CurrentStage == ImportStage.Upload ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(ImportStage.Upload)">Upload</button>
-            <button class="btn btn-sm @(CurrentStage == ImportStage.Validation ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(ImportStage.Validation)">Validation</button>
-            <button class="btn btn-sm @(CurrentStage == ImportStage.ErrorReview ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(ImportStage.ErrorReview)">Error Review</button>
-            <button class="btn btn-sm @(CurrentStage == ImportStage.SuccessSummary ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(ImportStage.SuccessSummary)">Success Summary</button>
+            <button class="btn btn-sm @(CurrentStage == CsvImportStage.Upload ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(CsvImportStage.Upload)">Upload</button>
+            <button class="btn btn-sm @(CurrentStage == CsvImportStage.Validate ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(CsvImportStage.Validate)">Validate</button>
+            <button class="btn btn-sm @(CurrentStage == CsvImportStage.Persist ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(CsvImportStage.Persist)">Persist Review</button>
+            <button class="btn btn-sm @(CurrentStage == CsvImportStage.Summarize ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(CsvImportStage.Summarize)">Summary</button>
         </div>
 
-        @if (CurrentStage == ImportStage.Upload)
+        @if (CurrentStage == CsvImportStage.Upload)
         {
             <div class="row g-2">
                 <div class="col-md-6">
@@ -26,6 +28,15 @@
                         <option value="Treasure">Treasure</option>
                         <option value="Equipment">Equipment</option>
                         <option value="MagicItem">Magic Item</option>
+                        <option value="UnitCounter">Unit/Counter</option>
+                    </InputSelect>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Duplicate policy</label>
+                    <InputSelect class="form-select" @bind-Value="duplicatePolicy">
+                        <option value="@CsvDuplicateHandlingPolicy.RejectDuplicate">Reject Duplicate</option>
+                        <option value="@CsvDuplicateHandlingPolicy.SkipDuplicate">Skip Duplicate</option>
+                        <option value="@CsvDuplicateHandlingPolicy.UpdateDuplicate">Update Duplicate</option>
                     </InputSelect>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
@@ -34,33 +45,34 @@
             </div>
             <div class="alert alert-light border mt-3 mb-0">
                 <strong>Upload Stage</strong><br />
-                Select file/type and run validation preview.
+                Select file/type and run parse/map/validate preview.
             </div>
         }
-        else if (CurrentStage == ImportStage.Validation)
+        else if (CurrentStage == CsvImportStage.Validate)
         {
             <div class="alert alert-light border mb-2">
                 <strong>Validation Preview</strong><br />
                 Rows: @resultState.TotalRows | Created: @resultState.CreatedCount | Updated: @resultState.UpdatedCount | Failed: @resultState.FailedCount
             </div>
             <ul class="mb-3">
-                @foreach (var message in resultState.ValidationMessages)
+                @foreach (var message in resultState.Messages)
                 {
                     <li>@message</li>
                 }
             </ul>
             <button class="btn btn-primary" @onclick="ContinueFromValidation">Continue</button>
         }
-        else if (CurrentStage == ImportStage.ErrorReview)
+        else if (CurrentStage == CsvImportStage.Persist)
         {
             <div class="alert alert-danger mb-2">
-                <strong>Error Review</strong><br />
-                Errors: @resultState.ErrorCount | Warnings: @resultState.WarningCount
+                <strong>Persist / Issue Review</strong><br />
+                Errors: @resultState.Issues.Count(i => i.Severity == CsvImportIssueSeverity.Error) |
+                Warnings: @resultState.Issues.Count(i => i.Severity == CsvImportIssueSeverity.Warning)
             </div>
             <ul class="mb-3">
-                @foreach (var message in resultState.ValidationMessages)
+                @foreach (var issue in resultState.Issues)
                 {
-                    <li>@message</li>
+                    <li>[@issue.Severity] (@issue.Stage) Row @(issue.RowIndex?.ToString() ?? "-") @issue.Message</li>
                 }
             </ul>
             <button class="btn btn-outline-primary" @onclick="RetryFromErrors">Retry</button>

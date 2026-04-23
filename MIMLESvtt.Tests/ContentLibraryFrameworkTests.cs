@@ -389,22 +389,127 @@ public class ContentLibraryFrameworkTests
     {
         IContentRepository repository = new InMemoryContentRepository();
 
-        repository.Save(new UnitCounterContentEntry
+        var entry = new UnitCounterContentEntry
         {
             Metadata = new ContentMetadata
             {
                 Id = "UNIT001",
                 Name = "Infantry Counter",
                 CategoryType = "Unit",
-                Source = "Pack"
+                Source = "Pack",
+                Extensions = new Dictionary<string, object>(StringComparer.Ordinal)
+                {
+                    ["Morale"] = "Steady",
+                    ["CommandRating"] = 2,
+                    ["SupplyStatus"] = "Good",
+                    ["TerrainAffinity"] = "Forest",
+                    ["EraTag"] = "EarlyModern"
+                }
             },
-            Strength = 4,
-            Movement = 3
-        });
+            UnitType = "Infantry",
+            Side = "Blue",
+            Faction = "Northern",
+            StrengthOrValue = 4,
+            Movement = 3,
+            DefenseOrArmor = 2,
+            RangeOrReach = 1,
+            Description = "Line infantry counter"
+        };
+
+        repository.Save(entry);
 
         var listed = repository.List(ContentCategory.UnitCounter);
 
         Assert.AreEqual(1, listed.Count);
         Assert.AreEqual(ContentCategory.UnitCounter, listed[0].Category);
+        Assert.AreEqual(5, listed[0].Metadata.Extensions.Count);
+    }
+
+    [TestMethod]
+    public void UnitCounterMapper_FromCsvRow_MapsListDetailEditContracts()
+    {
+        var row = new UnitCounterCsvImportRow
+        {
+            DefinitionId = "UNIT002",
+            Name = "Cavalry",
+            Category = "UnitCounter",
+            UnitType = "Cavalry",
+            Side = "Red",
+            Faction = "Southern",
+            StrengthOrValue = "6",
+            Movement = "8",
+            DefenseOrArmor = "3",
+            RangeOrReach = "1",
+            Description = "Fast strike unit",
+            Source = "Import",
+            Tags = "mobile,shock",
+            ScenarioMode = "Scenario"
+        };
+
+        var mapped = UnitCounterContentMapper.FromCsvRow(row);
+        Assert.IsTrue(mapped.validation.IsValid);
+        Assert.IsNotNull(mapped.entry);
+
+        mapped.entry!.Metadata.Extensions["Morale"] = "Veteran";
+        mapped.entry.Metadata.Extensions["TerrainAffinity"] = "Open";
+
+        var listDto = UnitCounterContentMapper.ToListItemDto(mapped.entry);
+        var detailDto = UnitCounterContentMapper.ToDetailDto(mapped.entry);
+        var editDto = new UnitCounterEditDto
+        {
+            Id = detailDto.Id,
+            Name = detailDto.Name,
+            UnitType = detailDto.UnitType,
+            Side = detailDto.Side,
+            Faction = detailDto.Faction,
+            StrengthOrValue = detailDto.StrengthOrValue,
+            Movement = detailDto.Movement,
+            DefenseOrArmor = detailDto.DefenseOrArmor,
+            RangeOrReach = detailDto.RangeOrReach,
+            Description = detailDto.Description,
+            Source = detailDto.Source,
+            Tags = detailDto.Tags,
+            Extensions = detailDto.Extensions
+        };
+
+        var remapped = UnitCounterContentMapper.FromEditDto(editDto);
+
+        Assert.AreEqual("UNIT002", listDto.Id);
+        Assert.AreEqual("Cavalry", detailDto.UnitType);
+        Assert.AreEqual("Red", detailDto.Side);
+        Assert.AreEqual(6m, detailDto.StrengthOrValue);
+        Assert.AreEqual(2, detailDto.Extensions.Count);
+        Assert.AreEqual("Cavalry", remapped.UnitType);
+    }
+
+    [TestMethod]
+    public void UnitCounterValidation_ScenarioModeRequiresFaction_AndNumericRanges()
+    {
+        var unit = new UnitCounterContentEntry
+        {
+            Metadata = new ContentMetadata
+            {
+                Id = "UNIT-BAD",
+                Name = "Broken Counter",
+                CategoryType = "UnitCounter",
+                Source = "Manual",
+                Extensions = new Dictionary<string, object>(StringComparer.Ordinal)
+                {
+                    ["ScenarioMode"] = "Scenario"
+                }
+            },
+            UnitType = string.Empty,
+            Side = string.Empty,
+            Faction = string.Empty,
+            StrengthOrValue = -1,
+            Movement = -2,
+            DefenseOrArmor = -3,
+            RangeOrReach = -1
+        };
+
+        var validation = ContentValidationUtilities.ValidateEntry(unit);
+
+        Assert.IsFalse(validation.IsValid);
+        Assert.IsTrue(validation.Errors.Count >= 6);
     }
 }

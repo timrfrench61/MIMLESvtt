@@ -46,6 +46,83 @@
                 <label class="form-label">Category (required)</label>
                 <InputText class="form-control" @bind-Value="editCategory" />
             </div>
+            <div class="col-md-2">
+                <label class="form-label">Level/Threat</label>
+                <InputNumber class="form-control" @bind-Value="editLevelOrThreat" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Hit Points</label>
+                <InputNumber class="form-control" @bind-Value="editHitPoints" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Movement</label>
+                <InputNumber class="form-control" @bind-Value="editMovement" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Armor/Defense</label>
+                <InputNumber class="form-control" @bind-Value="editArmorOrDefense" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Attack Profile</label>
+                <InputText class="form-control" @bind-Value="editAttackProfile" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Source</label>
+                <InputText class="form-control" @bind-Value="editSource" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tags</label>
+                <InputText class="form-control" @bind-Value="editTags" />
+            </div>
+            <div class="col-12">
+                <label class="form-label">Description</label>
+                <InputTextArea class="form-control" @bind-Value="editDescription" rows="2" />
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">Ruleset Extensions (AD&amp;D1 / BRP)</h6>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="AddExtensionRow">Add Extension</button>
+                </div>
+
+                @if (extensionRows.Count == 0)
+                {
+                    <div class="alert alert-light border mb-0">No extensions configured. Add rows for ruleset-specific metadata.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Key (required when value set)</th>
+                                    <th>Value</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (var i = 0; i < extensionRows.Count; i++)
+                                {
+                                    var row = extensionRows[i];
+                                    <tr>
+                                        <td>
+                                            <InputText class="form-control" @bind-Value="row.Key" />
+                                        </td>
+                                        <td>
+                                            <InputText class="form-control" @bind-Value="row.Value" />
+                                        </td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveExtensionRow(i)">Remove</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
         </div>
 
         <div class="d-flex gap-2 mt-3">
@@ -137,6 +214,41 @@
 
                 <dt class="col-sm-3">Hit Points</dt>
                 <dd class="col-sm-9">@SelectedMonster.HitPoints</dd>
+
+                <dt class="col-sm-3">Movement</dt>
+                <dd class="col-sm-9">@SelectedMonster.Movement</dd>
+
+                <dt class="col-sm-3">Armor/Defense</dt>
+                <dd class="col-sm-9">@SelectedMonster.ArmorOrDefense</dd>
+
+                <dt class="col-sm-3">Attack Profile</dt>
+                <dd class="col-sm-9">@SelectedMonster.AttackProfile</dd>
+
+                <dt class="col-sm-3">Source</dt>
+                <dd class="col-sm-9">@SelectedMonster.Source</dd>
+
+                <dt class="col-sm-3">Tags</dt>
+                <dd class="col-sm-9">@SelectedMonster.Tags</dd>
+
+                <dt class="col-sm-3">Description</dt>
+                <dd class="col-sm-9">@SelectedMonster.Description</dd>
+
+                <dt class="col-sm-3">Extensions</dt>
+                <dd class="col-sm-9">
+                    @if (SelectedMonster.Extensions.Count == 0)
+                    {
+                        <span class="text-muted">(none)</span>
+                    }
+                    else
+                    {
+                        <ul class="mb-0">
+                            @foreach (var ext in SelectedMonster.Extensions)
+                            {
+                                <li><code>@ext.Key</code>: @ext.Value</li>
+                            }
+                        </ul>
+                    }
+                </dd>
             </dl>
         }
     </div>

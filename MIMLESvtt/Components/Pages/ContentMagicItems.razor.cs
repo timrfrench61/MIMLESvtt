@@ -16,7 +16,17 @@ public partial class ContentMagicItems
         public string Rarity { get; init; } = string.Empty;
         public bool AttunementRequired { get; init; }
         public int? Charges { get; init; }
-        public string EffectMetadata { get; init; } = string.Empty;
+        public string Description { get; init; } = string.Empty;
+        public string Source { get; init; } = string.Empty;
+        public string Tags { get; init; } = string.Empty;
+        public List<EffectMetadataRow> EffectMetadataRows { get; init; } = [];
+    }
+
+    private sealed class EffectMetadataRow
+    {
+        public string Section { get; set; } = string.Empty;
+        public string Key { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
     }
 
     private string searchQuery = string.Empty;
@@ -31,7 +41,10 @@ public partial class ContentMagicItems
     private string editRarity = string.Empty;
     private bool editAttunementRequired;
     private int? editCharges;
-    private string editEffectMetadata = string.Empty;
+    private string editDescription = string.Empty;
+    private string editSource = string.Empty;
+    private string editTags = string.Empty;
+    private List<EffectMetadataRow> effectMetadataRows = [];
 
     private string editorValidationMessage = string.Empty;
     private bool editorValidationPassed;
@@ -40,10 +53,10 @@ public partial class ContentMagicItems
 
     private readonly List<MagicItemListItem> magicItems =
     [
-        new() { Id = "MI001", Name = "Ring of Protection", ItemType = "Ring", Rarity = "Rare", AttunementRequired = true, Charges = null, EffectMetadata = "Passive defense bonus" },
-        new() { Id = "MI002", Name = "Wand of Fireballs", ItemType = "Wand", Rarity = "Very Rare", AttunementRequired = false, Charges = 7, EffectMetadata = "Activated fireball effect" },
-        new() { Id = "MI003", Name = "Potion of Healing", ItemType = "Potion", Rarity = "Common", AttunementRequired = false, Charges = 1, EffectMetadata = "Consumable healing effect" },
-        new() { Id = "MI004", Name = "Cloak of Shadows", ItemType = "Wondrous", Rarity = "Uncommon", AttunementRequired = true, Charges = null, EffectMetadata = "Stealth advantage while worn" }
+        new() { Id = "MI001", Name = "Ring of Protection", ItemType = "Ring", Rarity = "Rare", AttunementRequired = true, Charges = null, Description = "Protective enchanted ring", Source = "Manual", Tags = "defense,ring", EffectMetadataRows = [new EffectMetadataRow { Section = "Passive", Key = "DefenseBonus", Value = "+1" }] },
+        new() { Id = "MI002", Name = "Wand of Fireballs", ItemType = "Wand", Rarity = "Very Rare", AttunementRequired = false, Charges = 7, Description = "Wand with explosive charges", Source = "Import", Tags = "offense,wand", EffectMetadataRows = [new EffectMetadataRow { Section = "Activated", Key = "CastFireball", Value = "1 charge" }, new EffectMetadataRow { Section = "Trigger", Key = "CommandWord", Value = "Ignis" }] },
+        new() { Id = "MI003", Name = "Potion of Healing", ItemType = "Potion", Rarity = "Common", AttunementRequired = false, Charges = 1, Description = "Consumable restorative potion", Source = "Pack", Tags = "healing,potion", EffectMetadataRows = [new EffectMetadataRow { Section = "Activated", Key = "Consume", Value = "Restore HP" }] },
+        new() { Id = "MI004", Name = "Cloak of Shadows", ItemType = "Wondrous", Rarity = "Uncommon", AttunementRequired = true, Charges = null, Description = "Shadow-woven cloak", Source = "Manual", Tags = "stealth,cloak", EffectMetadataRows = [new EffectMetadataRow { Section = "Passive", Key = "StealthAdvantage", Value = "While worn" }, new EffectMetadataRow { Section = "Duration", Key = "ActiveDuration", Value = "Always while equipped" }] }
     ];
 
     private List<string> AvailableRarities => magicItems
@@ -109,7 +122,10 @@ public partial class ContentMagicItems
         editRarity = selected.Rarity;
         editAttunementRequired = selected.AttunementRequired;
         editCharges = selected.Charges;
-        editEffectMetadata = selected.EffectMetadata;
+        editDescription = selected.Description;
+        editSource = selected.Source;
+        editTags = selected.Tags;
+        effectMetadataRows = selected.EffectMetadataRows.Select(CloneEffectMetadataRow).ToList();
         editorValidationMessage = string.Empty;
         editorValidationPassed = false;
         editorSaveMessage = string.Empty;
@@ -125,7 +141,10 @@ public partial class ContentMagicItems
         editRarity = string.Empty;
         editAttunementRequired = false;
         editCharges = null;
-        editEffectMetadata = string.Empty;
+        editDescription = string.Empty;
+        editSource = "Manual";
+        editTags = string.Empty;
+        effectMetadataRows = [];
         editorValidationMessage = string.Empty;
         editorValidationPassed = false;
         editorSaveMessage = string.Empty;
@@ -169,8 +188,28 @@ public partial class ContentMagicItems
             return;
         }
 
+        for (var i = 0; i < effectMetadataRows.Count; i++)
+        {
+            var row = effectMetadataRows[i];
+            var rowHasValues = !string.IsNullOrWhiteSpace(row.Section)
+                || !string.IsNullOrWhiteSpace(row.Key)
+                || !string.IsNullOrWhiteSpace(row.Value);
+
+            if (!rowHasValues)
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(row.Key))
+            {
+                editorValidationPassed = false;
+                editorValidationMessage = $"Effect metadata row {i + 1} requires a non-empty key.";
+                return;
+            }
+        }
+
         editorValidationPassed = true;
-        editorValidationMessage = "Magic item editor form passed validation.";
+        editorValidationMessage = "Magic item editor form passed required-field, usage, and effect metadata validation.";
     }
 
     private void SaveMagicItem()
@@ -187,7 +226,21 @@ public partial class ContentMagicItems
         var normalizedName = editName.Trim();
         var normalizedType = editItemType.Trim();
         var normalizedRarity = editRarity?.Trim() ?? string.Empty;
-        var normalizedEffectMetadata = editEffectMetadata?.Trim() ?? string.Empty;
+        var normalizedDescription = editDescription?.Trim() ?? string.Empty;
+        var normalizedSource = string.IsNullOrWhiteSpace(editSource) ? "Manual" : editSource.Trim();
+        var normalizedTags = editTags?.Trim() ?? string.Empty;
+        var normalizedEffectMetadataRows = effectMetadataRows
+            .Where(r =>
+                !string.IsNullOrWhiteSpace(r.Section)
+                || !string.IsNullOrWhiteSpace(r.Key)
+                || !string.IsNullOrWhiteSpace(r.Value))
+            .Select(r => new EffectMetadataRow
+            {
+                Section = string.IsNullOrWhiteSpace(r.Section) ? "General" : r.Section.Trim(),
+                Key = r.Key.Trim(),
+                Value = r.Value?.Trim() ?? string.Empty
+            })
+            .ToList();
 
         if (editorMode == MagicItemEditorMode.Create)
         {
@@ -206,13 +259,16 @@ public partial class ContentMagicItems
                 Rarity = normalizedRarity,
                 AttunementRequired = editAttunementRequired,
                 Charges = editCharges,
-                EffectMetadata = normalizedEffectMetadata
+                Description = normalizedDescription,
+                Source = normalizedSource,
+                Tags = normalizedTags,
+                EffectMetadataRows = normalizedEffectMetadataRows
             });
 
             selectedMagicItemId = normalizedId;
             editorMode = MagicItemEditorMode.Edit;
             editorSaveSucceeded = true;
-            editorSaveMessage = "Saved new magic item.";
+            editorSaveMessage = "Saved new magic item and returned to detail/list flow.";
             return;
         }
 
@@ -243,12 +299,30 @@ public partial class ContentMagicItems
             Rarity = normalizedRarity,
             AttunementRequired = editAttunementRequired,
             Charges = editCharges,
-            EffectMetadata = normalizedEffectMetadata
+            Description = normalizedDescription,
+            Source = normalizedSource,
+            Tags = normalizedTags,
+            EffectMetadataRows = normalizedEffectMetadataRows
         };
 
         selectedMagicItemId = normalizedId;
         editorSaveSucceeded = true;
-        editorSaveMessage = "Saved magic item changes.";
+        editorSaveMessage = "Saved magic item changes and returned to detail/list flow.";
+    }
+
+    private void AddEffectMetadataRow()
+    {
+        effectMetadataRows.Add(new EffectMetadataRow());
+    }
+
+    private void RemoveEffectMetadataRow(int index)
+    {
+        if (index < 0 || index >= effectMetadataRows.Count)
+        {
+            return;
+        }
+
+        effectMetadataRows.RemoveAt(index);
     }
 
     private void CancelEdit()
@@ -264,7 +338,10 @@ public partial class ContentMagicItems
                 editRarity = selected.Rarity;
                 editAttunementRequired = selected.AttunementRequired;
                 editCharges = selected.Charges;
-                editEffectMetadata = selected.EffectMetadata;
+                editDescription = selected.Description;
+                editSource = selected.Source;
+                editTags = selected.Tags;
+                effectMetadataRows = selected.EffectMetadataRows.Select(CloneEffectMetadataRow).ToList();
             }
         }
         else
@@ -275,18 +352,31 @@ public partial class ContentMagicItems
             editRarity = string.Empty;
             editAttunementRequired = false;
             editCharges = null;
-            editEffectMetadata = string.Empty;
+            editDescription = string.Empty;
+            editSource = "Manual";
+            editTags = string.Empty;
+            effectMetadataRows = [];
         }
 
         editorValidationMessage = string.Empty;
         editorValidationPassed = false;
         editorSaveSucceeded = true;
-        editorSaveMessage = "Canceled edit changes.";
+        editorSaveMessage = "Canceled edit changes. No mutation persisted; returned to detail/list flow.";
+    }
+
+    private static EffectMetadataRow CloneEffectMetadataRow(EffectMetadataRow row)
+    {
+        return new EffectMetadataRow
+        {
+            Section = row.Section,
+            Key = row.Key,
+            Value = row.Value
+        };
     }
 
     internal void TestSelectMagicItem(string id) => SelectMagicItem(id);
     internal void TestSetCreateMode() => StartCreateMode();
-    internal void TestSetEditorFields(string id, string name, string type, string rarity, bool attunementRequired, int? charges, string effectMetadata)
+    internal void TestSetEditorFields(string id, string name, string type, string rarity, bool attunementRequired, int? charges)
     {
         editId = id;
         editName = name;
@@ -294,7 +384,25 @@ public partial class ContentMagicItems
         editRarity = rarity;
         editAttunementRequired = attunementRequired;
         editCharges = charges;
-        editEffectMetadata = effectMetadata;
+    }
+
+    internal void TestSetOptionalFields(string description, string source, string tags)
+    {
+        editDescription = description;
+        editSource = source;
+        editTags = tags;
+    }
+
+    internal void TestSetEffectMetadataRows(params (string Section, string Key, string Value)[] rows)
+    {
+        effectMetadataRows = rows
+            .Select(r => new EffectMetadataRow
+            {
+                Section = r.Section,
+                Key = r.Key,
+                Value = r.Value
+            })
+            .ToList();
     }
 
     internal void TestValidateEditorForm() => ValidateEditorForm();
@@ -305,6 +413,12 @@ public partial class ContentMagicItems
     internal string TestEditorSaveMessage => editorSaveMessage;
     internal bool TestEditorSaveSucceeded => editorSaveSucceeded;
     internal string TestSelectedMagicItemName => SelectedMagicItem?.Name ?? string.Empty;
+    internal string TestSelectedMagicItemId => SelectedMagicItem?.Id ?? string.Empty;
+    internal int TestSelectedMagicItemEffectCount => SelectedMagicItem?.EffectMetadataRows.Count ?? 0;
+    internal string TestSelectedMagicItemEffectValue(string key)
+        => SelectedMagicItem is null
+            ? string.Empty
+            : SelectedMagicItem.EffectMetadataRows.FirstOrDefault(r => string.Equals(r.Key, key, StringComparison.Ordinal))?.Value ?? string.Empty;
     internal bool TestMagicItemExists(string id, string expectedName)
         => magicItems.Any(i => string.Equals(i.Id, id, StringComparison.Ordinal) && string.Equals(i.Name, expectedName, StringComparison.Ordinal));
 }

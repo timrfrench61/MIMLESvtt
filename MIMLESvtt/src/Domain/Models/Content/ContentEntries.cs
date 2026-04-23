@@ -87,7 +87,19 @@ public class UnitCounterContentEntry : ContentEntry
 {
     public override ContentCategory Category => ContentCategory.UnitCounter;
 
-    public int Strength { get; set; }
+    public string UnitType { get; set; } = string.Empty;
 
-    public int Movement { get; set; }
+    public string Side { get; set; } = string.Empty;
+
+    public string Faction { get; set; } = string.Empty;
+
+    public decimal StrengthOrValue { get; set; }
+
+    public decimal Movement { get; set; }
+
+    public decimal DefenseOrArmor { get; set; }
+
+    public decimal? RangeOrReach { get; set; }
+
+    public string Description { get; set; } = string.Empty;
 }
