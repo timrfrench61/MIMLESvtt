@@ -5,8 +5,8 @@ Target backlog: `docs/05-backlog/06-backlog-rules-framework.md`
 
 ## Code Project Additions
 
-- [ ] Add deterministic random provider abstraction for reproducible module tests.
-- [ ] Add dependency-injection registration path for dice service in rules module composition.
-- [ ] Add richer roll diagnostics (timestamp/context tags) where needed for audit/testing.
-- [ ] Add integration tests showing reuse across multiple rules module stubs.
-- [ ] Add guard tests for extreme count/modifier cases.
+- [x] Add deterministic random provider abstraction for reproducible module tests.
+- [x] Add dependency-injection registration path for dice service in rules module composition.
+- [x] Add richer roll diagnostics (timestamp/context tags) where needed for audit/testing.
+- [x] Add integration tests showing reuse across multiple rules module stubs.
+- [x] Add guard tests for extreme count/modifier cases.

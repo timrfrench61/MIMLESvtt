@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.WebUtilities;
 using MIMLESvtt.src;
 using MIMLESvtt.src.Application.Workspace;
 using MIMLESvtt.src.Domain.Models.Pieces;
@@ -13,6 +14,7 @@ namespace MIMLESvtt.Components.Pages;
 public partial class Workspace : ComponentBase
 {
     [Inject] public AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+    [Inject] public NavigationManager Navigation { get; set; } = default!;
 
     private enum TabletopSurfaceState
     {
@@ -112,10 +114,12 @@ public partial class Workspace : ComponentBase
     private string boardVisibilityDefinitionFilter = string.Empty;
     private string boardVisibilityOwnerFilter = string.Empty;
     private bool showLegalMoveHints;
+    private bool isCheckersReferenceMode;
 
     protected override async Task OnInitializedAsync()
     {
         await ApplyAuthorizationStateAsync();
+        isCheckersReferenceMode = ResolveCheckersReferenceModeFromQuery();
 
         if (WorkspaceService.State.CurrentVttSession is null)
         {
@@ -149,6 +153,29 @@ public partial class Workspace : ComponentBase
         previousActiveSurfaceId = board.ActiveSurfaceId;
         phaseInput = WorkspaceService.State.CurrentVttSession.CurrentPhase;
         sessionTitleInput = WorkspaceService.State.CurrentVttSession.Title;
+
+        if (isCheckersReferenceMode)
+        {
+            WorkspaceService.State.LastOperationMessage = "Checkers reference mode active.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
+        }
+    }
+
+    private bool ResolveCheckersReferenceModeFromQuery()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        if (string.IsNullOrWhiteSpace(uri.Query))
+        {
+            return false;
+        }
+
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        if (!query.TryGetValue("mode", out var modeValue))
+        {
+            return false;
+        }
+
+        return string.Equals(modeValue.ToString(), "checkers", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task ApplyAuthorizationStateAsync()

@@ -19,6 +19,8 @@ public class DiceRandomizationServiceTests
         Assert.AreEqual(2, result.Modifier);
         Assert.IsTrue(result.Rolls.All(v => v >= 1 && v <= 20));
         Assert.AreEqual(result.Rolls.Sum() + 2, result.Total);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(result.RandomProvider));
+        Assert.IsTrue(result.TimestampUtc != default);
     }
 
     [TestMethod]
@@ -47,5 +49,61 @@ public class DiceRandomizationServiceTests
         var service = new DiceRandomizationService();
 
         Assert.ThrowsException<ArgumentOutOfRangeException>(() => service.RollDie(6, count: 0));
+    }
+
+    [TestMethod]
+    public void RollDie_UsesDeterministicProvider_ForReproducibleResults()
+    {
+        var provider = new DeterministicDiceRandomProvider([3, 5, 2]);
+        var service = new DiceRandomizationService(provider);
+
+        var result = service.RollDie(6, count: 3, modifier: 1, contextTag: "test:deterministic");
+
+        CollectionAssert.AreEqual(new[] { 3, 5, 2 }, result.Rolls);
+        Assert.AreEqual(11, result.Total);
+        Assert.AreEqual("Deterministic", result.RandomProvider);
+        Assert.AreEqual("test:deterministic", result.ContextTag);
+    }
+
+    [TestMethod]
+    public void RollDie_AddsDiagnosticsTimestampAndContext()
+    {
+        var provider = new DeterministicDiceRandomProvider([4]);
+        var service = new DiceRandomizationService(provider);
+
+        var before = DateTime.UtcNow;
+        var result = service.RollD6(contextTag: "rules:diag");
+        var after = DateTime.UtcNow;
+
+        Assert.IsTrue(result.TimestampUtc >= before && result.TimestampUtc <= after);
+        Assert.AreEqual("rules:diag", result.ContextTag);
+    }
+
+    [TestMethod]
+    public void RollDie_ExtremeCountAndModifier_ComputesTotalCorrectly()
+    {
+        var provider = new DeterministicDiceRandomProvider(Enumerable.Repeat(1, 100));
+        var service = new DiceRandomizationService(provider);
+
+        var result = service.RollDie(6, count: 100, modifier: 500, contextTag: "test:extreme");
+
+        Assert.AreEqual(100, result.Rolls.Count);
+        Assert.AreEqual(600, result.Total);
+    }
+
+    [TestMethod]
+    public void RulesModuleStubs_ReuseSharedDiceService()
+    {
+        var provider = new DeterministicDiceRandomProvider([4, 88]);
+        IDiceRandomizationService sharedService = new DiceRandomizationService(provider);
+
+        var checkers = new CheckersRulesModuleStub(sharedService);
+        var brp = new BrpRulesModuleStub(sharedService);
+
+        var checkersValue = checkers.RollInitiativeLikeValue();
+        var brpValue = brp.RollPercentileSkillCheck();
+
+        Assert.AreEqual(4, checkersValue);
+        Assert.AreEqual(88, brpValue);
     }
 }

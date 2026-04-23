@@ -2,88 +2,71 @@ using MIMLESvtt.src.Domain.Models;
 
 namespace MIMLESvtt.src.Domain.Rules
 {
-    public class DiceRandomizationService
+    public class DiceRandomizationService : IDiceRandomizationService
     {
-        private readonly Random _random;
+        private readonly IDiceRandomProvider _randomProvider;
+    private readonly IRollExpressionParser _rollExpressionParser;
 
         public DiceRandomizationService()
-            : this(new Random())
+            : this(new SystemDiceRandomProvider(), new BasicRollExpressionParser())
         {
         }
 
         public DiceRandomizationService(Random random)
+            : this(new SystemDiceRandomProvider(random), new BasicRollExpressionParser())
         {
-            _random = random ?? throw new ArgumentNullException(nameof(random));
         }
 
-        public DiceRollResult RollD4(int count = 1, int modifier = 0) => RollDie(4, count, modifier);
+        public DiceRandomizationService(IDiceRandomProvider randomProvider)
+            : this(randomProvider, new BasicRollExpressionParser())
+    {
+    }
 
-        public DiceRollResult RollD6(int count = 1, int modifier = 0) => RollDie(6, count, modifier);
-
-        public DiceRollResult RollD8(int count = 1, int modifier = 0) => RollDie(8, count, modifier);
-
-        public DiceRollResult RollD10(int count = 1, int modifier = 0) => RollDie(10, count, modifier);
-
-        public DiceRollResult RollD12(int count = 1, int modifier = 0) => RollDie(12, count, modifier);
-
-        public DiceRollResult RollD20(int count = 1, int modifier = 0) => RollDie(20, count, modifier);
-
-        public DiceRollResult RollD100(int count = 1, int modifier = 0) => RollDie(100, count, modifier);
-
-        public RollExpressionResult RollExpression(string expression)
+    public DiceRandomizationService(IDiceRandomProvider randomProvider, IRollExpressionParser rollExpressionParser)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(expression);
+            _randomProvider = randomProvider ?? throw new ArgumentNullException(nameof(randomProvider));
+        _rollExpressionParser = rollExpressionParser ?? throw new ArgumentNullException(nameof(rollExpressionParser));
+        }
 
-            var trimmed = expression.Trim();
-            var dIndex = trimmed.IndexOf('d');
-            if (dIndex <= 0 || dIndex == trimmed.Length - 1)
+        public DiceRollResult RollD4(int count = 1, int modifier = 0, string? contextTag = null) => RollDie(4, count, modifier, contextTag);
+
+        public DiceRollResult RollD6(int count = 1, int modifier = 0, string? contextTag = null) => RollDie(6, count, modifier, contextTag);
+
+        public DiceRollResult RollD8(int count = 1, int modifier = 0, string? contextTag = null) => RollDie(8, count, modifier, contextTag);
+
+        public DiceRollResult RollD10(int count = 1, int modifier = 0, string? contextTag = null) => RollDie(10, count, modifier, contextTag);
+
+        public DiceRollResult RollD12(int count = 1, int modifier = 0, string? contextTag = null) => RollDie(12, count, modifier, contextTag);
+
+        public DiceRollResult RollD20(int count = 1, int modifier = 0, string? contextTag = null) => RollDie(20, count, modifier, contextTag);
+
+        public DiceRollResult RollD100(int count = 1, int modifier = 0, string? contextTag = null) => RollDie(100, count, modifier, contextTag);
+
+        public RollExpressionResult RollExpression(string expression, string? contextTag = null)
+        {
+        var parseResult = _rollExpressionParser.Parse(expression);
+        if (!parseResult.IsSuccess)
             {
-                throw new ArgumentException("Roll expression must be in NdS(+/-M) format.", nameof(expression));
+            throw new ArgumentException(parseResult.ErrorMessage, nameof(expression));
             }
 
-            var countPart = trimmed[..dIndex];
-            if (!int.TryParse(countPart, out var count) || count <= 0)
-            {
-                throw new ArgumentException("Roll expression dice count is invalid.", nameof(expression));
-            }
-
-            var sidesAndModifier = trimmed[(dIndex + 1)..];
-            var modifier = 0;
-            var modifierIndex = FindModifierIndex(sidesAndModifier);
-
-            string sidesPart;
-            if (modifierIndex >= 0)
-            {
-                sidesPart = sidesAndModifier[..modifierIndex];
-                var modifierPart = sidesAndModifier[modifierIndex..];
-                if (!int.TryParse(modifierPart, out modifier))
-                {
-                    throw new ArgumentException("Roll expression modifier is invalid.", nameof(expression));
-                }
-            }
-            else
-            {
-                sidesPart = sidesAndModifier;
-            }
-
-            if (!int.TryParse(sidesPart, out var sides) || sides <= 1)
-            {
-                throw new ArgumentException("Roll expression die sides are invalid.", nameof(expression));
-            }
-
-            var rollResult = RollDie(sides, count, modifier);
+        var rollResult = RollDie(parseResult.Sides, parseResult.DiceCount, parseResult.Modifier, contextTag);
+        var normalizedExpression = NormalizeExpression(expression, parseResult);
 
             return new RollExpressionResult
             {
-                Expression = trimmed,
-                DiceCount = count,
-                Sides = sides,
-                Modifier = modifier,
-                RollResult = rollResult
+            Expression = normalizedExpression,
+            DiceCount = parseResult.DiceCount,
+            Sides = parseResult.Sides,
+            Modifier = parseResult.Modifier,
+            ParseErrorCode = RollExpressionParseErrorCode.None,
+            ParseErrorMessage = string.Empty,
+                RollResult = rollResult,
+                ContextTag = rollResult.ContextTag
             };
         }
 
-        public DiceRollResult RollDie(int sides, int count = 1, int modifier = 0)
+        public DiceRollResult RollDie(int sides, int count = 1, int modifier = 0, string? contextTag = null)
         {
             if (sides <= 1)
             {
@@ -98,7 +81,7 @@ namespace MIMLESvtt.src.Domain.Rules
             var rolls = new List<int>(count);
             for (var i = 0; i < count; i++)
             {
-                rolls.Add(_random.Next(1, sides + 1));
+                rolls.Add(_randomProvider.Next(1, sides + 1));
             }
 
             return new DiceRollResult
@@ -107,22 +90,22 @@ namespace MIMLESvtt.src.Domain.Rules
                 Count = count,
                 Rolls = rolls,
                 Modifier = modifier,
-                Total = rolls.Sum() + modifier
+                Total = rolls.Sum() + modifier,
+                TimestampUtc = DateTime.UtcNow,
+                ContextTag = contextTag?.Trim() ?? string.Empty,
+                RandomProvider = _randomProvider.ProviderName
             };
         }
 
-        private static int FindModifierIndex(string value)
+    private static string NormalizeExpression(string expression, RollExpressionParseResult parseResult)
         {
-            for (var i = 1; i < value.Length; i++)
+        var compact = new string((expression ?? string.Empty).Where(c => !char.IsWhiteSpace(c)).ToArray());
+        if (string.IsNullOrWhiteSpace(compact))
             {
-                var current = value[i];
-                if (current == '+' || current == '-')
-                {
-                    return i;
-                }
+            compact = $"{parseResult.DiceCount}d{parseResult.Sides}";
             }
 
-            return -1;
+        return compact;
         }
     }
 }

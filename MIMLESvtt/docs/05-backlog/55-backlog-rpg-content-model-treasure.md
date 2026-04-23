@@ -5,8 +5,8 @@ Target backlog: `docs/05-backlog/09-backlog-content-import.md`
 
 ## Code Project Additions
 
-- [ ] Add concrete Treasure content model class with value/composition support.
-- [ ] Add optional component collection model for bundle composition.
-- [ ] Add import/manual-entry validators for required/id/value/quantity fields.
-- [ ] Add optional linking fields for encounter/scenario references.
-- [ ] Add tests for treasure composition and validation behavior.
+- [x] Add concrete Treasure content model class with value/composition support.
+- [x] Add optional component collection model for bundle composition.
+- [x] Add import/manual-entry validators for required/id/value/quantity fields.
+- [x] Add optional linking fields for encounter/scenario references.
+- [x] Add tests for treasure composition and validation behavior.

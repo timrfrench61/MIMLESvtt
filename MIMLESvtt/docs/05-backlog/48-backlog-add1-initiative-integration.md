@@ -5,8 +5,8 @@ Target backlog: `docs/05-backlog/06-backlog-rules-framework.md`
 
 ## Code Project Additions
 
-- [ ] Implement AD&D1 initiative evaluation service with round-start integration.
-- [ ] Add tie-break policy handling and metadata recording in turn state.
-- [ ] Add turn-order projection adapter from initiative results to engine turn structures.
-- [ ] Add tests for side-mode and individual-mode initiative outputs.
-- [ ] Add tests for round progression and reroll policy behavior.
+- [x] Implement AD&D1 initiative evaluation service with round-start integration.
+- [x] Add tie-break policy handling and metadata recording in turn state.
+- [x] Add turn-order projection adapter from initiative results to engine turn structures.
+- [x] Add tests for side-mode and individual-mode initiative outputs.
+- [x] Add tests for round progression and reroll policy behavior.

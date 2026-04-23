@@ -11,6 +11,14 @@
 
 <h1>Workspace</h1>
 
+@if (isCheckersReferenceMode)
+{
+    <div class="alert alert-info py-2">
+        <strong>Checkers Reference Mode</strong>
+        <div>Turn indicator: <strong>@GetCurrentTurnParticipant()</strong> | Turn: <strong>@(WorkspaceService.State.CurrentVttSession?.TurnNumber ?? 0)</strong> | Phase: <strong>@(WorkspaceService.State.CurrentVttSession?.CurrentPhase ?? "(none)")</strong></div>
+    </div>
+}
+
 <div class="workspace-canvas-layer" role="region" aria-label="Workspace tabletop canvas">
     @switch (tabletopSurfaceState)
     {
@@ -98,6 +106,13 @@
 @if (!string.IsNullOrWhiteSpace(WorkspaceService.State.LastOperationMessage))
 {
     <div class="alert @GetLastOperationAlertClass()">@WorkspaceService.State.LastOperationMessage</div>
+}
+
+@if (isCheckersReferenceMode)
+{
+    <div class="alert alert-warning py-2">
+        Checkers terminal-state slot: winner/end-of-game message will render here when provided by reference rules flow.
+    </div>
 }
 
 @if (WorkspaceService.State.CurrentVttSession is not null)

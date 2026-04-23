@@ -5,8 +5,8 @@ Target backlog: `docs/05-backlog/09-backlog-content-import.md`
 
 ## Code Project Additions
 
-- [ ] Add concrete Equipment content model class with category/type/cost/weight fields.
-- [ ] Add extension metadata support for AD&D1/BRP equipment detail fields.
-- [ ] Add import/manual-entry validators for required and numeric constraints.
-- [ ] Add list/detail/edit DTO mapping for equipment UI flows.
-- [ ] Add tests for equipment model parsing and validation edge cases.
+- [x] Add concrete Equipment content model class with category/type/cost/weight fields.
+- [x] Add extension metadata support for AD&D1/BRP equipment detail fields.
+- [x] Add import/manual-entry validators for required and numeric constraints.
+- [x] Add list/detail/edit DTO mapping for equipment UI flows.
+- [x] Add tests for equipment model parsing and validation edge cases.

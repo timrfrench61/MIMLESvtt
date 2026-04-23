@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MIMLESvtt.src.Application.Authentication;
 using MIMLESvtt.src;
+using MIMLESvtt.src.Domain.Rules;
 using MIMLESvtt.src.Domain.Persistence.VttSessionNSPC;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,6 +51,8 @@ builder.Services.AddScoped<AuthDataSeeder>();
 
 builder.Services.AddScoped<VttSessionWorkspaceService>();
 builder.Services.AddScoped<IVttSessionCommandService>(sp => sp.GetRequiredService<VttSessionWorkspaceService>());
+builder.Services.AddScoped<IDiceRandomProvider, SystemDiceRandomProvider>();
+builder.Services.AddScoped<IDiceRandomizationService, DiceRandomizationService>();
 
 var app = builder.Build();
 

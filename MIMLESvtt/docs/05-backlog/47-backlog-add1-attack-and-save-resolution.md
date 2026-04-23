@@ -5,8 +5,8 @@ Target backlog: `docs/05-backlog/06-backlog-rules-framework.md`
 
 ## Code Project Additions
 
-- [ ] Implement first-pass AD&D1 attack validation/resolution service.
-- [ ] Implement first-pass AD&D1 saving throw validation/resolution service.
-- [ ] Add structured output contracts matching documented attack/save result payloads.
-- [ ] Add tests for validation rejection paths and success outputs.
-- [ ] Add integration tests for engine apply/log behavior using AD&D1 outcomes.
+- [x] Implement first-pass AD&D1 attack validation/resolution service.
+- [x] Implement first-pass AD&D1 saving throw validation/resolution service.
+- [x] Add structured output contracts matching documented attack/save result payloads.
+- [x] Add tests for validation rejection paths and success outputs.
+- [x] Add integration tests for engine apply/log behavior using AD&D1 outcomes.

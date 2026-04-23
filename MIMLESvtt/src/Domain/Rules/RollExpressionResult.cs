@@ -12,6 +12,12 @@ namespace MIMLESvtt.src.Domain.Rules
 
         public int Modifier { get; set; }
 
+    public string ContextTag { get; set; } = string.Empty;
+
+    public RollExpressionParseErrorCode ParseErrorCode { get; set; } = RollExpressionParseErrorCode.None;
+
+    public string ParseErrorMessage { get; set; } = string.Empty;
+
         public DiceRollResult RollResult { get; set; } = new();
     }
 }
