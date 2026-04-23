@@ -28,6 +28,16 @@ Category must be: Monster
 
 ---
 
+## Validation Rules
+
+- `DefinitionId`, `Name`, and `Category` are required and must be non-empty.
+- `Category` must be `Monster`.
+- `HitPoints` and `ArmorClass` (when provided) must parse as integers.
+- `Movement` (when provided) must parse as numeric.
+- Duplicate `DefinitionId` handling is policy-driven by import mode (`RejectDuplicate`, `SkipDuplicate`, `UpdateDuplicate`).
+
+---
+
 ## Example
 
 ```csv

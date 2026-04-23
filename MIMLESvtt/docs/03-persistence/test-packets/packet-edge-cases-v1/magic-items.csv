@@ -1,0 +1,4 @@
+DefinitionId,Name,Category,Type,Value,Charges,Tags,Description
+MI001,Valid Ring,MagicItem,Ring,2000,0,valid,Valid magic item row.
+MI002,Bad Charges,MagicItem,Wand,5000,abc,bad-charges,Invalid Charges type.
+MI003,Wrong Category,Magic,Wondrous,1500,1,bad-category,Invalid category value for spec.

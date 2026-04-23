@@ -1,0 +1,3 @@
+DefinitionId,Name,Category,TreasureType,Value,Currency,Quantity,Tags,Description
+TRS001,Goblin Coin Pouch,Treasure,Coin,27,gp,1,coins|small,Loose coins found on goblin scouts.
+TRS002,Small Gem Cache,Treasure,Bundle,150,gp,3,gems|bundle,Assorted low-value gems.

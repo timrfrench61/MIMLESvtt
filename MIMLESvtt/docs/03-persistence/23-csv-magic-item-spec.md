@@ -28,6 +28,15 @@ Category must be: MagicItem
 
 ---
 
+## Validation Rules
+
+- `DefinitionId`, `Name`, and `Category` are required and must be non-empty.
+- `Category` must be `MagicItem`.
+- `Value` and `Charges` (when provided) must parse as numeric.
+- Duplicate `DefinitionId` handling is policy-driven by import mode (`RejectDuplicate`, `SkipDuplicate`, `UpdateDuplicate`).
+
+---
+
 ## Example
 
 ```csv

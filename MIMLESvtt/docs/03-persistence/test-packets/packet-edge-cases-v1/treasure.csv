@@ -1,0 +1,4 @@
+DefinitionId,Name,Category,TreasureType,Value,Currency,Quantity,Tags,Description
+TRS100,Valid Cache,Treasure,Bundle,120,gp,2,valid,Valid baseline treasure.
+TRS101,Missing Type,Treasure,,35,gp,1,warning-candidate,Missing optional TreasureType.
+TRS102,Bad Value,Treasure,Coin,bad-value,gp,10,error-candidate,Invalid numeric Value.

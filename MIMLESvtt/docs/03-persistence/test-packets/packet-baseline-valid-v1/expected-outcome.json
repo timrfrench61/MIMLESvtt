@@ -1,0 +1,41 @@
+{
+  "ExpectedTotalRows": 8,
+  "ExpectedByFile": {
+    "monsters.csv": {
+      "Rows": 2,
+      "Created": 2,
+      "Updated": 0,
+      "Skipped": 0,
+      "Failed": 0
+    },
+    "treasure.csv": {
+      "Rows": 2,
+      "Created": 2,
+      "Updated": 0,
+      "Skipped": 0,
+      "Failed": 0
+    },
+    "equipment.csv": {
+      "Rows": 2,
+      "Created": 2,
+      "Updated": 0,
+      "Skipped": 0,
+      "Failed": 0
+    },
+    "magic-items.csv": {
+      "Rows": 2,
+      "Created": 2,
+      "Updated": 0,
+      "Skipped": 0,
+      "Failed": 0
+    }
+  },
+  "ExpectedSummary": {
+    "Created": 8,
+    "Updated": 0,
+    "Skipped": 0,
+    "Failed": 0,
+    "Warnings": 0,
+    "Errors": 0
+  }
+}

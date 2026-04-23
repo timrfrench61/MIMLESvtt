@@ -1,0 +1,3 @@
+DefinitionId,Name,Category,Type,Value,Charges,Tags,Description
+WAND001,Wand of Fireballs,MagicItem,Wand,5000,7,wand|fire,Projects explosive fire blasts.
+RING001,Ring of Protection,MagicItem,Ring,2000,,ring|defense,Improves defensive capability.

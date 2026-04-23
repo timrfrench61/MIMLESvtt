@@ -1,5 +1,7 @@
 # Content and Import Backlog
 
+> Status note: All backlog items in this document (CI-001 through CI-021) are currently completed/closed.
+
 ## Scope
 
 This backlog covers:
@@ -142,7 +144,7 @@ Create a content model for tactical or strategic counters and units.
 **Title:** Define manual GM entry workflow  
 **Master ID:** MB-026  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Document how a GM adds and edits content manually.
@@ -160,7 +162,7 @@ Document how a GM adds and edits content manually.
 **Title:** Build GM monster entry screen backlog slice  
 **Master ID:** MB-026  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Plan the monster entry screen as the first manual content screen.
@@ -178,7 +180,7 @@ Plan the monster entry screen as the first manual content screen.
 **Title:** Build GM treasure entry screen backlog slice  
 **Master ID:** MB-026  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Plan the treasure entry workflow.
@@ -196,7 +198,7 @@ Plan the treasure entry workflow.
 **Title:** Build GM equipment entry screen backlog slice  
 **Master ID:** MB-026  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Plan the equipment entry workflow.
@@ -214,7 +216,7 @@ Plan the equipment entry workflow.
 **Title:** Build GM magic item entry screen backlog slice  
 **Master ID:** MB-026  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Plan the magic item entry workflow.
@@ -232,7 +234,7 @@ Plan the magic item entry workflow.
 **Title:** Design reusable CSV import pipeline  
 **Master ID:** MB-027  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Design the upload, parse, map, validate, and persist pipeline.
@@ -250,7 +252,7 @@ Design the upload, parse, map, validate, and persist pipeline.
 **Title:** Define import validation model  
 **Master ID:** MB-027  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Define row-level and file-level validation, warnings vs errors, and duplicate handling.
@@ -268,7 +270,7 @@ Define row-level and file-level validation, warnings vs errors, and duplicate ha
 **Title:** Write monster CSV specification  
 **Master ID:** MB-028  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Define columns, rules, and sample rows for monster imports.
@@ -287,7 +289,7 @@ Define columns, rules, and sample rows for monster imports.
 **Title:** Write treasure CSV specification  
 **Master ID:** MB-028  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Define columns, rules, and sample rows for treasure imports.
@@ -306,7 +308,7 @@ Define columns, rules, and sample rows for treasure imports.
 **Title:** Write equipment CSV specification  
 **Master ID:** MB-028  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Define columns, rules, and sample rows for equipment imports.
@@ -325,7 +327,7 @@ Define columns, rules, and sample rows for equipment imports.
 **Title:** Write magic item CSV specification  
 **Master ID:** MB-028  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Define columns, rules, and sample rows for magic item imports.
@@ -344,7 +346,7 @@ Define columns, rules, and sample rows for magic item imports.
 **Title:** Write unit/counter CSV specification  
 **Master ID:** MB-029  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Define a CSV format for tactical or war-game units if adopted in the first implementation band.
@@ -362,7 +364,7 @@ Define a CSV format for tactical or war-game units if adopted in the first imple
 **Title:** Design test data packet format  
 **Master ID:** MB-030  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Define how test content packets are packaged, named, described, and validated.
@@ -380,7 +382,7 @@ Define how test content packets are packaged, named, described, and validated.
 **Title:** Create baseline valid import packet  
 **Master ID:** MB-030  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create a sample packet containing valid monsters, treasure, equipment, and magic items.
@@ -398,7 +400,7 @@ Create a sample packet containing valid monsters, treasure, equipment, and magic
 **Title:** Create edge-case/error import packet  
 **Master ID:** MB-030  
 **Priority:** Medium  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create a sample packet with missing fields, duplicate keys, bad types, and warnings.
@@ -414,15 +416,6 @@ Create a sample packet with missing fields, duplicate keys, bad types, and warni
 
 ## Near-Term Execution Order
 
-1. CI-001 Define content library framework  
-2. CI-002 Define RPG content model: Monster  
-3. CI-003 Define RPG content model: Treasure  
-4. CI-004 Define RPG content model: Equipment  
-5. CI-005 Define RPG content model: Magic Item  
-6. CI-012 Design reusable CSV import pipeline  
-7. CI-013 Define import validation model  
-8. CI-014 Write monster CSV specification  
-9. CI-015 Write treasure CSV specification  
-10. CI-016 Write equipment CSV specification  
-11. CI-017 Write magic item CSV specification  
-12. CI-019 Design test data packet format
+1. Closed in current implementation cycle: CI-001 through CI-021 completed
+2. Next focus: implement packet runner utility to compare import results against expected-outcome manifests
+3. Next focus: add automated regression execution of baseline + edge-case packets in testing backlog

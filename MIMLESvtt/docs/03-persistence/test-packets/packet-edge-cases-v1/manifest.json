@@ -1,0 +1,14 @@
+{
+  "PacketId": "packet-edge-cases-v1",
+  "Name": "Edge Case and Error Import Packet",
+  "Version": 1,
+  "Intent": "EdgeCase",
+  "Files": [
+    "monsters.csv",
+    "treasure.csv",
+    "equipment.csv",
+    "magic-items.csv"
+  ],
+  "ExpectedOutcomeRef": "expected-outcome.json",
+  "Notes": "Includes missing required fields, duplicate ids, bad numeric values, and warning-grade rows for validation testing."
+}

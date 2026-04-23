@@ -1,0 +1,45 @@
+{
+  "ExpectedTotalRows": 13,
+  "ExpectedByFile": {
+    "monsters.csv": {
+      "Rows": 4,
+      "ExpectedWarnings": [
+        "Duplicate DefinitionId depending on duplicate policy"
+      ],
+      "ExpectedErrors": [
+        "Missing required Name",
+        "Invalid HitPoints numeric value"
+      ]
+    },
+    "treasure.csv": {
+      "Rows": 3,
+      "ExpectedWarnings": [
+        "Missing optional TreasureType"
+      ],
+      "ExpectedErrors": [
+        "Invalid Value numeric type"
+      ]
+    },
+    "equipment.csv": {
+      "Rows": 3,
+      "ExpectedWarnings": [
+        "Weight out of practical range"
+      ],
+      "ExpectedErrors": [
+        "Missing required DefinitionId"
+      ]
+    },
+    "magic-items.csv": {
+      "Rows": 3,
+      "ExpectedWarnings": [],
+      "ExpectedErrors": [
+        "Invalid Charges numeric type",
+        "Invalid Category value"
+      ]
+    }
+  },
+  "ExpectedSummary": {
+    "Warnings": 3,
+    "Errors": 6
+  }
+}

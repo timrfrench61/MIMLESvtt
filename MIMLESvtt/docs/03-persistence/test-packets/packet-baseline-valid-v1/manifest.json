@@ -1,0 +1,14 @@
+{
+  "PacketId": "packet-baseline-valid-v1",
+  "Name": "Baseline Valid Import Packet",
+  "Version": 1,
+  "Intent": "ValidBaseline",
+  "Files": [
+    "monsters.csv",
+    "treasure.csv",
+    "equipment.csv",
+    "magic-items.csv"
+  ],
+  "ExpectedOutcomeRef": "expected-outcome.json",
+  "Notes": "Baseline valid packet for smoke-testing import flows across core RPG content types."
+}

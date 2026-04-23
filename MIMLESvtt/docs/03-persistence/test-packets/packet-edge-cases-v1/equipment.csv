@@ -1,0 +1,4 @@
+DefinitionId,Name,Category,Type,Value,Weight,Tags,Description
+EQ001,Valid Sword,Equipment,Weapon,15,3,valid,Valid equipment row.
+EQ002,Negative Weight,Equipment,Armor,20,-2,bad-weight,Weight out of practical range.
+,Missing Id,Equipment,Tool,5,1,missing-id,Missing required DefinitionId.

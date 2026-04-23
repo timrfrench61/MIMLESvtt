@@ -1,0 +1,5 @@
+DefinitionId,Name,Category,HitPoints,ArmorClass,Movement,Tags,Description
+GOB001,Goblin,Monster,5,6,9,humanoid|cave,Valid baseline row.
+GOB001,Goblin Duplicate,Monster,6,6,9,duplicate-id,Duplicate DefinitionId for policy testing.
+MISSINGNAME,,Monster,4,7,9,missing-name,Missing required Name.
+BADHP,Strange Beast,Monster,not-a-number,4,9,bad-hp,Invalid HitPoints type.
