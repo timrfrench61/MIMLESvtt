@@ -25,6 +25,58 @@
         linear-gradient(to right, rgba(108, 117, 125, 0.18) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(108, 117, 125, 0.18) 1px, transparent 1px);
     background-size: 40px 40px;
+    position: relative;
+}
+
+.board-overlay-stack {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.board-overlay-layer {
+    position: absolute;
+    right: 10px;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    color: #fff;
+    opacity: 0.8;
+}
+
+.overlay-grid {
+    top: 10px;
+    background: #0d6efd;
+}
+
+.overlay-selection {
+    top: 34px;
+    background: #6f42c1;
+}
+
+.overlay-markers {
+    top: 58px;
+    background: #198754;
+}
+
+.board-hud.floating {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    background: rgba(248, 249, 250, 0.95);
+    min-width: 260px;
+}
+
+.board-legal-move-hints {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    background: rgba(255, 193, 7, 0.95);
+    color: #5c4400;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
 }
 
 .board-piece {
@@ -41,6 +93,31 @@
     justify-content: center;
     cursor: pointer;
     user-select: none;
+    gap: 0.2rem;
+    flex-wrap: wrap;
+    padding: 0.15rem;
+}
+
+.piece-label {
+    font-weight: 600;
+}
+
+.piece-overlay-badge {
+    font-size: 0.65rem;
+    line-height: 1;
+    border-radius: 3px;
+    background: rgba(13, 110, 253, 0.14);
+    color: #073b88;
+    border: 1px solid rgba(13, 110, 253, 0.35);
+    padding: 0.1rem 0.25rem;
+}
+
+.board-piece.has-markers {
+    border-style: dashed;
+}
+
+.board-piece.has-owner {
+    box-shadow: inset 0 0 0 2px rgba(13, 110, 253, 0.25);
 }
 
 .board-piece.selected {
@@ -50,6 +127,25 @@
 
 .board-piece.primary {
     box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.35);
+}
+
+.board-piece.state-disabled {
+    opacity: 0.55;
+    filter: grayscale(0.6);
+}
+
+.board-piece.state-elite {
+    border-color: #6f42c1;
+    background: #efe7ff;
+}
+
+.board-piece.state-leader {
+    border-color: #fd7e14;
+    background: #fff3e0;
+}
+
+.board-piece.state-promoted {
+    border-width: 2px;
 }
 
 .board-hud {

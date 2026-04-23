@@ -5,8 +5,8 @@ Target backlog: `docs/05-backlog/05-backlog-ui-presentation.md`
 
 ## Code Project Additions
 
-- [ ] Add navigation entries for content-management and import pages.
-- [ ] Add auth-aware route guards where flow requires signed-in/admin role.
-- [ ] Add layout-level breadcrumb/header context for page hierarchy clarity.
-- [ ] Add route consistency checks between page declarations and nav links.
-- [ ] Add smoke tests validating primary navigation endpoints.
+- [x] Add navigation entries for content-management and import pages.
+- [x] Add auth-aware route guards where flow requires signed-in/admin role.
+- [x] Add layout-level breadcrumb/header context for page hierarchy clarity.
+- [x] Add route consistency checks between page declarations and nav links.
+- [x] Add smoke tests validating primary navigation endpoints.

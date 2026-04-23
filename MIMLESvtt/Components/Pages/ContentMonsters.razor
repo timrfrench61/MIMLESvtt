@@ -1,0 +1,143 @@
+@page "/content/monsters"
+@attribute [Authorize]
+
+<PageTitle>Monsters</PageTitle>
+
+<h1>Monsters</h1>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label">Search</label>
+                <InputText class="form-control" @bind-Value="searchQuery" placeholder="Search name, id, or category" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Sort</label>
+                <InputSelect class="form-select" @bind-Value="sortOption">
+                    <option value="@MonsterSort.NameAsc">Name (A-Z)</option>
+                    <option value="@MonsterSort.NameDesc">Name (Z-A)</option>
+                    <option value="@MonsterSort.CategoryAsc">Category (A-Z)</option>
+                    <option value="@MonsterSort.CategoryDesc">Category (Z-A)</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">Clear</button>
+            </div>
+        </div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="card-title mb-0">Monster Entry/Edit (Validation Slice)</h5>
+            <span class="badge @(IsEditMode ? "text-bg-primary" : "text-bg-secondary")">@(IsEditMode ? "Edit" : "Create")</span>
+        </div>
+
+        <div class="row g-2">
+            <div class="col-md-4">
+                <label class="form-label">Id (required)</label>
+                <InputText class="form-control" @bind-Value="editId" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Name (required)</label>
+                <InputText class="form-control" @bind-Value="editName" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Category (required)</label>
+                <InputText class="form-control" @bind-Value="editCategory" />
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-primary" @onclick="ValidateEditorForm">Validate Form</button>
+            <button class="btn btn-success" @onclick="SaveMonster">Save</button>
+            <button class="btn btn-outline-warning" @onclick="CancelEdit">Cancel</button>
+            <button class="btn btn-outline-secondary" @onclick="StartCreateMode">New (Create Mode)</button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(editorValidationMessage))
+        {
+            <div class="alert @(editorValidationPassed ? "alert-success" : "alert-danger") mt-3 mb-0">
+                @editorValidationMessage
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(editorSaveMessage))
+        {
+            <div class="alert @(editorSaveSucceeded ? "alert-success" : "alert-danger") mt-2 mb-0">
+                @editorSaveMessage
+            </div>
+        }
+    </div>
+</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (VisibleMonsters.Count == 0)
+        {
+            <div class="alert alert-light border mb-0">No monsters match current filters.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th class="text-end">Level/Threat</th>
+                            <th class="text-end">HP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var monster in VisibleMonsters)
+                        {
+                            <tr class="@(string.Equals(monster.Id, selectedMonsterId, StringComparison.Ordinal) ? "table-primary" : string.Empty)">
+                                <td><code>@monster.Id</code></td>
+                                <td>@monster.Name</td>
+                                <td>@monster.Category</td>
+                                <td class="text-end">@monster.LevelOrThreat</td>
+                                <td class="text-end">@monster.HitPoints</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => SelectMonster(monster.Id)">View</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 class="card-title">Monster Detail (Read-only)</h5>
+        @if (SelectedMonster is null)
+        {
+            <div class="alert alert-light border mb-0">Select a monster to view details.</div>
+        }
+        else
+        {
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Id</dt>
+                <dd class="col-sm-9"><code>@SelectedMonster.Id</code></dd>
+
+                <dt class="col-sm-3">Name</dt>
+                <dd class="col-sm-9">@SelectedMonster.Name</dd>
+
+                <dt class="col-sm-3">Category</dt>
+                <dd class="col-sm-9">@SelectedMonster.Category</dd>
+
+                <dt class="col-sm-3">Level/Threat</dt>
+                <dd class="col-sm-9">@SelectedMonster.LevelOrThreat</dd>
+
+                <dt class="col-sm-3">Hit Points</dt>
+                <dd class="col-sm-9">@SelectedMonster.HitPoints</dd>
+            </dl>
+        }
+    </div>
+</div>

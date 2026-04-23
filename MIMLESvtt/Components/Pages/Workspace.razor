@@ -11,7 +11,7 @@
 
 <h1>Workspace</h1>
 
-<div class="workspace-canvas-layer">
+<div class="workspace-canvas-layer" role="region" aria-label="Workspace tabletop canvas">
     @switch (tabletopSurfaceState)
     {
         case TabletopSurfaceState.MissingTabletop:
@@ -21,7 +21,27 @@
             <div class="workspace-tabletop-status workspace-tabletop-status-error">Tabletop page is not loading. Verify the workspace state and try again.</div>
             break;
         default:
-            <div class="workspace-default-tabletop-grid" aria-label="Default x-y grid tabletop"></div>
+            <div class="workspace-default-tabletop-grid" aria-label="Default x-y grid tabletop">
+                <div class="board-overlay-stack" aria-hidden="true">
+                    @if (boardVisibility.ShowSurfaces)
+                    {
+                        <div class="board-overlay-layer overlay-grid">Grid Overlay</div>
+                    }
+                    @if (boardVisibility.ShowPieces)
+                    {
+                        <div class="board-overlay-layer overlay-selection">Selection Overlay</div>
+                    }
+                    @if (boardVisibility.ShowMarkers)
+                    {
+                        <div class="board-overlay-layer overlay-markers">Marker Overlay</div>
+                    }
+                </div>
+                <div class="board-hud floating">
+                    <div><strong>Active Surface:</strong> @(board.ActiveSurfaceId ?? "(none)")</div>
+                    <div><strong>Mode:</strong> @WorkspaceService.State.Mode</div>
+                    <div><strong>Selection:</strong> @board.GetSelectionSummary()</div>
+                </div>
+            </div>
             break;
     }
 </div>
@@ -455,11 +475,19 @@
                     <input id="active-surface-only-toggle" class="form-check-input" type="checkbox" @bind="boardVisibility.ActiveSurfaceOnly" @bind:after="ApplyBoardVisibilityRules" />
                     <label class="form-check-label" for="active-surface-only-toggle">Active Surface Only</label>
                 </div>
+                <div class="form-check mb-0">
+                    <input id="show-legal-move-hints-toggle" class="form-check-input" type="checkbox" @bind="showLegalMoveHints" />
+                    <label class="form-check-label" for="show-legal-move-hints-toggle">Show Legal-Move Hints (Hook)</label>
+                </div>
             </div>
             <div class="d-flex flex-wrap gap-2 align-items-center">
                 <InputText @bind-Value="boardVisibilityDefinitionFilter" @bind-Value:after="OnDefinitionFilterChanged" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Filter DefinitionId" />
                 <InputText @bind-Value="boardVisibilityOwnerFilter" @bind-Value:after="OnOwnerFilterChanged" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Filter OwnerParticipantId" />
             </div>
+            @if (AreMarkersHiddenByFilter())
+            {
+                <div class="alert alert-warning py-2 mt-2 mb-0">Marker cues are currently hidden by the Show Markers toggle.</div>
+            }
         </div>
 
         <div class="mb-3 p-2 border rounded bg-light">
@@ -507,6 +535,8 @@
 
         <div class="board-panel @(isBoardFocused ? "focused" : string.Empty)"
              tabindex="0"
+             role="application"
+             aria-label="Interactive board panel"
              @onfocusin="OnBoardFocused"
              @onfocusout="OnBoardBlurred"
              @onkeydown="OnBoardKeyDown"
@@ -521,8 +551,19 @@
                      style="@GetPieceStyle(piece)"
                      @onclick:stopPropagation="true"
                      @onclick="args => OnBoardPieceClicked(piece.Id, args)">
-                    @(boardVisibility.ShowMarkers && piece.MarkerIds.Count > 0 ? $"{piece.Id} [{piece.MarkerIds.Count}]" : piece.Id)
+                    <span class="piece-label">@piece.Id</span>
+                    @if (boardVisibility.ShowMarkers)
+                    {
+                        foreach (var overlayLabel in GetPieceOverlayLabels(piece))
+                        {
+                            <span class="piece-overlay-badge">@overlayLabel</span>
+                        }
+                    }
                 </div>
+            }
+            @if (showLegalMoveHints)
+            {
+                <div class="board-legal-move-hints">Legal-move hints hook active for future rules-module highlighting.</div>
             }
         </div>
 

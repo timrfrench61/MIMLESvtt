@@ -77,7 +77,7 @@ It also supports quality verification for many other master items.
 **Master ID:** MB-049  
 **Title:** Create engine test strategy  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Define the overall testing approach for the platform, including unit, integration, regression, and manual QA layers.
@@ -96,7 +96,7 @@ Define the overall testing approach for the platform, including unit, integratio
 **Master ID:** MB-049  
 **Title:** Define subsystem test boundaries  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Specify what each subsystem is responsible for testing and where shared integration tests should live.

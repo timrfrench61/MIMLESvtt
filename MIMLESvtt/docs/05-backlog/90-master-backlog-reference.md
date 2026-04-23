@@ -86,7 +86,7 @@ Reference usage note:
 **Title:** Establish solution structure  
 **Subsystem:** Core / Architecture  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create the initial Blazor Server solution and supporting project structure for UI, domain, application services, infrastructure, and tests.
@@ -105,7 +105,7 @@ Create the initial Blazor Server solution and supporting project structure for U
 **Title:** Define product vision and scope  
 **Subsystem:** Documentation / Planning  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Document the product as a general tabletop engine rather than an RPG-only VTT.
@@ -124,7 +124,7 @@ Document the product as a general tabletop engine rather than an RPG-only VTT.
 **Title:** Define subsystem map  
 **Subsystem:** Documentation / Planning  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create and maintain the subsystem breakdown for the platform.
@@ -142,7 +142,7 @@ Create and maintain the subsystem breakdown for the platform.
 **Title:** Record initial architecture decision  
 **Subsystem:** Architecture  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Document the use of Blazor Server for early-phase development, with later networking and modular service growth in mind.
@@ -163,7 +163,7 @@ Document the use of Blazor Server for early-phase development, with later networ
 **Title:** Define core domain glossary  
 **Subsystem:** Domain / Documentation  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create standard definitions for core engine concepts such as board, map, zone, space, piece, token, counter, player seat, turn state, scenario, and session.
@@ -181,7 +181,7 @@ Create standard definitions for core engine concepts such as board, map, zone, s
 **Title:** Define board and table-state model  
 **Subsystem:** Domain / Table Engine  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Design the core state model for boards, spaces, zones, and tables.
@@ -200,7 +200,7 @@ Design the core state model for boards, spaces, zones, and tables.
 **Title:** Define piece definition and piece instance model  
 **Subsystem:** Domain / Table Engine  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create the distinction between a reusable piece definition and a live in-session piece instance.
@@ -219,7 +219,7 @@ Create the distinction between a reusable piece definition and a live in-session
 **Title:** Define player seat and role model  
 **Subsystem:** Domain / Session  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create a model for GM, player, observer, side/faction, and seat ownership.
@@ -238,7 +238,7 @@ Create a model for GM, player, observer, side/faction, and seat ownership.
 **Title:** Define turn, phase, and sequence model  
 **Subsystem:** Domain / Turn Engine  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Create a generic turn structure that can support board games, tactical games, and RPG initiative systems.
@@ -257,7 +257,7 @@ Create a generic turn structure that can support board games, tactical games, an
 **Title:** Define move history and event log model  
 **Subsystem:** Domain / Table Engine  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Design the event and move log for replay, audit, undo exploration, and multiplayer sync.
@@ -275,7 +275,7 @@ Design the event and move log for replay, audit, undo exploration, and multiplay
 **Title:** Define save/load session-state model  
 **Subsystem:** Domain / Persistence  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Done  
 
 **Description:**  
 Design how a live table session is persisted and restored.

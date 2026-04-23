@@ -1,0 +1,44 @@
+<div class="row g-2">
+    <div class="col-md-6">
+        <label class="form-label">Category (required)</label>
+        <InputSelect class="form-select" @bind-Value="CategoryLocal">
+            <option value="">Select category</option>
+            @foreach (var category in Categories)
+            {
+                <option value="@category">@category</option>
+            }
+        </InputSelect>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Type (required)</label>
+        <InputSelect class="form-select" @bind-Value="TypeLocal">
+            <option value="">Select type</option>
+            @foreach (var type in Types)
+            {
+                <option value="@type">@type</option>
+            }
+        </InputSelect>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Category { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> CategoryChanged { get; set; }
+    [Parameter] public IEnumerable<string> Categories { get; set; } = [];
+
+    [Parameter] public string Type { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> TypeChanged { get; set; }
+    [Parameter] public IEnumerable<string> Types { get; set; } = [];
+
+    private string CategoryLocal
+    {
+        get => Category;
+        set => CategoryChanged.InvokeAsync(value ?? string.Empty);
+    }
+
+    private string TypeLocal
+    {
+        get => Type;
+        set => TypeChanged.InvokeAsync(value ?? string.Empty);
+    }
+}

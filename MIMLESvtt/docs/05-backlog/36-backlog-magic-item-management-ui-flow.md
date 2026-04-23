@@ -5,8 +5,8 @@ Target backlog: `docs/05-backlog/05-backlog-ui-presentation.md`
 
 ## Code Project Additions
 
-- [ ] Implement Magic Item list page with rarity/type filtering.
-- [ ] Implement Magic Item detail page.
-- [ ] Implement Magic Item create/edit page with effect metadata editor section.
-- [ ] Add validation for required identity/type fields and optional charges.
-- [ ] Add tests for list/detail/edit flow and validation messages.
+- [x] Implement Magic Item list page with rarity/type filtering.
+- [x] Implement Magic Item detail page.
+- [x] Implement Magic Item create/edit page with effect metadata editor section.
+- [x] Add validation for required identity/type fields and optional charges.
+- [x] Add tests for list/detail/edit flow and validation messages.

@@ -111,6 +111,7 @@ public partial class Workspace : ComponentBase
     private readonly BoardVisibilityOptions boardVisibility = new();
     private string boardVisibilityDefinitionFilter = string.Empty;
     private string boardVisibilityOwnerFilter = string.Empty;
+    private bool showLegalMoveHints;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1737,6 +1738,37 @@ public partial class Workspace : ComponentBase
     private string GetPieceCss(PieceInstance piece)
     {
         var css = "board-piece";
+
+        if (piece.MarkerIds.Count > 0)
+        {
+            css += " has-markers";
+        }
+
+        if (!string.IsNullOrWhiteSpace(piece.OwnerParticipantId))
+        {
+            css += " has-owner";
+        }
+
+        if (piece.State.ContainsKey("disabled") && IsTruthyState(piece.State["disabled"]))
+        {
+            css += " state-disabled";
+        }
+
+        if (piece.State.ContainsKey("elite") && IsTruthyState(piece.State["elite"]))
+        {
+            css += " state-elite";
+        }
+
+        if (piece.State.ContainsKey("leader") && IsTruthyState(piece.State["leader"]))
+        {
+            css += " state-leader";
+        }
+
+        if (piece.State.ContainsKey("promoted") && IsTruthyState(piece.State["promoted"]))
+        {
+            css += " state-promoted";
+        }
+
         if (board.IsPieceSelected(piece.Id))
         {
             css += " selected";
@@ -1750,11 +1782,90 @@ public partial class Workspace : ComponentBase
         return css;
     }
 
+    private static bool IsTruthyState(object? value)
+    {
+        if (value is null)
+        {
+            return false;
+        }
+
+        if (value is bool boolean)
+        {
+            return boolean;
+        }
+
+        if (value is string text)
+        {
+            return string.Equals(text, "true", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(text, "1", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(text, "yes", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (value is int integer)
+        {
+            return integer != 0;
+        }
+
+        if (value is long longInteger)
+        {
+            return longInteger != 0;
+        }
+
+        if (value is float floatValue)
+        {
+            return Math.Abs(floatValue) > 0.0001f;
+        }
+
+        if (value is double doubleValue)
+        {
+            return Math.Abs(doubleValue) > 0.0001;
+        }
+
+        return false;
+    }
+
     private string GetPieceStyle(PieceInstance piece)
     {
         var left = Math.Clamp(piece.Location.Coordinate.X, 0, 620);
         var top = Math.Clamp(piece.Location.Coordinate.Y, 0, 360);
         return $"left: {left}px; top: {top}px; transform: rotate({piece.Rotation.Degrees}deg);";
+    }
+
+    private IEnumerable<string> GetPieceOverlayLabels(PieceInstance piece)
+    {
+        var overlays = new List<string>();
+
+        if (piece.MarkerIds.Count > 0)
+        {
+            overlays.Add($"M:{piece.MarkerIds.Count}");
+        }
+
+        if (piece.State.ContainsKey("disabled") && IsTruthyState(piece.State["disabled"]))
+        {
+            overlays.Add("DIS");
+        }
+
+        if (piece.State.ContainsKey("elite") && IsTruthyState(piece.State["elite"]))
+        {
+            overlays.Add("ELITE");
+        }
+
+        if (piece.State.ContainsKey("leader") && IsTruthyState(piece.State["leader"]))
+        {
+            overlays.Add("LDR");
+        }
+
+        if (piece.State.ContainsKey("promoted") && IsTruthyState(piece.State["promoted"]))
+        {
+            overlays.Add("PROM");
+        }
+
+        return overlays;
+    }
+
+    private bool AreMarkersHiddenByFilter()
+    {
+        return !boardVisibility.ShowMarkers;
     }
 
     private bool TryGetSelectedPiece(out PieceInstance selectedPiece)

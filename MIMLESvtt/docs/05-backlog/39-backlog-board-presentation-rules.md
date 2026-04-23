@@ -5,8 +5,8 @@ Target backlog: `docs/05-backlog/05-backlog-ui-presentation.md`
 
 ## Code Project Additions
 
-- [ ] Add explicit board overlay layer components (grid/selection/marker overlays) with toggle control.
-- [ ] Add legal-move indicator hooks for future rules-module highlighting.
-- [ ] Add board HUD component for active surface, mode, and selection summary.
-- [ ] Add visual tests for filter toggles impacting rendered pieces.
-- [ ] Add accessibility pass for board focus and keyboard interaction cues.
+- [x] Add explicit board overlay layer components (grid/selection/marker overlays) with toggle control.
+- [x] Add legal-move indicator hooks for future rules-module highlighting.
+- [x] Add board HUD component for active surface, mode, and selection summary.
+- [x] Add visual tests for filter toggles impacting rendered pieces.
+- [x] Add accessibility pass for board focus and keyboard interaction cues.

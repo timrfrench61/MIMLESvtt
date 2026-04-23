@@ -1,0 +1,172 @@
+@page "/content/equipment"
+@attribute [Authorize]
+
+<PageTitle>Equipment</PageTitle>
+
+<h1>Equipment</h1>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Search</label>
+                <InputText class="form-control" @bind-Value="searchQuery" placeholder="Search name, id, or category" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Category</label>
+                <InputSelect class="form-select" @bind-Value="categoryFilter">
+                    <option value="">All</option>
+                    @foreach (var category in AvailableCategories)
+                    {
+                        <option value="@category">@category</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Sort</label>
+                <InputSelect class="form-select" @bind-Value="sortOption">
+                    <option value="@EquipmentSort.NameAsc">Name (A-Z)</option>
+                    <option value="@EquipmentSort.NameDesc">Name (Z-A)</option>
+                    <option value="@EquipmentSort.CategoryAsc">Category (A-Z)</option>
+                    <option value="@EquipmentSort.CategoryDesc">Category (Z-A)</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">Clear</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (VisibleEquipment.Count == 0)
+        {
+            <div class="alert alert-light border mb-0">No equipment matches current filters.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Type</th>
+                            <th class="text-end">Cost</th>
+                            <th class="text-end">Weight</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in VisibleEquipment)
+                        {
+                            <tr class="@(string.Equals(item.Id, selectedEquipmentId, StringComparison.Ordinal) ? "table-primary" : string.Empty)">
+                                <td><code>@item.Id</code></td>
+                                <td>@item.Name</td>
+                                <td>@item.Category</td>
+                                <td>@item.Type</td>
+                                <td class="text-end">@item.Cost</td>
+                                <td class="text-end">@item.Weight</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => SelectEquipment(item.Id)">View</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 class="card-title">Equipment Detail (Read-only)</h5>
+        @if (SelectedEquipment is null)
+        {
+            <div class="alert alert-light border mb-0">Select equipment to view details.</div>
+        }
+        else
+        {
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Id</dt>
+                <dd class="col-sm-9"><code>@SelectedEquipment.Id</code></dd>
+
+                <dt class="col-sm-3">Name</dt>
+                <dd class="col-sm-9">@SelectedEquipment.Name</dd>
+
+                <dt class="col-sm-3">Category</dt>
+                <dd class="col-sm-9">@SelectedEquipment.Category</dd>
+
+                <dt class="col-sm-3">Type</dt>
+                <dd class="col-sm-9">@SelectedEquipment.Type</dd>
+
+                <dt class="col-sm-3">Cost</dt>
+                <dd class="col-sm-9">@SelectedEquipment.Cost</dd>
+
+                <dt class="col-sm-3">Weight</dt>
+                <dd class="col-sm-9">@SelectedEquipment.Weight</dd>
+            </dl>
+        }
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="card-title mb-0">Equipment Entry/Edit</h5>
+            <span class="badge @(IsEditMode ? "text-bg-primary" : "text-bg-secondary")">@(IsEditMode ? "Edit" : "Create")</span>
+        </div>
+
+        <div class="row g-2">
+            <div class="col-md-4">
+                <label class="form-label">Id (required)</label>
+                <InputText class="form-control" @bind-Value="editId" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Name (required)</label>
+                <InputText class="form-control" @bind-Value="editName" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Cost (>= 0)</label>
+                <InputNumber class="form-control" @bind-Value="editCost" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Weight (>= 0)</label>
+                <InputNumber class="form-control" @bind-Value="editWeight" />
+            </div>
+        </div>
+
+        <div class="mt-2">
+            <EquipmentCategoryTypeSelector
+                Category="@editCategory"
+                CategoryChanged="OnEditorCategoryChanged"
+                Categories="@AvailableCategories"
+                Type="@editType"
+                TypeChanged="OnEditorTypeChanged"
+                Types="@AvailableTypes" />
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-primary" @onclick="ValidateEditorForm">Validate Form</button>
+            <button class="btn btn-success" @onclick="SaveEquipment">Save</button>
+            <button class="btn btn-outline-warning" @onclick="CancelEdit">Cancel</button>
+            <button class="btn btn-outline-secondary" @onclick="StartCreateMode">New (Create Mode)</button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(editorValidationMessage))
+        {
+            <div class="alert @(editorValidationPassed ? "alert-success" : "alert-danger") mt-3 mb-0">
+                @editorValidationMessage
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(editorSaveMessage))
+        {
+            <div class="alert @(editorSaveSucceeded ? "alert-success" : "alert-danger") mt-2 mb-0">
+                @editorSaveMessage
+            </div>
+        }
+    </div>
+</div>

@@ -135,6 +135,33 @@ When overview files are renamed, renumbered, moved, added, or removed, update th
 - `57-rpg-content-model-magic-item.md`  
   Baseline magic-item content model and effect metadata strategy.
 
+- `58-unit-counter-content-model.md`  
+  Baseline unit/counter content model for tactical and strategic scenarios.
+
+- `59-manual-gm-entry-workflow.md`  
+  Shared manual GM create/edit/list/review workflow.
+
+- `60-gm-monster-entry-screen-slice.md`  
+  Monster entry screen slice field/validation/save behavior plan.
+
+- `61-gm-treasure-entry-screen-slice.md`  
+  Treasure entry screen slice field/validation/save behavior plan.
+
+- `62-gm-equipment-entry-screen-slice.md`  
+  Equipment entry screen slice field/validation/save behavior plan.
+
+- `63-gm-magic-item-entry-screen-slice.md`  
+  Magic-item entry screen slice field/validation/save behavior plan.
+
+- `64-reusable-csv-import-pipeline.md`  
+  Reusable import stage flow and result model.
+
+- `65-import-validation-model.md`  
+  Shared import validation severity and duplicate-handling model.
+
+- `66-test-data-packet-format.md`  
+  Import test packet structure, manifest, and expected-outcome guidance.
+
 - `94-refactor-plan-make-vttcontentpack.md`  
   Content-pack refactor planning notes.
 

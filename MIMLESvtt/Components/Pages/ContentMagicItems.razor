@@ -1,0 +1,176 @@
+@page "/content/magic-items"
+@attribute [Authorize]
+
+<PageTitle>Magic Items</PageTitle>
+
+<h1>Magic Items</h1>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <InputText class="form-control" @bind-Value="searchQuery" placeholder="Search name, id, rarity, or type" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Rarity</label>
+                <InputSelect class="form-select" @bind-Value="rarityFilter">
+                    <option value="">All</option>
+                    @foreach (var rarity in AvailableRarities)
+                    {
+                        <option value="@rarity">@rarity</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Type</label>
+                <InputSelect class="form-select" @bind-Value="typeFilter">
+                    <option value="">All</option>
+                    @foreach (var type in AvailableTypes)
+                    {
+                        <option value="@type">@type</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">Clear</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (VisibleMagicItems.Count == 0)
+        {
+            <div class="alert alert-light border mb-0">No magic items match current filters.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Rarity</th>
+                            <th class="text-end">Charges</th>
+                            <th class="text-end">Attunement</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in VisibleMagicItems)
+                        {
+                            <tr class="@(string.Equals(item.Id, selectedMagicItemId, StringComparison.Ordinal) ? "table-primary" : string.Empty)">
+                                <td><code>@item.Id</code></td>
+                                <td>@item.Name</td>
+                                <td>@item.ItemType</td>
+                                <td>@item.Rarity</td>
+                                <td class="text-end">@(item.Charges?.ToString() ?? "-")</td>
+                                <td class="text-end">@(item.AttunementRequired ? "Yes" : "No")</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => SelectMagicItem(item.Id)">View</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 class="card-title">Magic Item Detail (Read-only)</h5>
+        @if (SelectedMagicItem is null)
+        {
+            <div class="alert alert-light border mb-0">Select a magic item to view details.</div>
+        }
+        else
+        {
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Id</dt>
+                <dd class="col-sm-9"><code>@SelectedMagicItem.Id</code></dd>
+
+                <dt class="col-sm-3">Name</dt>
+                <dd class="col-sm-9">@SelectedMagicItem.Name</dd>
+
+                <dt class="col-sm-3">Type</dt>
+                <dd class="col-sm-9">@SelectedMagicItem.ItemType</dd>
+
+                <dt class="col-sm-3">Rarity</dt>
+                <dd class="col-sm-9">@SelectedMagicItem.Rarity</dd>
+
+                <dt class="col-sm-3">Attunement Required</dt>
+                <dd class="col-sm-9">@(SelectedMagicItem.AttunementRequired ? "Yes" : "No")</dd>
+
+                <dt class="col-sm-3">Charges</dt>
+                <dd class="col-sm-9">@(SelectedMagicItem.Charges?.ToString() ?? "(none)")</dd>
+
+                <dt class="col-sm-3">Effect Metadata</dt>
+                <dd class="col-sm-9">@SelectedMagicItem.EffectMetadata</dd>
+            </dl>
+        }
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="card-title mb-0">Magic Item Entry/Edit</h5>
+            <span class="badge @(IsEditMode ? "text-bg-primary" : "text-bg-secondary")">@(IsEditMode ? "Edit" : "Create")</span>
+        </div>
+
+        <div class="row g-2">
+            <div class="col-md-4">
+                <label class="form-label">Id (required)</label>
+                <InputText class="form-control" @bind-Value="editId" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Name (required)</label>
+                <InputText class="form-control" @bind-Value="editName" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Type (required)</label>
+                <InputText class="form-control" @bind-Value="editItemType" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Rarity</label>
+                <InputText class="form-control" @bind-Value="editRarity" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Charges (optional, >= 0)</label>
+                <InputNumber class="form-control" @bind-Value="editCharges" />
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <div class="form-check mb-2">
+                    <InputCheckbox id="magic-item-attunement" class="form-check-input" @bind-Value="editAttunementRequired" />
+                    <label class="form-check-label" for="magic-item-attunement">Attunement Required</label>
+                </div>
+            </div>
+            <div class="col-12">
+                <label class="form-label">Effect Metadata</label>
+                <InputTextArea class="form-control" @bind-Value="editEffectMetadata" rows="3" />
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-primary" @onclick="ValidateEditorForm">Validate Form</button>
+            <button class="btn btn-success" @onclick="SaveMagicItem">Save</button>
+            <button class="btn btn-outline-warning" @onclick="CancelEdit">Cancel</button>
+            <button class="btn btn-outline-secondary" @onclick="StartCreateMode">New (Create Mode)</button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(editorValidationMessage))
+        {
+            <div class="alert @(editorValidationPassed ? "alert-success" : "alert-danger") mt-3 mb-0">@editorValidationMessage</div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(editorSaveMessage))
+        {
+            <div class="alert @(editorSaveSucceeded ? "alert-success" : "alert-danger") mt-2 mb-0">@editorSaveMessage</div>
+        }
+    </div>
+</div>

@@ -1,0 +1,151 @@
+@page "/content/treasure"
+@attribute [Authorize]
+
+<PageTitle>Treasure</PageTitle>
+
+<h1>Treasure</h1>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label">Search</label>
+                <InputText class="form-control" @bind-Value="searchQuery" placeholder="Search name, id, or type" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Sort</label>
+                <InputSelect class="form-select" @bind-Value="sortOption">
+                    <option value="@TreasureSort.NameAsc">Name (A-Z)</option>
+                    <option value="@TreasureSort.NameDesc">Name (Z-A)</option>
+                    <option value="@TreasureSort.TypeAsc">Type (A-Z)</option>
+                    <option value="@TreasureSort.TypeDesc">Type (Z-A)</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">Clear</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (VisibleTreasure.Count == 0)
+        {
+            <div class="alert alert-light border mb-0">No treasure matches current filters.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th class="text-end">Value</th>
+                            <th class="text-end">Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var treasure in VisibleTreasure)
+                        {
+                            <tr class="@(string.Equals(treasure.Id, selectedTreasureId, StringComparison.Ordinal) ? "table-primary" : string.Empty)">
+                                <td><code>@treasure.Id</code></td>
+                                <td>@treasure.Name</td>
+                                <td>@treasure.TreasureType</td>
+                                <td class="text-end">@treasure.Value</td>
+                                <td class="text-end">@treasure.Quantity</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => SelectTreasure(treasure.Id)">View</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 class="card-title">Treasure Detail (Read-only)</h5>
+        @if (SelectedTreasure is null)
+        {
+            <div class="alert alert-light border mb-0">Select treasure to view details.</div>
+        }
+        else
+        {
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Id</dt>
+                <dd class="col-sm-9"><code>@SelectedTreasure.Id</code></dd>
+
+                <dt class="col-sm-3">Name</dt>
+                <dd class="col-sm-9">@SelectedTreasure.Name</dd>
+
+                <dt class="col-sm-3">Type</dt>
+                <dd class="col-sm-9">@SelectedTreasure.TreasureType</dd>
+
+                <dt class="col-sm-3">Value</dt>
+                <dd class="col-sm-9">@SelectedTreasure.Value</dd>
+
+                <dt class="col-sm-3">Quantity</dt>
+                <dd class="col-sm-9">@SelectedTreasure.Quantity</dd>
+            </dl>
+        }
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="card-title mb-0">Treasure Entry/Edit</h5>
+            <span class="badge @(IsEditMode ? "text-bg-primary" : "text-bg-secondary")">@(IsEditMode ? "Edit" : "Create")</span>
+        </div>
+
+        <div class="row g-2">
+            <div class="col-md-3">
+                <label class="form-label">Id (required)</label>
+                <InputText class="form-control" @bind-Value="editId" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Name (required)</label>
+                <InputText class="form-control" @bind-Value="editName" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Type (required)</label>
+                <InputText class="form-control" @bind-Value="editTreasureType" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Value (>= 0)</label>
+                <InputNumber class="form-control" @bind-Value="editValue" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Quantity (>= 0)</label>
+                <InputNumber class="form-control" @bind-Value="editQuantity" />
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-primary" @onclick="ValidateEditorForm">Validate Form</button>
+            <button class="btn btn-success" @onclick="SaveTreasure">Save</button>
+            <button class="btn btn-outline-warning" @onclick="CancelEdit">Cancel</button>
+            <button class="btn btn-outline-secondary" @onclick="StartCreateMode">New (Create Mode)</button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(editorValidationMessage))
+        {
+            <div class="alert @(editorValidationPassed ? "alert-success" : "alert-danger") mt-3 mb-0">
+                @editorValidationMessage
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(editorSaveMessage))
+        {
+            <div class="alert @(editorSaveSucceeded ? "alert-success" : "alert-danger") mt-2 mb-0">
+                @editorSaveMessage
+            </div>
+        }
+    </div>
+</div>

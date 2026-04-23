@@ -1,0 +1,57 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="card-title mb-0">@Title</h5>
+            <span class="badge text-bg-secondary">@EntityTypeLabel</span>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <button class="btn btn-sm @(CurrentView == ContentEntityView.List ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetView(ContentEntityView.List)">List</button>
+            <button class="btn btn-sm @(CurrentView == ContentEntityView.Detail ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetView(ContentEntityView.Detail)">Detail</button>
+            <button class="btn btn-sm @(CurrentView == ContentEntityView.Edit ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetView(ContentEntityView.Edit)">Entry/Edit</button>
+        </div>
+
+        @if (CurrentView == ContentEntityView.List)
+        {
+            <div class="alert alert-light border">
+                <strong>List Shell</strong><br />
+                Placeholder for filter/search/sort and content rows.
+            </div>
+        }
+        else if (CurrentView == ContentEntityView.Detail)
+        {
+            <div class="alert alert-light border">
+                <strong>Detail Shell</strong><br />
+                Placeholder for read-only entity detail view.
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-light border">
+                <strong>Entry/Edit Shell</strong><br />
+                Placeholder for create/edit form and validation summary.
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Content";
+    [Parameter] public string EntityTypeLabel { get; set; } = "Entity";
+
+    private ContentEntityView CurrentView { get; set; } = ContentEntityView.List;
+
+    private void SetView(ContentEntityView view)
+    {
+        CurrentView = view;
+    }
+
+    private enum ContentEntityView
+    {
+        List,
+        Detail,
+        Edit
+    }
+}

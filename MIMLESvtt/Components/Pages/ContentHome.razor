@@ -1,0 +1,21 @@
+@page "/content"
+@attribute [Authorize]
+
+<PageTitle>Content Management</PageTitle>
+
+<h1>Content Management</h1>
+
+<div class="alert alert-info">
+    Content route group is active. Choose a content type below.
+</div>
+
+<ul>
+    <li><a href="/content/monsters">Monsters</a></li>
+    <li><a href="/content/treasure">Treasure</a></li>
+    <li><a href="/content/equipment">Equipment</a></li>
+    <li><a href="/content/magic-items">Magic Items</a></li>
+</ul>
+
+<ContentImportWorkflowShell />
+
+<ContentStatusStateShell Title="Content List Status" />

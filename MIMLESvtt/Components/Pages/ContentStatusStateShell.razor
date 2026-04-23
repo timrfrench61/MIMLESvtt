@@ -1,0 +1,56 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="card-title mb-0">@Title</h5>
+            <span class="badge text-bg-secondary">Reusable State Shell</span>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <button class="btn btn-sm @(CurrentState == ContentStatusState.Empty ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetState(ContentStatusState.Empty)">Empty</button>
+            <button class="btn btn-sm @(CurrentState == ContentStatusState.Loading ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetState(ContentStatusState.Loading)">Loading</button>
+            <button class="btn btn-sm @(CurrentState == ContentStatusState.Error ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetState(ContentStatusState.Error)">Error</button>
+        </div>
+
+        @if (CurrentState == ContentStatusState.Empty)
+        {
+            <div class="alert alert-light border mb-0">
+                <strong>Empty State</strong><br />
+                Placeholder for no-items/no-results messaging.
+            </div>
+        }
+        else if (CurrentState == ContentStatusState.Loading)
+        {
+            <div class="alert alert-light border mb-0">
+                <strong>Loading State</strong><br />
+                Placeholder for load-progress/status indicator.
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-danger mb-0">
+                <strong>Error State</strong><br />
+                Placeholder for user-visible load/process error details.
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Content State";
+
+    private ContentStatusState CurrentState { get; set; } = ContentStatusState.Empty;
+
+    private void SetState(ContentStatusState state)
+    {
+        CurrentState = state;
+    }
+
+    private enum ContentStatusState
+    {
+        Empty,
+        Loading,
+        Error
+    }
+}

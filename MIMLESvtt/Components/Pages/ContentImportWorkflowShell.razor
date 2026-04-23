@@ -1,0 +1,76 @@
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="card-title mb-0">Import Workflow</h5>
+            <span class="badge text-bg-secondary">Reusable Shell</span>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <button class="btn btn-sm @(CurrentStage == ImportStage.Upload ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(ImportStage.Upload)">Upload</button>
+            <button class="btn btn-sm @(CurrentStage == ImportStage.Validation ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(ImportStage.Validation)">Validation</button>
+            <button class="btn btn-sm @(CurrentStage == ImportStage.ErrorReview ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(ImportStage.ErrorReview)">Error Review</button>
+            <button class="btn btn-sm @(CurrentStage == ImportStage.SuccessSummary ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(ImportStage.SuccessSummary)">Success Summary</button>
+        </div>
+
+        @if (CurrentStage == ImportStage.Upload)
+        {
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <label class="form-label">Import file path</label>
+                    <InputText class="form-control" @bind-Value="selectedFilePath" placeholder="C:\\imports\\content.csv" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Import type</label>
+                    <InputSelect class="form-select" @bind-Value="importType">
+                        <option value="Monster">Monster</option>
+                        <option value="Treasure">Treasure</option>
+                        <option value="Equipment">Equipment</option>
+                        <option value="MagicItem">Magic Item</option>
+                    </InputSelect>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" @onclick="ValidateImportPreview">Validate Preview</button>
+                </div>
+            </div>
+            <div class="alert alert-light border mt-3 mb-0">
+                <strong>Upload Stage</strong><br />
+                Select file/type and run validation preview.
+            </div>
+        }
+        else if (CurrentStage == ImportStage.Validation)
+        {
+            <div class="alert alert-light border mb-2">
+                <strong>Validation Preview</strong><br />
+                Rows: @resultState.TotalRows | Created: @resultState.CreatedCount | Updated: @resultState.UpdatedCount | Failed: @resultState.FailedCount
+            </div>
+            <ul class="mb-3">
+                @foreach (var message in resultState.ValidationMessages)
+                {
+                    <li>@message</li>
+                }
+            </ul>
+            <button class="btn btn-primary" @onclick="ContinueFromValidation">Continue</button>
+        }
+        else if (CurrentStage == ImportStage.ErrorReview)
+        {
+            <div class="alert alert-danger mb-2">
+                <strong>Error Review</strong><br />
+                Errors: @resultState.ErrorCount | Warnings: @resultState.WarningCount
+            </div>
+            <ul class="mb-3">
+                @foreach (var message in resultState.ValidationMessages)
+                {
+                    <li>@message</li>
+                }
+            </ul>
+            <button class="btn btn-outline-primary" @onclick="RetryFromErrors">Retry</button>
+        }
+        else
+        {
+            <div class="alert alert-success mb-0">
+                <strong>Success Summary</strong><br />
+                Created: @resultState.CreatedCount | Updated: @resultState.UpdatedCount | Skipped: @resultState.SkippedCount | Failed: @resultState.FailedCount
+            </div>
+        }
+    </div>
+</div>

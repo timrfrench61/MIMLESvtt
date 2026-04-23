@@ -5,8 +5,8 @@ Target backlog: `docs/05-backlog/05-backlog-ui-presentation.md`
 
 ## Code Project Additions
 
-- [ ] Implement Equipment list page with search/sort and category filters.
-- [ ] Implement Equipment detail page.
-- [ ] Implement Equipment create/edit page with cost/weight validation.
-- [ ] Add reusable category/type selector component for equipment forms.
-- [ ] Add tests for required fields and invalid numeric range handling.
+- [x] Implement Equipment list page with search/sort and category filters.
+- [x] Implement Equipment detail page.
+- [x] Implement Equipment create/edit page with cost/weight validation.
+- [x] Add reusable category/type selector component for equipment forms.
+- [x] Add tests for required fields and invalid numeric range handling.

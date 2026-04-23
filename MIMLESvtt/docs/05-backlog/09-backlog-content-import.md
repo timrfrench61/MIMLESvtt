@@ -417,5 +417,5 @@ Create a sample packet with missing fields, duplicate keys, bad types, and warni
 ## Near-Term Execution Order
 
 1. Closed in current implementation cycle: CI-001 through CI-021 completed
-2. Next focus: implement packet runner utility to compare import results against expected-outcome manifests
+2. Completed: packet-runner validation utility for expected-outcome manifest comparison
 3. Next focus: add automated regression execution of baseline + edge-case packets in testing backlog
