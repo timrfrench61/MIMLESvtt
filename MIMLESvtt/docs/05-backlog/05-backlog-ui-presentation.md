@@ -283,6 +283,103 @@ Add explicit UI design documentation for the slide-in panel behavior, expected r
 
 ---
 
+### UI-015
+**Title:** Implement Launch Game Selector dialog shell  
+**Master ID:** MB-043  
+**Priority:** High  
+**Status:** Pending  
+
+**Description:**  
+Add a launch-stage Game Selector dialog that is opened from Home/Launch and acts as the entry point into session flows.
+
+**Dependencies:** UI-001, UI-002
+
+**Acceptance Criteria:**
+- Game Selector dialog is reachable from launch screen.
+- Dialog includes sections for:
+  - My Games (saved/subscribed sessions)
+  - Join Existing Game
+  - Start New Session
+- Cancel/close behavior returns user to launch screen safely.
+
+---
+
+### UI-016
+**Title:** Implement My Games (saved/subscribed sessions) list in Game Selector  
+**Master ID:** MB-043  
+**Priority:** High  
+**Status:** Pending  
+
+**Description:**  
+Implement session list rendering and selection behavior for opening existing sessions from the Game Selector dialog.
+
+**Dependencies:** UI-015
+
+**Acceptance Criteria:**
+- Saved/subscribed sessions list is rendered.
+- Selecting a session enables Open action.
+- Open action loads selected session and routes to Workspace.
+- Empty/error/loading list states are shown clearly.
+
+---
+
+### UI-017
+**Title:** Implement Join Existing Game flow in Game Selector  
+**Master ID:** MB-043  
+**Priority:** High  
+**Status:** Pending  
+
+**Description:**  
+Implement join flow using join code or existing hosted-game selector from the Game Selector dialog.
+
+**Dependencies:** UI-015
+
+**Acceptance Criteria:**
+- Join input is available in dialog.
+- Join action validates input and reports user-visible errors.
+- Successful join routes user into Workspace.
+
+---
+
+### UI-018
+**Title:** Implement admin-gated Start New Session action in Game Selector  
+**Master ID:** MB-043  
+**Priority:** High  
+**Status:** Pending  
+
+**Description:**  
+Add permission-gated new-session creation from the Game Selector dialog so only admin users can initiate new sessions.
+
+**Dependencies:** UI-015
+
+**Acceptance Criteria:**
+- Start New Session action is visible/enabled only for admin users.
+- Non-admin invocation attempts return explicit access-denied feedback.
+- Admin path creates a new session and routes to Workspace.
+
+---
+
+### UI-019
+**Title:** Document and test Game Selector interaction states  
+**Master ID:** MB-043  
+**Priority:** Medium  
+**Status:** Pending  
+
+**Description:**  
+Add UI documentation and test coverage for Game Selector behavior and permission/state handling.
+
+**Dependencies:** UI-016, UI-017, UI-018
+
+**Acceptance Criteria:**
+- Documentation covers selection/open/join/admin gating behavior.
+- Tests cover:
+  - saved session open path
+  - join validation + success path
+  - admin-only new session gating
+  - loading/empty/error UI states
+
+---
+
 ## Near-Term Execution Order
 
 1. UI-001 Define application shell layout  
@@ -294,3 +391,8 @@ Add explicit UI design documentation for the slide-in panel behavior, expected r
 7. UI-012 Define import workflow UI
 8. UI-013 Implement Workspace right-slide controls panel over tabletop
 9. UI-014 Document Workspace slide-panel interaction model and fallback tabletop states
+10. UI-015 Implement Launch Game Selector dialog shell
+11. UI-016 Implement My Games (saved/subscribed sessions) list in Game Selector
+12. UI-017 Implement Join Existing Game flow in Game Selector
+13. UI-018 Implement admin-gated Start New Session action in Game Selector
+14. UI-019 Document and test Game Selector interaction states

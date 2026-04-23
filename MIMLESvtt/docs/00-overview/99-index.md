@@ -51,6 +51,9 @@ When overview files are renamed, renumbered, moved, added, or removed, update th
 - `22-checkers-rules-module.md`  
   Checkers rules module notes.
 
+- `30-game-selector-ui.md`  
+  Launch-stage game selection dialog behavior (open saved session, join existing game, admin-only new session).
+
 - `98-glossary.md`  
   Canonical vocabulary across domain and workspace/application usage.
 

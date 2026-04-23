@@ -46,6 +46,38 @@ flowchart TD
 
 ```
 
+## 1b. Launch + Game Selector Flow (UI System Perspective)
+
+```mermaid
+flowchart TD
+
+    A[Start] --> B[Open VTT Application]
+    B --> C[Show Launch/Home Screen]
+    C --> D[Open Game Selection Dialog]
+
+    D --> E[Load subscribed games list]
+    E --> F[Render Saved Sessions list]
+
+    F --> G{Choose action}
+    G --> H[Open Saved Session]
+    G --> I[Join Existing Game]
+    G --> J[Start New Session]
+
+    H --> H1[Load selected VttSession]
+    H1 --> Z[Initialize Workspace]
+
+    I --> I1[Enter Join Code / Select Hosted Game]
+    I1 --> I2[Validate access + connect]
+    I2 --> Z
+
+    J --> K{User has admin rights?}
+    K -->|Yes| K1[Create New Session]
+    K -->|No| K2[Show access denied message]
+
+    K1 --> K3[Optional scenario/setup selection]
+    K3 --> Z
+```
+
 ## 2. Workspace Right-Slider + Tabletop Edit Flow (UI Perspective)
 
 ```mermaid
