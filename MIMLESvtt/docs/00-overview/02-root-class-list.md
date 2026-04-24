@@ -7,6 +7,7 @@ This page documents the project root gameplay/content classes used by the curren
 In code, the current names are:
 
 - `VttSession` 
+- `VttCampaign`
 - `VttScenario`
 - `VttGamebox`
 
@@ -87,8 +88,38 @@ Represents a persisted content-pack envelope containing definitions and assets.
 
 ---
 
+## 4) `VttCampaign`
+
+**Namespace:** `MIMLESvtt.src.Domain.Models`  
+**Source:** `src/Domain/Models/VttCampaign.cs`
+
+Represents a session child object that groups one-or-more scenarios and tracks the current scenario snapshot for campaign flow.
+
+### Properties
+
+- `string Id`  -   Campaign identifier.
+- `string Name`  -   User-facing campaign name.
+- `string Description`  -   Campaign summary/notes.
+- `string SessionId`  -   Parent session id.
+- `string GameboxId`  -   Associated gamebox/content package id.
+- `bool IsReadOnly`  -   Indicates seeded/system-managed campaign state.
+- `bool IsHidden`  -   UI visibility flag for selection lists.
+- `List<string> ScenarioIds`  -   Campaign-owned scenario identifiers.
+- `VttScenario? CurrentScenarioSnapshot`  -   Current scenario snapshot carried by campaign state.
+
+### Session Relationship
+
+`VttSession` includes:
+
+- `List<VttCampaign> Campaigns`
+
+This allows session runtime to keep campaign metadata, scenario ids, and the active scenario snapshot together.
+
+---
+
 ## Quick Relationship Summary
 
 - `VttSession` = live gameplay/runtime state.
 - `VttScenario` = prepared starting state template.
 - `VttGamebox` = package of reusable definitions/assets.
+- `VttCampaign` = session child grouping scenarios and current scenario snapshot.

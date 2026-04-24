@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="MIMLESvtt.Tests/MIMLESvtt.Tests.csproj" />
   <Project Path="MIMLESvtt/MIMLESvtt.csproj" />
 </Solution>

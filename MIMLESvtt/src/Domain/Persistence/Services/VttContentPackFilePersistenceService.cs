@@ -23,8 +23,15 @@ namespace MIMLESvtt.src.Domain.Persistence.Services
             ArgumentNullException.ThrowIfNull(gamebox);
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
+            var fullPath = Path.GetFullPath(path);
+            var directoryPath = Path.GetDirectoryName(fullPath);
+            if (!string.IsNullOrWhiteSpace(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
+
             var json = _serializer.SerializeVttGamebox(gamebox);
-            File.WriteAllText(path, json, Encoding.UTF8);
+            File.WriteAllText(fullPath, json, Encoding.UTF8);
         }
 
         public void SaveToFile(VttGamebox gamebox, string path)

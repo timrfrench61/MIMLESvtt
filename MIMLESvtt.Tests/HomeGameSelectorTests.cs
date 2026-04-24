@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MIMLESvtt.Components.Pages;
 using MIMLESvtt.src.Domain.Models;
@@ -6,12 +7,20 @@ using MIMLESvtt.src.Domain.Persistence.Snapshot;
 using MIMLESvtt.src.Domain.Persistence.VttSessionNSPC;
 using MIMLESvtt.src.Domain.Persistence.Services.Import;
 using System.Reflection;
+using System.Security.Claims;
+using System.Text.Json;
 
 namespace MIMLESvtt.Tests;
 
 [TestClass]
 public class HomeGameSelectorTests
 {
+    [TestInitialize]
+    public void TestInitialize()
+    {
+        ResetWorkspaceArtifacts();
+    }
+
     [TestMethod]
     public void OpenGameSelector_WhenNoKnownSessions_ShowsEmptyStatus()
     {
@@ -22,7 +31,7 @@ public class HomeGameSelectorTests
 
         Assert.IsTrue(home.IsGameSelectorOpen);
         Assert.AreEqual(0, home.SavedSessionFiles.Count);
-        StringAssert.Contains(home.SavedSessionStatusMessage, "No subscribed/saved sessions");
+        StringAssert.Contains(home.SavedSessionStatusMessage, "No subscribed or saved game sessions");
     }
 
     [TestMethod]
@@ -111,6 +120,53 @@ public class HomeGameSelectorTests
     }
 
     [TestMethod]
+    public void StartNewSession_AsAdmin_SeedsReadonlyEmptyCampaign()
+    {
+        var workspace = new VttSessionWorkspaceService();
+        workspace.SetCanCreateSession(true);
+        var home = CreateHome(workspace);
+
+        home.TestStartNewSession();
+
+        Assert.IsNotNull(workspace.CurrentVttSession);
+        Assert.AreEqual(1, workspace.CurrentVttSession!.Campaigns.Count);
+        Assert.AreEqual("New Session", workspace.CurrentVttSession.Campaigns[0].Name);
+        Assert.IsFalse(workspace.CurrentVttSession.Campaigns[0].IsReadOnly);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(workspace.CurrentVttSession.Campaigns[0].GameboxId));
+        Assert.IsNotNull(workspace.CurrentVttSession.Campaigns[0].CurrentScenarioSnapshot);
+    }
+
+    [TestMethod]
+    public void ToggleReadonlyCampaignHidden_HidesAndUnhidesCheckersCampaignFromSeedList()
+    {
+        var workspace = new VttSessionWorkspaceService();
+        workspace.SetCanCreateSession(true);
+        var home = CreateHome(workspace);
+
+        workspace.SetReadonlyCampaignHidden("CHECKERS-CAMPAIGN", true);
+        Assert.IsFalse(workspace.ListReadonlyScenarios().Any(s => s.CampaignId == "CHECKERS-CAMPAIGN"));
+
+        workspace.SetReadonlyCampaignHidden("CHECKERS-CAMPAIGN", false);
+        Assert.IsTrue(workspace.ListReadonlyScenarios().Any(s => s.CampaignId == "CHECKERS-CAMPAIGN"));
+    }
+
+    [TestMethod]
+    public void OpenSelectedCampaign_CheckersCampaign_ActivatesCurrentScenarioSnapshot()
+    {
+        var workspace = new VttSessionWorkspaceService();
+        workspace.SetCanCreateSession(true);
+        var home = CreateHome(workspace);
+        home.TestSetCanCreateSession(true);
+
+        home.TestSelectCampaign("CHECKERS-CAMPAIGN");
+        home.TestOpenSelectedCampaign();
+
+        Assert.IsNotNull(workspace.CurrentVttSession, home.SavedSessionStatusMessage);
+        Assert.IsTrue(workspace.CurrentVttSession!.Campaigns.Any(c => c.Id == "CHECKERS-CAMPAIGN"));
+        Assert.IsTrue(workspace.CurrentVttSession.Pieces.Count > 0);
+    }
+
+    [TestMethod]
     public void JoinExistingGame_WithFriendlyJoinCode_LoadsKnownSession()
     {
         var workspace = new VttSessionWorkspaceService();
@@ -130,7 +186,11 @@ public class HomeGameSelectorTests
             File.WriteAllText(path, serializer.Save(session));
             workspace.AddKnownSnapshotPath(path);
 
-            home.TestSetJoinCode("FRIENDLY-JOIN-SESSION");
+            var joinCode = Path
+                .GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(Path.GetFileName(path)))
+                .ToUpperInvariant();
+
+            home.TestSetJoinCode(joinCode);
             home.TestJoinExistingGame();
 
             Assert.IsNotNull(workspace.CurrentVttSession);
@@ -170,6 +230,8 @@ public class HomeGameSelectorTests
         StringAssert.Contains(message, "sample snapshots");
         Assert.IsNotNull(workspace.CurrentVttSession);
         Assert.AreEqual("session-sample-001", workspace.CurrentVttSession!.Id);
+        Assert.IsTrue(workspace.CurrentVttSession.Campaigns.Count > 0);
+        Assert.IsNotNull(workspace.CurrentVttSession.Campaigns[0].CurrentScenarioSnapshot);
     }
 
     [TestMethod]
@@ -185,6 +247,43 @@ public class HomeGameSelectorTests
     }
 
     [TestMethod]
+    public void JoinExistingGame_WithSampleJoinCode_PersistsLastJoinedUtcInKnownSessionRegistry()
+    {
+        var workspace = new VttSessionWorkspaceService();
+        var joined = workspace.TryJoinExistingGame("SAMPLE-SESSION", out _);
+
+        Assert.IsTrue(joined);
+
+        var registryPath = workspace.GetKnownGameSessionRegistryPath();
+        Assert.IsTrue(File.Exists(registryPath));
+
+        using var document = JsonDocument.Parse(File.ReadAllText(registryPath));
+        var entries = document.RootElement.GetProperty("Entries").EnumerateArray();
+
+        JsonElement? matchedEntry = null;
+        foreach (var entry in entries)
+        {
+            if (!entry.TryGetProperty("JoinCode", out var joinCodeElement))
+            {
+                continue;
+            }
+
+            if (!string.Equals(joinCodeElement.GetString(), "SAMPLE-SESSION", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            matchedEntry = entry;
+            break;
+        }
+
+        Assert.IsTrue(matchedEntry.HasValue, "Expected SAMPLE-SESSION to be persisted in known-game-sessions registry entries.");
+        Assert.IsTrue(matchedEntry.Value.TryGetProperty("LastJoinedUtc", out var lastJoinedElement));
+        Assert.AreEqual(JsonValueKind.String, lastJoinedElement.ValueKind);
+        Assert.IsTrue(DateTime.TryParse(lastJoinedElement.GetString(), out _));
+    }
+
+    [TestMethod]
     public void CreateAndSaveNewSession_WithoutPath_ShowsValidationMessage()
     {
         var workspace = new VttSessionWorkspaceService();
@@ -193,7 +292,20 @@ public class HomeGameSelectorTests
         home.TestSetNewSessionSavePath(string.Empty);
         home.TestCreateAndSaveNewSession();
 
-        Assert.AreEqual("Session save path is required for Create + Save.", home.NewSessionStatusMessage);
+        Assert.AreEqual("Campaign save path is required for Create + Save.", home.NewSessionStatusMessage);
+    }
+
+    [TestMethod]
+    public void StartNewSession_WithoutGameboxSelection_ShowsValidationMessage()
+    {
+        var workspace = new VttSessionWorkspaceService();
+        workspace.SetCanCreateSession(true);
+        var home = CreateHome(workspace);
+
+        home.TestSetNewCampaignGameboxId(string.Empty);
+        home.TestStartNewSession();
+
+        Assert.AreEqual("Select a valid GameBox before creating a campaign.", home.NewSessionStatusMessage);
     }
 
     [TestMethod]
@@ -259,18 +371,23 @@ public class HomeGameSelectorTests
         var home = new Home
         {
             WorkspaceService = workspace,
-            Navigation = new TestNavigationManager()
+            Navigation = new TestNavigationManager(),
+            AuthenticationStateProvider = new TestAuthenticationStateProvider(isAdmin: workspace.State.CanCreateSession)
         };
 
-        InvokeProtected(home, "OnInitialized");
+        InvokeProtectedAsync(home, "OnInitializedAsync").GetAwaiter().GetResult();
         return home;
     }
 
-    private static void InvokeProtected(object instance, string methodName)
+    private static async Task InvokeProtectedAsync(object instance, string methodName)
     {
         var method = instance.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.IsNotNull(method, $"Unable to find method '{methodName}'.");
-        method.Invoke(instance, null);
+
+        if (method.Invoke(instance, null) is Task task)
+        {
+            await task;
+        }
     }
 
     private static string FindRepoRoot()
@@ -284,10 +401,29 @@ public class HomeGameSelectorTests
                 return directory.FullName;
             }
 
+            if (File.Exists(Path.Combine(directory.FullName, "MIMLESvtt", "MIMLESvtt.csproj")))
+            {
+                return directory.FullName;
+            }
+
+            if (File.Exists(Path.Combine(directory.FullName, "MIMLESvtt.csproj")))
+            {
+                return directory.Parent?.FullName ?? directory.FullName;
+            }
+
             directory = directory.Parent;
         }
 
         throw new InvalidOperationException("Unable to locate repository root containing MIMLESvtt.sln.");
+    }
+
+    private static void ResetWorkspaceArtifacts()
+    {
+        var appDataPath = Path.Combine(AppContext.BaseDirectory, "App_Data");
+        if (Directory.Exists(appDataPath))
+        {
+            Directory.Delete(appDataPath, recursive: true);
+        }
     }
 
     private static string CreateTempFilePath(string prefix, string extension)
@@ -314,6 +450,32 @@ public class HomeGameSelectorTests
         protected override void NavigateToCore(string uri, NavigationOptions options)
         {
             Uri = ToAbsoluteUri(uri).ToString();
+        }
+    }
+
+    private sealed class TestAuthenticationStateProvider : AuthenticationStateProvider
+    {
+        private readonly AuthenticationState _state;
+
+        public TestAuthenticationStateProvider(bool isAdmin)
+        {
+            var claims = new List<Claim>
+            {
+                new(ClaimTypes.Name, isAdmin ? "admin-user" : "player-user")
+            };
+
+            if (isAdmin)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, "Admin"));
+            }
+
+            var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, authenticationType: "Test"));
+            _state = new AuthenticationState(principal);
+        }
+
+        public override Task<AuthenticationState> GetAuthenticationStateAsync()
+        {
+            return Task.FromResult(_state);
         }
     }
 }

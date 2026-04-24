@@ -7,6 +7,7 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
     public class KnownGameSessionRegistryPersistenceService
     {
         private const int CurrentVersion = 1;
+        private const string DefaultCampaignBrowserViewMode = "DetailList";
         private readonly SnapshotFileLibraryService _libraryService;
 
         public sealed class KnownGameSessionRegistryRecord
@@ -114,7 +115,43 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
             return registryByPath;
         }
 
-        public void SaveRegistry(string path, IReadOnlyDictionary<string, KnownGameSessionRegistryRecord> registryByPath)
+        public string LoadCampaignBrowserViewMode(string path)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+            var fullPath = Path.GetFullPath(path);
+            if (!File.Exists(fullPath))
+            {
+                return DefaultCampaignBrowserViewMode;
+            }
+
+            KnownGameSessionRegistryDocument document;
+            try
+            {
+                document = LoadDocumentCore(fullPath);
+            }
+            catch (InvalidOperationException mainException)
+            {
+                var backupPath = GetBackupPath(fullPath);
+                if (!File.Exists(backupPath))
+                {
+                    throw;
+                }
+
+                try
+                {
+                    document = LoadDocumentCore(backupPath);
+                }
+                catch (Exception backupException)
+                {
+                    throw new InvalidOperationException("Known game session registry and backup are invalid and could not be loaded.", new AggregateException(mainException, backupException));
+                }
+            }
+
+            return NormalizeCampaignBrowserViewMode(document.CampaignBrowserViewMode);
+        }
+
+        public void SaveRegistry(string path, IReadOnlyDictionary<string, KnownGameSessionRegistryRecord> registryByPath, string campaignBrowserViewMode)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
             ArgumentNullException.ThrowIfNull(registryByPath);
@@ -153,7 +190,8 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
             {
                 Version = CurrentVersion,
                 Entries = entries,
-                KnownPaths = entries.Select(e => e.SessionPath).ToList()
+                KnownPaths = entries.Select(e => e.SessionPath).ToList(),
+                CampaignBrowserViewMode = NormalizeCampaignBrowserViewMode(campaignBrowserViewMode)
             };
 
             var json = JsonSerializer.Serialize(document);
@@ -231,6 +269,17 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
             return string.IsNullOrWhiteSpace(withoutSnapshotSuffix) ? fileName : withoutSnapshotSuffix;
         }
 
+        private static string NormalizeCampaignBrowserViewMode(string? mode)
+        {
+            if (string.Equals(mode, "Card", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(mode, "CardGrid", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Card";
+            }
+
+            return DefaultCampaignBrowserViewMode;
+        }
+
         private sealed class KnownGameSessionRegistryDocument
         {
             public int Version { get; set; } = CurrentVersion;
@@ -238,6 +287,8 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
             public List<KnownGameSessionRegistryEntry> Entries { get; set; } = [];
 
             public List<string> KnownPaths { get; set; } = [];
+
+            public string CampaignBrowserViewMode { get; set; } = DefaultCampaignBrowserViewMode;
         }
 
         private sealed class KnownGameSessionRegistryEntry

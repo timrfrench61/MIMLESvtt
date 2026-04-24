@@ -5,8 +5,8 @@
 Track pre-alpha QA packet execution history in a consistent format.
 
 Related:
-- `testing-strategy.md`
-- `pre-alpha-testing-packet.md`
+- `97-testing-strategy.md`
+- `98-pre-alpha-testing-packet.md`
 
 ---
 

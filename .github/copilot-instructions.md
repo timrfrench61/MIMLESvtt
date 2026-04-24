@@ -17,3 +17,7 @@
 ## Documentation Structure
 - Consolidate documentation in `00-overview`, merging former `02-domain` content for clarity and coherence.
 - Rename `action-system.md` to `06-global-action-system.md` to reflect its updated context and purpose.
+
+## UI and Session Management
+- Ensure that the Join by Code feature adds the code/session into the campaigns list.
+- The Campaigns UI should support both detail-list and card views while remembering the user's last selected view option.

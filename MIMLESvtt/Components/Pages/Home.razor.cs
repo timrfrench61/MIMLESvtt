@@ -7,6 +7,12 @@ namespace MIMLESvtt.Components.Pages;
 
 public partial class Home : ComponentBase
 {
+    private enum CampaignBrowserViewMode
+    {
+        DetailList,
+        Card
+    }
+
     [Inject] public NavigationManager Navigation { get; set; } = default!;
     [Inject] public AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
     [Inject] public VttSessionWorkspaceService WorkspaceService { get; set; } = default!;
@@ -14,6 +20,7 @@ public partial class Home : ComponentBase
     private bool isGameSelectorOpen;
     private readonly List<KnownGameSession> savedSessionFiles = [];
     private string? selectedSessionPath;
+    private string? selectedCampaignId;
     private string newKnownSessionPath = string.Empty;
     private string customJoinCodeInput = string.Empty;
     private string joinCode = string.Empty;
@@ -21,14 +28,19 @@ public partial class Home : ComponentBase
     private bool isCurrentUserAdmin;
     private string newSessionTitle = "New Session";
     private string newSessionSavePath = string.Empty;
+    private string newCampaignGameboxId = string.Empty;
+    private string newGameboxId = string.Empty;
+    private readonly List<string> availableGameboxIds = [];
     private string sessionSearchQuery = string.Empty;
     private SavedSessionSort savedSessionSort = SavedSessionSort.LastUpdatedDesc;
     private string? savedSessionStatusMessage;
     private string? joinStatusMessage;
     private string? newSessionStatusMessage;
+    private string? newGameboxStatusMessage;
     private string knownSessionRegistryPath = string.Empty;
     private bool knownSessionRegistryLoadedFromDisk;
     private string? knownSessionRegistryWarning;
+    private CampaignBrowserViewMode campaignBrowserViewMode = CampaignBrowserViewMode.DetailList;
 
     internal bool IsGameSelectorOpen => isGameSelectorOpen;
     internal IReadOnlyList<KnownGameSession> SavedSessionFiles => savedSessionFiles;
@@ -36,6 +48,19 @@ public partial class Home : ComponentBase
     internal string SavedSessionStatusMessage => savedSessionStatusMessage ?? string.Empty;
     internal string JoinStatusMessage => joinStatusMessage ?? string.Empty;
     internal string NewSessionStatusMessage => newSessionStatusMessage ?? string.Empty;
+    internal string NewGameboxStatusMessage => newGameboxStatusMessage ?? string.Empty;
+
+    private sealed class CampaignSelectionEntry
+    {
+        public string CampaignId { get; init; } = string.Empty;
+        public string CampaignName { get; init; } = string.Empty;
+        public string CurrentScenarioId { get; init; } = string.Empty;
+        public string CurrentScenarioName { get; init; } = string.Empty;
+        public string CurrentSnapshotPath { get; init; } = string.Empty;
+        public bool IsReadonlySeed { get; init; }
+        public bool IsKnownSessionEntry { get; init; }
+        public string? SessionPath { get; init; }
+    }
 
     private enum SavedSessionSort
     {
@@ -52,8 +77,62 @@ public partial class Home : ComponentBase
     protected override async Task OnInitializedAsync()
     {
         await ApplyAuthorizationStateAsync();
+        campaignBrowserViewMode = ParseCampaignBrowserViewMode(WorkspaceService.GetCampaignBrowserViewMode());
         RefreshKnownSessionRegistryStatus();
         RefreshSavedSessions();
+        RefreshGameboxOptions();
+    }
+
+    private void RefreshGameboxOptions()
+    {
+        availableGameboxIds.Clear();
+        availableGameboxIds.AddRange(WorkspaceService.ListAvailableGameboxIds());
+
+        if (string.IsNullOrWhiteSpace(newCampaignGameboxId) && availableGameboxIds.Count > 0)
+        {
+            newCampaignGameboxId = availableGameboxIds[0];
+        }
+    }
+
+    private void CreateNewGamebox()
+    {
+        CreateNewGameboxInternal(navigateToEdit: false);
+    }
+
+    private void CreateAndEditNewGamebox()
+    {
+        CreateNewGameboxInternal(navigateToEdit: true);
+    }
+
+    private void CreateNewGameboxInternal(bool navigateToEdit)
+    {
+        if (string.IsNullOrWhiteSpace(newGameboxId))
+        {
+            newGameboxStatusMessage = "GameBox id is required.";
+            return;
+        }
+
+        try
+        {
+            var createdGameboxId = WorkspaceService.CreateNewGamebox(newGameboxId);
+            newGameboxId = createdGameboxId;
+            RefreshGameboxOptions();
+            newGameboxStatusMessage = "Created new GameBox.";
+
+            if (string.IsNullOrWhiteSpace(newCampaignGameboxId))
+            {
+                newCampaignGameboxId = createdGameboxId;
+            }
+
+            if (navigateToEdit)
+            {
+                Navigation.NavigateTo("/content");
+            }
+        }
+        catch (Exception ex)
+        {
+            newGameboxStatusMessage = ex.Message;
+        }
     }
 
     private void RefreshKnownSessionRegistryStatus()
@@ -81,8 +160,8 @@ public partial class Home : ComponentBase
         RefreshKnownSessionRegistryStatus();
         RefreshSavedSessions();
         savedSessionStatusMessage = savedSessionFiles.Count == 0
-            ? "No saved sessions are currently known."
-            : $"Loaded {savedSessionFiles.Count} known session(s).";
+            ? "No saved game sessions are currently known."
+            : $"Loaded {savedSessionFiles.Count} known game session(s).";
     }
 
     private void SaveKnownSessionRegistryNow()
@@ -268,9 +347,10 @@ public partial class Home : ComponentBase
         isGameSelectorOpen = true;
         RefreshKnownSessionRegistryStatus();
         RefreshSavedSessions();
+        RefreshGameboxOptions();
         savedSessionStatusMessage = savedSessionFiles.Count == 0
-            ? "No subscribed/saved sessions are available yet."
-            : $"Loaded {savedSessionFiles.Count} saved session(s).";
+            ? "No subscribed or saved game sessions are available yet."
+            : $"Loaded {savedSessionFiles.Count} saved game session(s).";
     }
 
     private void CloseGameSelector()
@@ -330,26 +410,165 @@ public partial class Home : ComponentBase
     {
         if (WorkspaceService.TryJoinExistingGame(joinCode, out var message))
         {
+            RefreshSavedSessions();
+            if (WorkspaceService.CurrentVttSession?.Campaigns.Count > 0)
+            {
+                selectedCampaignId = WorkspaceService.CurrentVttSession.Campaigns[0].Id;
+            }
+            else
+            {
+                var matchedKnownSession = savedSessionFiles.FirstOrDefault(s =>
+                    string.Equals(s.JoinCode, joinCode, StringComparison.OrdinalIgnoreCase));
+                if (matchedKnownSession is not null)
+                {
+                    selectedCampaignId = BuildKnownSessionCampaignId(matchedKnownSession.FilePath);
+                }
+            }
+
             joinStatusMessage = message;
-            Navigation.NavigateTo("/workspace");
             return;
         }
 
         joinStatusMessage = message;
     }
 
+    private IReadOnlyList<CampaignSelectionEntry> GetCampaignSelections()
+    {
+        var selections = new List<CampaignSelectionEntry>();
+
+        selections.AddRange(
+            savedSessionFiles
+                .Select(s => new CampaignSelectionEntry
+                {
+                    CampaignId = BuildKnownSessionCampaignId(s.FilePath),
+                    CampaignName = s.FileName,
+                    CurrentScenarioId = s.JoinCode,
+                    CurrentScenarioName = "Known session",
+                    CurrentSnapshotPath = s.FilePath,
+                    IsReadonlySeed = false,
+                    IsKnownSessionEntry = true,
+                    SessionPath = s.FilePath
+                }));
+
+        if (WorkspaceService.CurrentVttSession is not null)
+        {
+            selections.AddRange(
+                WorkspaceService.CurrentVttSession.Campaigns
+                    .Where(c => !c.IsHidden)
+                    .Select(c => new CampaignSelectionEntry
+                    {
+                        CampaignId = c.Id,
+                        CampaignName = c.Name,
+                        CurrentScenarioId = c.ScenarioIds.FirstOrDefault() ?? $"{c.Id}-CURRENT-SCENARIO",
+                        CurrentScenarioName = c.CurrentScenarioSnapshot?.Title ?? "Current Scenario",
+                        CurrentSnapshotPath = "Current session snapshot",
+                        IsReadonlySeed = false,
+                        IsKnownSessionEntry = false,
+                        SessionPath = WorkspaceService.State.CurrentFilePath
+                    }));
+        }
+
+        selections.AddRange(
+            WorkspaceService.ListReadonlyScenarios()
+            .Select(s => new CampaignSelectionEntry
+            {
+                CampaignId = s.CampaignId,
+                CampaignName = WorkspaceService.ListReadonlyCampaigns().FirstOrDefault(c => string.Equals(c.CampaignId, s.CampaignId, StringComparison.OrdinalIgnoreCase))?.Name ?? s.CampaignId,
+                CurrentScenarioId = s.ScenarioId,
+                CurrentScenarioName = s.Name,
+                CurrentSnapshotPath = s.FilePath,
+                IsReadonlySeed = true,
+                IsKnownSessionEntry = false,
+                SessionPath = s.FilePath
+            }));
+
+        return selections
+            .GroupBy(s => s.CampaignId, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .OrderBy(s => s.CampaignName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private void SelectCampaign(string campaignId)
+    {
+        selectedCampaignId = campaignId;
+    }
+
+    private void SetCampaignBrowserViewMode(CampaignBrowserViewMode mode)
+    {
+        campaignBrowserViewMode = mode;
+        WorkspaceService.SetCampaignBrowserViewMode(mode == CampaignBrowserViewMode.Card ? "Card" : "DetailList");
+    }
+
+    private static CampaignBrowserViewMode ParseCampaignBrowserViewMode(string? mode)
+    {
+        return string.Equals(mode, "Card", StringComparison.OrdinalIgnoreCase)
+            ? CampaignBrowserViewMode.Card
+            : CampaignBrowserViewMode.DetailList;
+    }
+
+    private static string BuildKnownSessionCampaignId(string sessionPath)
+    {
+        return $"KNOWN:{Path.GetFullPath(sessionPath)}";
+    }
+
+    private void OpenSelectedCampaign()
+    {
+        if (string.IsNullOrWhiteSpace(selectedCampaignId))
+        {
+            savedSessionStatusMessage = "Select a campaign first.";
+            return;
+        }
+
+        var selected = GetCampaignSelections()
+            .FirstOrDefault(s => string.Equals(s.CampaignId, selectedCampaignId, StringComparison.OrdinalIgnoreCase));
+
+        if (selected is null)
+        {
+            savedSessionStatusMessage = "Selected campaign did not resolve to a current scenario snapshot.";
+            return;
+        }
+
+        try
+        {
+            if (selected.IsReadonlySeed)
+            {
+                WorkspaceService.ActivateReadonlyScenario(selected.CurrentScenarioId);
+                savedSessionStatusMessage = $"Opened campaign {selectedCampaignId} using {selected.CurrentScenarioId}.";
+            }
+            else if (selected.IsKnownSessionEntry && !string.IsNullOrWhiteSpace(selected.SessionPath))
+            {
+                WorkspaceService.OpenVttSessionFromFile(selected.SessionPath);
+                savedSessionStatusMessage = $"Opened known session for campaign {selectedCampaignId}.";
+            }
+            else
+            {
+                savedSessionStatusMessage = $"Opened campaign {selectedCampaignId}.";
+            }
+
+            Navigation.NavigateTo("/workspace");
+        }
+        catch (Exception ex)
+        {
+            savedSessionStatusMessage = ex.Message;
+        }
+    }
+
     private void StartNewSession()
     {
         try
         {
-            WorkspaceService.CreateNewSession();
-            if (!string.IsNullOrWhiteSpace(newSessionTitle))
+            if (string.IsNullOrWhiteSpace(newCampaignGameboxId))
             {
-                WorkspaceService.UpdateSessionTitle(newSessionTitle.Trim());
+                newSessionStatusMessage = "Select a valid GameBox before creating a campaign.";
+                return;
             }
 
-            newSessionStatusMessage = "Created new session.";
-            Navigation.NavigateTo("/workspace");
+            var campaignName = string.IsNullOrWhiteSpace(newSessionTitle) ? "New Campaign" : newSessionTitle.Trim();
+            WorkspaceService.CreateNewCampaignSession(campaignName, newCampaignGameboxId);
+
+            RefreshSavedSessions();
+            newSessionStatusMessage = "Created new campaign.";
         }
         catch (Exception ex)
         {
@@ -359,24 +578,26 @@ public partial class Home : ComponentBase
 
     private void CreateAndSaveNewSession()
     {
+        if (string.IsNullOrWhiteSpace(newCampaignGameboxId))
+        {
+                newSessionStatusMessage = "Select a valid GameBox before creating a campaign.";
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(newSessionSavePath))
         {
-            newSessionStatusMessage = "Session save path is required for Create + Save.";
+            newSessionStatusMessage = "Campaign save path is required for Create + Save.";
             return;
         }
 
         try
         {
-            WorkspaceService.CreateNewSession();
-
-            if (!string.IsNullOrWhiteSpace(newSessionTitle))
-            {
-                WorkspaceService.UpdateSessionTitle(newSessionTitle.Trim());
-            }
+            var campaignName = string.IsNullOrWhiteSpace(newSessionTitle) ? "New Campaign" : newSessionTitle.Trim();
+            WorkspaceService.CreateNewCampaignSession(campaignName, newCampaignGameboxId);
 
             WorkspaceService.SaveCurrentSessionAs(newSessionSavePath);
             RefreshSavedSessions();
-            newSessionStatusMessage = "Created and saved new session.";
+            newSessionStatusMessage = "Created and saved new campaign.";
             Navigation.NavigateTo("/workspace");
         }
         catch (Exception ex)
@@ -406,5 +627,13 @@ public partial class Home : ComponentBase
     internal void TestUseSelectedSessionAsJoinCode() => UseSelectedSessionAsJoinCode();
     internal void TestSetNewSessionTitle(string value) => newSessionTitle = value ?? string.Empty;
     internal void TestSetNewSessionSavePath(string value) => newSessionSavePath = value ?? string.Empty;
+    internal void TestSetNewCampaignGameboxId(string value) => newCampaignGameboxId = value ?? string.Empty;
     internal void TestCreateAndSaveNewSession() => CreateAndSaveNewSession();
+    internal void TestSetNewGameboxId(string value) => newGameboxId = value ?? string.Empty;
+    internal void TestCreateNewGamebox() => CreateNewGamebox();
+    internal void TestCreateAndEditNewGamebox() => CreateAndEditNewGamebox();
+    internal void TestSelectCampaign(string campaignId) => SelectCampaign(campaignId);
+    internal void TestOpenSelectedCampaign() => OpenSelectedCampaign();
+    internal string TestCampaignBrowserViewMode() => campaignBrowserViewMode.ToString();
+    internal void TestSetCampaignBrowserViewMode(string value) => SetCampaignBrowserViewMode(ParseCampaignBrowserViewMode(value));
 }

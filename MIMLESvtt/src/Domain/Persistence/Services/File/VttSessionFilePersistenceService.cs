@@ -23,8 +23,15 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.VttFile
             ArgumentNullException.ThrowIfNull(session);
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
+            var fullPath = Path.GetFullPath(path);
+            var directoryPath = Path.GetDirectoryName(fullPath);
+            if (!string.IsNullOrWhiteSpace(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
+
             var json = _persistenceService.Save(session);
-            File.WriteAllText(path, json, Encoding.UTF8);
+            File.WriteAllText(fullPath, json, Encoding.UTF8);
         }
 
         public VttSession LoadFromFile(string path)

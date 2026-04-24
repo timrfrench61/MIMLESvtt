@@ -45,9 +45,9 @@ namespace MIMLESvtt.src.Domain.Persistence.Snapshot
                 return CreateUnsupportedIntent(applicationOutcome);
             }
 
-            if (applicationOutcome.Payload is not Scenario scenario)
+            if (applicationOutcome.Payload is not VttScenario scenario)
             {
-                throw new InvalidOperationException("Supported ScenarioSnapshot outcome must include a Scenario payload.");
+                throw new InvalidOperationException("Supported ScenarioSnapshot outcome must include a VttScenario payload.");
             }
 
             return new SnapshotImportApplyIntent(

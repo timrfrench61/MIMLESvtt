@@ -69,7 +69,8 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
                     return new SnapshotImportResult(SnapshotFormatKind.VttSessionSnapshot, payload);
                 }
 
-                if (root.TryGetProperty("Scenario", out _))
+                if (root.TryGetProperty("Scenario", out _)
+                    || root.TryGetProperty("VttScenario", out _))
                 {
                     var payload = _scenarioSerializer.DeserializeSnapshot(json);
                     return new SnapshotImportResult(SnapshotFormatKind.VttScenarioSnapshot, payload);

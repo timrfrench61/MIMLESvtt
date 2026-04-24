@@ -35,6 +35,8 @@ namespace MIMLESvtt.src.Domain.Models
         public List<ActionRecord> ActionLog { get; set; } = [];
 
         public Dictionary<string, object> ModuleState { get; set; } = [];
+
+        public List<VttCampaign> Campaigns { get; set; } = [];
     }
 
 }

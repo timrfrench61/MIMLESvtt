@@ -1,4 +1,5 @@
 using MIMLESvtt.src.Domain.Models;
+using MIMLESvtt.src.Domain.Models.VttGamebox;
 using MIMLESvtt.src.Domain.Models.Pieces;
 using MIMLESvtt.src.Domain.Models.Placement;
 using MIMLESvtt.src.Domain.Models.Surfaces;
@@ -30,8 +31,11 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
         private readonly ActionProcessor _actionProcessor;
         private readonly ActionValidationService _actionValidationService;
         private readonly Dictionary<string, KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord> _persistedSessionRegistryByPath = new(StringComparer.OrdinalIgnoreCase);
+        private readonly string _dataRootPath;
         private readonly string _knownGameSessionRegistryPath;
         private string? _knownGameSessionRegistryWarning;
+        private string _campaignBrowserViewMode = "DetailList";
+        private readonly Dictionary<string, ReadonlyCampaignCatalogEntry> _readonlyCampaignsById = new(StringComparer.OrdinalIgnoreCase);
 
         public WorkspaceRecoveryDiagnostics? LastRestoreDiagnostics { get; private set; }
 
@@ -45,7 +49,23 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
                 new VttSessionWorkspaceStatePersistenceService(),
                 new ActionProcessor(),
                 new ActionValidationService(),
+                null,
                 null)
+        {
+        }
+
+        public VttSessionWorkspaceService(string? dataRootPath)
+            : this(
+                new SnapshotFileWorkflowService(),
+                new SnapshotFileImportApplyWorkflowService(),
+                new VttScenarioPlanApplyService(),
+                new VttScenarioCandidateActivationService(),
+                new SnapshotFileLibraryService(),
+                new VttSessionWorkspaceStatePersistenceService(),
+                new ActionProcessor(),
+                new ActionValidationService(),
+                null,
+                dataRootPath)
         {
         }
 
@@ -58,7 +78,8 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
             VttSessionWorkspaceStatePersistenceService workspaceStatePersistenceService,
             ActionProcessor actionProcessor,
             ActionValidationService actionValidationService,
-            KnownGameSessionRegistryPersistenceService? knownGameSessionRegistryPersistenceService)
+            KnownGameSessionRegistryPersistenceService? knownGameSessionRegistryPersistenceService,
+            string? dataRootPath)
         {
             _snapshotFileWorkflowService = snapshotFileWorkflowService ?? throw new ArgumentNullException(nameof(snapshotFileWorkflowService));
             _snapshotFileImportApplyWorkflowService = snapshotFileImportApplyWorkflowService ?? throw new ArgumentNullException(nameof(snapshotFileImportApplyWorkflowService));
@@ -69,10 +90,12 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
             _workspaceStatePersistenceService = workspaceStatePersistenceService ?? throw new ArgumentNullException(nameof(workspaceStatePersistenceService));
             _actionProcessor = actionProcessor ?? throw new ArgumentNullException(nameof(actionProcessor));
             _actionValidationService = actionValidationService ?? throw new ArgumentNullException(nameof(actionValidationService));
+            _dataRootPath = ResolveDataRootPath(dataRootPath);
             _knownGameSessionRegistryPath = BuildKnownGameSessionRegistryPath();
 
             State = new VttSessionWorkspaceState();
             LoadKnownGameSessionRegistry();
+            LoadKnownSnapshotsFromConfiguredDataRoot();
         }
 
         public VttSessionWorkspaceState State { get; }
@@ -89,6 +112,23 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
             return _snapshotFileLibraryService
                 .ListEntries()
                 .Where(e => e.DetectedFormatKind == SnapshotFormatKind.VttSessionSnapshot)
+                .ToList();
+        }
+
+        public IReadOnlyList<string> ListAvailableGameboxIds()
+        {
+            var discovered = ListKnownSnapshotFiles()
+                .Where(e => e.DetectedFormatKind == SnapshotFormatKind.VttGameboxSnapshot)
+                .Select(e => BuildGameboxIdFromFileName(e.FileName))
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .ToList();
+
+            discovered.Add("EMPTY-GAMEBOX");
+            discovered.Add("CHECKERS-GAMEBOX");
+
+            return discovered
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(id => id, StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
 
@@ -120,6 +160,85 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
             }
 
             return sessions;
+        }
+
+        public IReadOnlyList<ReadonlyScenarioCatalogEntry> ListReadonlyScenarios()
+        {
+            EnsureReadonlyScenarioSeeds();
+
+            var seededPaths = GetReadonlyScenarioSeedPaths();
+            return seededPaths
+                .Select(seed => new ReadonlyScenarioCatalogEntry
+                {
+                    ScenarioId = seed.ScenarioId,
+                    CampaignId = seed.CampaignId,
+                    Name = seed.Name,
+                    FilePath = seed.Path,
+                    IsReadOnly = true
+                })
+                .Where(s => _readonlyCampaignsById.TryGetValue(s.CampaignId, out var campaign) && !campaign.IsHidden)
+                .ToList();
+        }
+
+        public IReadOnlyList<ReadonlyCampaignCatalogEntry> ListReadonlyCampaigns()
+        {
+            EnsureReadonlyScenarioSeeds();
+            return _readonlyCampaignsById.Values.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        public void SetReadonlyCampaignHidden(string campaignId, bool hidden)
+        {
+            EnsureReadonlyScenarioSeeds();
+
+            if (!_readonlyCampaignsById.TryGetValue(campaignId, out var campaign))
+            {
+                throw new InvalidOperationException("Readonly campaign id was not found.");
+            }
+
+            campaign.IsHidden = hidden;
+        }
+
+        public void ActivateReadonlyScenario(string scenarioId)
+        {
+            if (!State.CanCreateSession)
+            {
+                throw new InvalidOperationException("Only admins can activate readonly scenarios.");
+            }
+
+            EnsureReadonlyScenarioSeeds();
+
+            var seed = GetReadonlyScenarioSeedPaths().FirstOrDefault(s => string.Equals(s.ScenarioId, scenarioId, StringComparison.OrdinalIgnoreCase));
+            if (string.IsNullOrWhiteSpace(seed.ScenarioId))
+            {
+                throw new InvalidOperationException("Readonly scenario id was not found.");
+            }
+
+            ImportScenarioToPendingPlanFromFile(seed.Path);
+            ActivatePendingScenario();
+
+            if (State.CurrentVttSession is not null)
+            {
+                State.CurrentVttSession.ModuleState["RulesProfile"] = string.Equals(seed.ScenarioId, "CHECKERS-SCENARIO", StringComparison.OrdinalIgnoreCase)
+                    ? "Checkers"
+                    : "None";
+
+                var campaign = _readonlyCampaignsById[seed.CampaignId];
+                State.CurrentVttSession.Campaigns =
+                [
+                    new VttCampaign
+                    {
+                        Id = campaign.CampaignId,
+                        Name = campaign.Name,
+                        Description = campaign.Description,
+                        SessionId = State.CurrentVttSession.Id,
+                        GameboxId = string.Equals(seed.ScenarioId, "CHECKERS-SCENARIO", StringComparison.OrdinalIgnoreCase) ? "CHECKERS-GAMEBOX" : "EMPTY-GAMEBOX",
+                        IsReadOnly = true,
+                        IsHidden = campaign.IsHidden,
+                        ScenarioIds = [seed.ScenarioId],
+                        CurrentScenarioSnapshot = BuildSeedScenario(seed.ScenarioId, seed.Name)
+                    }
+                ];
+            }
         }
 
         public void AddKnownSnapshotPath(string path)
@@ -224,6 +343,17 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
             return _knownGameSessionRegistryWarning;
         }
 
+        public string GetCampaignBrowserViewMode()
+        {
+            return _campaignBrowserViewMode;
+        }
+
+        public void SetCampaignBrowserViewMode(string mode)
+        {
+            _campaignBrowserViewMode = NormalizeCampaignBrowserViewMode(mode);
+            PersistKnownGameSessionRegistry();
+        }
+
         public void SaveKnownGameSessionRegistry()
         {
             PersistKnownGameSessionRegistry();
@@ -323,7 +453,7 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
 
         private void PersistKnownGameSessionRegistry()
         {
-            _knownGameSessionRegistryPersistenceService.SaveRegistry(_knownGameSessionRegistryPath, _persistedSessionRegistryByPath);
+            _knownGameSessionRegistryPersistenceService.SaveRegistry(_knownGameSessionRegistryPath, _persistedSessionRegistryByPath, _campaignBrowserViewMode);
         }
 
         private void LoadKnownGameSessionRegistry()
@@ -336,12 +466,61 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
                     _persistedSessionRegistryByPath[entry.Key] = entry.Value;
                 }
 
+                _campaignBrowserViewMode = _knownGameSessionRegistryPersistenceService.LoadCampaignBrowserViewMode(_knownGameSessionRegistryPath);
+
                 _knownGameSessionRegistryWarning = null;
             }
             catch (InvalidOperationException ex)
             {
                 _knownGameSessionRegistryWarning = ex.Message;
             }
+        }
+
+        private void LoadKnownSnapshotsFromConfiguredDataRoot()
+        {
+            var discoveredPaths = new List<string>();
+            discoveredPaths.AddRange(EnumerateKnownSnapshotPaths(BuildCampaignSessionsDirectoryPath(), SnapshotFileExtensions.VttSession));
+            discoveredPaths.AddRange(EnumerateKnownSnapshotPaths(BuildGameboxesDirectoryPath(), SnapshotFileExtensions.VttGamebox));
+
+            var discoveredSessionPathCount = 0;
+            foreach (var path in discoveredPaths.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                _snapshotFileLibraryService.AddPath(path);
+                _snapshotFileLibraryService.RefreshEntry(path);
+
+                if (!path.EndsWith(SnapshotFileExtensions.VttSession, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                EnsurePersistedJoinCodeForSessionPath(path);
+                discoveredSessionPathCount++;
+            }
+
+            if (discoveredSessionPathCount > 0)
+            {
+                PersistKnownGameSessionRegistry();
+            }
+        }
+
+        private static IReadOnlyList<string> EnumerateKnownSnapshotPaths(string directoryPath, string extension)
+        {
+            if (!Directory.Exists(directoryPath))
+            {
+                return [];
+            }
+
+            return Directory
+                .EnumerateFiles(directoryPath, $"*{extension}", SearchOption.TopDirectoryOnly)
+                .Select(Path.GetFullPath)
+                .ToList();
+        }
+
+        private static string NormalizeCampaignBrowserViewMode(string? mode)
+        {
+            return string.Equals(mode, "Card", StringComparison.OrdinalIgnoreCase)
+                ? "Card"
+                : "DetailList";
         }
 
         private KnownGameSessionRegistryPersistenceService.KnownGameSessionRegistryRecord GetRegistryRecord(string fullPath)
@@ -359,9 +538,275 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
             return createdRecord;
         }
 
-        private static string BuildKnownGameSessionRegistryPath()
+        private string BuildKnownGameSessionRegistryPath()
         {
-            return Path.Combine(AppContext.BaseDirectory, "App_Data", "known-game-sessions.json");
+            return Path.Combine(_dataRootPath, "known-game-sessions.json");
+        }
+
+        private string BuildCampaignSessionsDirectoryPath()
+        {
+            return Path.Combine(_dataRootPath, "campaign-sessions");
+        }
+
+        private string BuildGameboxesDirectoryPath()
+        {
+            return Path.Combine(_dataRootPath, "gameboxes");
+        }
+
+        private string BuildReadonlyScenarioPath(string fileName)
+        {
+            return Path.GetFullPath(Path.Combine(_dataRootPath, "readonly-scenarios", fileName));
+        }
+
+        private string BuildAutoCampaignSessionPath(string sessionId)
+        {
+            var normalizedSessionId = string.IsNullOrWhiteSpace(sessionId)
+                ? Guid.NewGuid().ToString("N")
+                : sessionId.Trim();
+
+            return Path.GetFullPath(Path.Combine(BuildCampaignSessionsDirectoryPath(), $"{normalizedSessionId}{SnapshotFileExtensions.VttSession}"));
+        }
+
+        private string BuildAutoGameboxPath(string gameboxId)
+        {
+            return Path.GetFullPath(Path.Combine(BuildGameboxesDirectoryPath(), $"{gameboxId}{SnapshotFileExtensions.VttGamebox}"));
+        }
+
+        private static string ResolveDataRootPath(string? dataRootPath)
+        {
+            if (!string.IsNullOrWhiteSpace(dataRootPath))
+            {
+                return Path.GetFullPath(dataRootPath);
+            }
+
+            return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "App_Data"));
+        }
+
+        private static string NormalizeGameboxId(string gameboxId)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(gameboxId);
+
+            var normalized = new string(gameboxId
+                .Trim()
+                .ToUpperInvariant()
+                .Select(ch => char.IsLetterOrDigit(ch) ? ch : '-')
+                .ToArray())
+                .Trim('-');
+
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                throw new InvalidOperationException("A valid GameBox id is required.");
+            }
+
+            return normalized;
+        }
+
+        public string CreateNewGamebox(string gameboxId)
+        {
+            if (!State.CanCreateSession)
+            {
+                throw new InvalidOperationException("Only admins can create new GameBoxes.");
+            }
+
+            var normalizedGameboxId = NormalizeGameboxId(gameboxId);
+            var targetPath = BuildAutoGameboxPath(normalizedGameboxId);
+
+            if (File.Exists(targetPath))
+            {
+                throw new InvalidOperationException("GameBox id already exists.");
+            }
+
+            var gamebox = new VttGamebox
+            {
+                Manifest = new VttGameboxManifest
+                {
+                    Name = normalizedGameboxId,
+                    Description = "User-authored GameBox."
+                }
+            };
+
+            _snapshotFileWorkflowService.SaveVttGamebox(gamebox, targetPath);
+            _snapshotFileLibraryService.AddPath(targetPath);
+            _snapshotFileLibraryService.RefreshEntry(targetPath);
+
+            return normalizedGameboxId;
+        }
+
+        private void EnsureReadonlyScenarioSeeds()
+        {
+            if (_readonlyCampaignsById.Count == 0)
+            {
+                _readonlyCampaignsById["EMPTY-CAMPAIGN"] = new ReadonlyCampaignCatalogEntry
+                {
+                    CampaignId = "EMPTY-CAMPAIGN",
+                    Name = "Empty Campaign",
+                    Description = "Readonly baseline campaign for playability iteration."
+                };
+
+                _readonlyCampaignsById["CHECKERS-CAMPAIGN"] = new ReadonlyCampaignCatalogEntry
+                {
+                    CampaignId = "CHECKERS-CAMPAIGN",
+                    Name = "Checkers Campaign",
+                    Description = "Readonly checkers campaign for admin move testing."
+                };
+            }
+
+            var seeds = GetReadonlyScenarioSeedPaths();
+            foreach (var seed in seeds)
+            {
+                if (File.Exists(seed.Path))
+                {
+                    _snapshotFileLibraryService.AddPath(seed.Path);
+                    _snapshotFileLibraryService.RefreshEntry(seed.Path);
+                    continue;
+                }
+
+                Directory.CreateDirectory(Path.GetDirectoryName(seed.Path)!);
+                var scenario = BuildSeedScenario(seed.ScenarioId, seed.Name);
+                _snapshotFileWorkflowService.SaveScenario(scenario, seed.Path);
+                _snapshotFileLibraryService.AddPath(seed.Path);
+                _snapshotFileLibraryService.RefreshEntry(seed.Path);
+            }
+        }
+
+        private IReadOnlyList<(string ScenarioId, string CampaignId, string Name, string Path)> GetReadonlyScenarioSeedPaths()
+        {
+            return
+            [
+                (
+                    "EMPTY-SCENARIO",
+                    "EMPTY-CAMPAIGN",
+                    "Empty Scenario",
+                    BuildReadonlyScenarioPath("empty-scenario.vttscenario.json")),
+                (
+                    "CHECKERS-SCENARIO",
+                    "CHECKERS-CAMPAIGN",
+                    "Checkers Scenario",
+                    BuildReadonlyScenarioPath("checkers-scenario.vttscenario.json"))
+            ];
+        }
+
+        private static VttScenario BuildSeedScenario(string scenarioId, string scenarioName)
+        {
+            if (string.Equals(scenarioId, "EMPTY-SCENARIO", StringComparison.OrdinalIgnoreCase))
+            {
+                return new Scenario
+                {
+                    Title = scenarioName,
+                    Surfaces = [],
+                    Pieces = [],
+                    Options = new TabletopOptions
+                    {
+                        EnableFog = false,
+                        EnableTurnTracker = false,
+                        Options =
+                        {
+                            ["ScenarioId"] = scenarioId,
+                            ["ReadOnly"] = true
+                        }
+                    }
+                };
+            }
+
+            var checkersSurface = new SurfaceInstance
+            {
+                Id = "checkers-board",
+                DefinitionId = "checkers-board-8x8",
+                Type = SurfaceType.Board,
+                CoordinateSystem = CoordinateSystem.Square,
+                BoardDefinition = new BoardDefinition
+                {
+                    Id = "checkers-board-def",
+                    Name = "Checkers 8x8 Board",
+                    Width = 8,
+                    Height = 8,
+                    LayoutType = BoardLayoutType.SquareGrid,
+                    Metadata =
+                    {
+                        ["PlayableSquares"] = "DarkOnly"
+                    }
+                }
+            };
+
+            var pieces = new List<PieceInstance>();
+            var redIndex = 1;
+            var blackIndex = 1;
+
+            for (var y = 0; y < 3; y++)
+            {
+                for (var x = 0; x < 8; x++)
+                {
+                    if ((x + y) % 2 == 0)
+                    {
+                        continue;
+                    }
+
+                    pieces.Add(new PieceInstance
+                    {
+                        Id = $"red-{redIndex++:00}",
+                        DefinitionId = "checkers-red-man",
+                        OwnerParticipantId = "red-player",
+                        Location = new Location
+                        {
+                            SurfaceId = "checkers-board",
+                            Coordinate = new Coordinate { X = x, Y = y }
+                        },
+                        Rotation = new Rotation { Degrees = 0 },
+                        State =
+                        {
+                            ["Side"] = "Red",
+                            ["Kinged"] = false
+                        }
+                    });
+                }
+            }
+
+            for (var y = 5; y < 8; y++)
+            {
+                for (var x = 0; x < 8; x++)
+                {
+                    if ((x + y) % 2 == 0)
+                    {
+                        continue;
+                    }
+
+                    pieces.Add(new PieceInstance
+                    {
+                        Id = $"black-{blackIndex++:00}",
+                        DefinitionId = "checkers-black-man",
+                        OwnerParticipantId = "black-player",
+                        Location = new Location
+                        {
+                            SurfaceId = "checkers-board",
+                            Coordinate = new Coordinate { X = x, Y = y }
+                        },
+                        Rotation = new Rotation { Degrees = 0 },
+                        State =
+                        {
+                            ["Side"] = "Black",
+                            ["Kinged"] = false
+                        }
+                    });
+                }
+            }
+
+            return new Scenario
+            {
+                Title = scenarioName,
+                Surfaces = [checkersSurface],
+                Pieces = pieces,
+                Options = new TabletopOptions
+                {
+                    EnableFog = false,
+                    EnableTurnTracker = true,
+                    Options =
+                    {
+                        ["ScenarioId"] = scenarioId,
+                        ["ReadOnly"] = true,
+                        ["RulesProfile"] = "Checkers"
+                    }
+                }
+            };
         }
 
         private static string NormalizeJoinCode(string joinCode)
@@ -400,7 +845,7 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
             var samplePath = TryResolveSessionFromDocsSamples(normalizedCode);
             if (!string.IsNullOrWhiteSpace(samplePath))
             {
-                return TryOpenJoinSession(samplePath, "Joined existing game session from sample snapshots.", out message, markJoined: false);
+                return TryOpenJoinSession(samplePath, "Joined existing game session from sample snapshots.", out message, markJoined: true);
             }
 
             message = "Join code did not match any known game session.";
@@ -416,11 +861,9 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
                 if (markJoined)
                 {
                     var fullPath = Path.GetFullPath(path);
-                    if (_persistedSessionRegistryByPath.TryGetValue(fullPath, out var registryRecord))
-                    {
-                        registryRecord.LastJoinedUtc = DateTime.UtcNow;
-                        PersistKnownGameSessionRegistry();
-                    }
+                    var registryRecord = GetRegistryRecord(fullPath);
+                    registryRecord.LastJoinedUtc = DateTime.UtcNow;
+                    PersistKnownGameSessionRegistry();
                 }
 
                 message = successMessage;
@@ -508,7 +951,142 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
             return withoutSnapshotSuffix.ToUpperInvariant();
         }
 
+        private static string BuildGameboxIdFromFileName(string fileName)
+        {
+            var baseName = Path.GetFileNameWithoutExtension(fileName);
+            if (string.IsNullOrWhiteSpace(baseName))
+            {
+                return string.Empty;
+            }
+
+            var withoutSnapshotSuffix = baseName.EndsWith(".vttgamebox", StringComparison.OrdinalIgnoreCase)
+                ? baseName[..^".vttgamebox".Length]
+                : baseName;
+
+            if (string.IsNullOrWhiteSpace(withoutSnapshotSuffix))
+            {
+                return string.Empty;
+            }
+
+            return withoutSnapshotSuffix.ToUpperInvariant();
+        }
+
+        private static string BuildCampaignId(string campaignName)
+        {
+            var normalized = new string(campaignName
+                .Trim()
+                .ToUpperInvariant()
+                .Select(ch => char.IsLetterOrDigit(ch) ? ch : '-')
+                .ToArray())
+                .Trim('-');
+
+            return string.IsNullOrWhiteSpace(normalized)
+                ? $"CAMPAIGN-{Guid.NewGuid():N}"[..16]
+                : $"{normalized}-CAMPAIGN";
+        }
+
+        private static string BuildUniqueCampaignId(IEnumerable<VttCampaign> existingCampaigns, string campaignName)
+        {
+            var baseCampaignId = BuildCampaignId(campaignName);
+            var existingIds = new HashSet<string>(
+                existingCampaigns
+                    .Select(c => c.Id)
+                    .Where(id => !string.IsNullOrWhiteSpace(id)),
+                StringComparer.OrdinalIgnoreCase);
+
+            if (!existingIds.Contains(baseCampaignId))
+            {
+                return baseCampaignId;
+            }
+
+            var basePrefix = baseCampaignId.EndsWith("-CAMPAIGN", StringComparison.OrdinalIgnoreCase)
+                ? baseCampaignId[..^"-CAMPAIGN".Length]
+                : baseCampaignId;
+
+            for (var suffix = 2; suffix <= 9999; suffix++)
+            {
+                var candidate = $"{basePrefix}-{suffix}-CAMPAIGN";
+                if (!existingIds.Contains(candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            return $"{baseCampaignId}-{Guid.NewGuid():N}";
+        }
+
+        private static string ResolveGameboxIdFromSession(VttSession session)
+        {
+            if (session.ModuleState.TryGetValue("RulesProfile", out var rulesProfile)
+                && string.Equals(rulesProfile?.ToString(), "Checkers", StringComparison.OrdinalIgnoreCase))
+            {
+                return "CHECKERS-GAMEBOX";
+            }
+
+            return "EMPTY-GAMEBOX";
+        }
+
+        private static bool EnsureSessionHasCampaignForSelection(VttSession session)
+        {
+            if (session.Campaigns.Count == 0)
+            {
+                var campaignName = string.IsNullOrWhiteSpace(session.Title) ? "Imported Campaign" : session.Title;
+                var campaignId = BuildCampaignId(campaignName);
+                var scenarioId = $"{campaignId}-CURRENT-SCENARIO";
+                session.Campaigns.Add(new VttCampaign
+                {
+                    Id = campaignId,
+                    Name = campaignName,
+                    Description = "Imported campaign generated from session state.",
+                    SessionId = session.Id,
+                    GameboxId = ResolveGameboxIdFromSession(session),
+                    IsReadOnly = false,
+                    IsHidden = false,
+                    ScenarioIds = [scenarioId],
+                    CurrentScenarioSnapshot = BuildScenarioExportFromCurrentSession(session, $"{campaignName} Current Scenario")
+                });
+
+                return true;
+            }
+
+            var changed = false;
+
+            foreach (var campaign in session.Campaigns)
+            {
+                if (string.IsNullOrWhiteSpace(campaign.SessionId))
+                {
+                    campaign.SessionId = session.Id;
+                    changed = true;
+                }
+
+                if (string.IsNullOrWhiteSpace(campaign.GameboxId))
+                {
+                    campaign.GameboxId = ResolveGameboxIdFromSession(session);
+                    changed = true;
+                }
+
+                if (campaign.ScenarioIds.Count == 0)
+                {
+                    campaign.ScenarioIds.Add($"{campaign.Id}-CURRENT-SCENARIO");
+                    changed = true;
+                }
+
+                if (campaign.CurrentScenarioSnapshot is null)
+                {
+                    campaign.CurrentScenarioSnapshot = BuildScenarioExportFromCurrentSession(session, $"{campaign.Name} Current Scenario");
+                    changed = true;
+                }
+            }
+
+            return changed;
+        }
+
         public void CreateNewSession()
+        {
+            CreateNewCampaignSession("New Campaign", "EMPTY-GAMEBOX");
+        }
+
+        public void CreateNewCampaignSession(string campaignName, string gameboxId)
         {
             if (!State.CanCreateSession)
             {
@@ -528,12 +1106,55 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
                 successMessage: "Created new workspace session.",
                 action: () =>
                 {
-                    State.CurrentVttSession = new VttSession
+                    ArgumentException.ThrowIfNullOrWhiteSpace(campaignName);
+                    ArgumentException.ThrowIfNullOrWhiteSpace(gameboxId);
+
+                    var normalizedGameboxId = gameboxId.Trim().ToUpperInvariant();
+                    if (!ListAvailableGameboxIds().Any(id => string.Equals(id, normalizedGameboxId, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        throw new InvalidOperationException("A valid Gamebox selection is required to create a campaign.");
+                    }
+
+                    var normalizedCampaignName = campaignName.Trim();
+                    var campaignId = BuildCampaignId(normalizedCampaignName);
+                    var currentScenarioId = $"{campaignId}-CURRENT-SCENARIO";
+
+                    var currentSession = new VttSession
                     {
                         Id = Guid.NewGuid().ToString("N"),
-                        Title = "New Session"
+                        Title = normalizedCampaignName,
+                        Campaigns =
+                        [
+                            new VttCampaign
+                            {
+                                Id = campaignId,
+                                Name = normalizedCampaignName,
+                                Description = "User-authored campaign.",
+                                SessionId = string.Empty,
+                                GameboxId = normalizedGameboxId,
+                                IsReadOnly = false,
+                                IsHidden = false,
+                                ScenarioIds = [currentScenarioId],
+                                CurrentScenarioSnapshot = new Scenario
+                                {
+                                    Title = $"{normalizedCampaignName} Current Scenario"
+                                }
+                            }
+                        ]
                     };
-                    State.CurrentFilePath = null;
+
+                    currentSession.Campaigns[0].SessionId = currentSession.Id;
+                    State.CurrentVttSession = currentSession;
+
+                    var targetFilePath = BuildAutoCampaignSessionPath(currentSession.Id);
+
+                    _snapshotFileWorkflowService.SaveVttSession(currentSession, targetFilePath);
+                    _snapshotFileLibraryService.AddPath(targetFilePath);
+                    _snapshotFileLibraryService.RefreshEntry(targetFilePath);
+                    EnsurePersistedJoinCodeForSessionPath(targetFilePath);
+                    PersistKnownGameSessionRegistry();
+
+                    State.CurrentFilePath = targetFilePath;
                     State.CurrentSnapshotFormat = SnapshotFormatKind.VttSessionSnapshot;
                     State.IsDirty = false;
                     State.CurrentPendingVttScenarioPlan = null;
@@ -1056,7 +1677,13 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
                 action: () =>
                 {
                     var loadedSession = _snapshotFileWorkflowService.LoadVttSession(path);
+                    var sessionUpgradedForCampaignSelection = EnsureSessionHasCampaignForSelection(loadedSession);
                     var fullPath = Path.GetFullPath(path);
+
+                    if (sessionUpgradedForCampaignSelection)
+                    {
+                        _snapshotFileWorkflowService.SaveVttSession(loadedSession, fullPath);
+                    }
 
                     State.CurrentVttSession = loadedSession;
                     State.CurrentFilePath = fullPath;

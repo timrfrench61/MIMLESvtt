@@ -1,9 +1,22 @@
 using MIMLESvtt.src.Domain.Models;
+using MIMLESvtt.src.Domain.Rules;
 
 namespace MIMLESvtt.src
 {
     public class ActionValidationService
     {
+        private readonly CheckersMoveValidationService _checkersMoveValidationService;
+
+        public ActionValidationService()
+            : this(new CheckersMoveValidationService())
+        {
+        }
+
+        public ActionValidationService(CheckersMoveValidationService checkersMoveValidationService)
+        {
+            _checkersMoveValidationService = checkersMoveValidationService ?? throw new ArgumentNullException(nameof(checkersMoveValidationService));
+        }
+
         private const string MovePieceActionType = "MovePiece";
         private const string RotatePieceActionType = "RotatePiece";
         private const string AddMarkerActionType = "AddMarker";
@@ -37,7 +50,7 @@ namespace MIMLESvtt.src
             }
         }
 
-        private static ActionValidationResult ValidateMovePiece(ActionRequest actionRequest, VttSession vttSesstion)
+        private ActionValidationResult ValidateMovePiece(ActionRequest actionRequest, VttSession vttSesstion)
         {
             if (actionRequest.Payload is not MovePiecePayload payload)
             {
@@ -64,6 +77,17 @@ namespace MIMLESvtt.src
             if (!surfaceExists)
             {
                 return ActionValidationResult.Failure("MovePiece target surface was not found in vttSesstion.Surfaces.");
+            }
+
+            var isCheckersMode = vttSesstion.ModuleState.TryGetValue("RulesProfile", out var rulesProfile)
+                && string.Equals(rulesProfile?.ToString(), "Checkers", StringComparison.OrdinalIgnoreCase);
+
+            if (isCheckersMode)
+            {
+                if (!_checkersMoveValidationService.IsLegalBasicMove(piece, payload.NewLocation.Coordinate.X, payload.NewLocation.Coordinate.Y, out var checkersError))
+                {
+                    return ActionValidationResult.Failure(checkersError);
+                }
             }
 
             return ActionValidationResult.Success();

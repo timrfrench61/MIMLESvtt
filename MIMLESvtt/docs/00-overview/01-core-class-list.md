@@ -14,6 +14,7 @@ Use this as the primary “what exists in code” map.
 ## Root Runtime and Content Classes
 
 - `VttSession` — live runtime game/session object.
+- `VttCampaign` (compat: `Campaign`) — campaign grouping object stored on `VttSession`.
 - `VttScenario` (compat: `Scenario`) — prepared starting layout/template.
 - `VttGamebox` (target) — reusable content package model (non-snapshot runtime/content contract).
 
@@ -26,6 +27,7 @@ Use this as the primary “what exists in code” map.
 Primary classes:
 
 - `VttSession`
+- `VttCampaign`
 - `Participant`
 - `TabletopOptions`
 - `VisibilityState`
@@ -34,8 +36,21 @@ Primary classes:
 Responsibility:
 
 - authoritative runtime state
+- campaign grouping metadata and current scenario snapshot
 - participants/turn/phase/options
 - action log and module state
+
+### `VttCampaign` fields
+
+- `Id`
+- `Name`
+- `Description`
+- `SessionId`
+- `GameboxId`
+- `IsReadOnly`
+- `IsHidden`
+- `ScenarioIds`
+- `CurrentScenarioSnapshot`
 
 ---
 

@@ -49,7 +49,19 @@ builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<AuthDataSeeder>();
 
-builder.Services.AddScoped<VttSessionWorkspaceService>();
+builder.Services.AddScoped(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var configuredDataRoot = configuration["MimlesData:RootPath"];
+    var dataRootPath = string.IsNullOrWhiteSpace(configuredDataRoot)
+        ? Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "mimles_data"))
+        : Path.GetFullPath(
+            Path.IsPathRooted(configuredDataRoot)
+                ? configuredDataRoot
+                : Path.Combine(builder.Environment.ContentRootPath, configuredDataRoot));
+
+    return new VttSessionWorkspaceService(dataRootPath);
+});
 builder.Services.AddScoped<IVttSessionCommandService>(sp => sp.GetRequiredService<VttSessionWorkspaceService>());
 builder.Services.AddScoped<IDiceRandomProvider, SystemDiceRandomProvider>();
 builder.Services.AddScoped<IDiceRandomizationService, DiceRandomizationService>();
