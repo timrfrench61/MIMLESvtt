@@ -129,11 +129,10 @@ public class HomeGameSelectorTests
         home.TestStartNewSession();
 
         Assert.IsNotNull(workspace.CurrentVttSession);
-        Assert.AreEqual(1, workspace.CurrentVttSession!.Campaigns.Count);
-        Assert.AreEqual("New Session", workspace.CurrentVttSession.Campaigns[0].Name);
-        Assert.IsFalse(workspace.CurrentVttSession.Campaigns[0].IsReadOnly);
-        Assert.IsFalse(string.IsNullOrWhiteSpace(workspace.CurrentVttSession.Campaigns[0].GameboxId));
-        Assert.IsNotNull(workspace.CurrentVttSession.Campaigns[0].CurrentScenarioSnapshot);
+        Assert.AreEqual("New Session", workspace.CurrentVttSession!.Campaign.Name);
+        Assert.IsFalse(workspace.CurrentVttSession.Campaign.IsReadOnly);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(workspace.CurrentVttSession.Campaign.GameboxId));
+        Assert.IsNotNull(workspace.CurrentVttSession.Campaign.CurrentScenarioSnapshot);
     }
 
     [TestMethod]
@@ -151,6 +150,29 @@ public class HomeGameSelectorTests
     }
 
     [TestMethod]
+    public void DeleteReadonlyCampaign_PersistsAcrossAppSessions()
+    {
+        var dataRootPath = Path.Combine(Path.GetTempPath(), $"mimlesvtt-hidden-campaign-{Guid.NewGuid():N}");
+
+        try
+        {
+            var firstWorkspace = new VttSessionWorkspaceService(dataRootPath);
+            firstWorkspace.SetCanCreateSession(true);
+            firstWorkspace.SetReadonlyCampaignHidden("CHECKERS-CAMPAIGN", true);
+
+            var secondWorkspace = new VttSessionWorkspaceService(dataRootPath);
+            Assert.IsFalse(secondWorkspace.ListReadonlyScenarios().Any(s => s.CampaignId == "CHECKERS-CAMPAIGN"));
+        }
+        finally
+        {
+            if (Directory.Exists(dataRootPath))
+            {
+                Directory.Delete(dataRootPath, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
     public void OpenSelectedCampaign_CheckersCampaign_ActivatesCurrentScenarioSnapshot()
     {
         var workspace = new VttSessionWorkspaceService();
@@ -162,8 +184,57 @@ public class HomeGameSelectorTests
         home.TestOpenSelectedCampaign();
 
         Assert.IsNotNull(workspace.CurrentVttSession, home.SavedSessionStatusMessage);
-        Assert.IsTrue(workspace.CurrentVttSession!.Campaigns.Any(c => c.Id == "CHECKERS-CAMPAIGN"));
+        Assert.AreEqual("CHECKERS-CAMPAIGN", workspace.CurrentVttSession!.Campaign.Id);
         Assert.IsTrue(workspace.CurrentVttSession.Pieces.Count > 0);
+    }
+
+    [TestMethod]
+    public void DeleteSelectedCampaign_KnownSession_RemovesFromCampaignList()
+    {
+        var workspace = new VttSessionWorkspaceService();
+        var home = CreateHome(workspace);
+
+        var path = CreateTempFilePath("delete-known-campaign", SnapshotFileExtensions.VttSession);
+
+        try
+        {
+            var serializer = new VttSessionSnapshotSerializer();
+            var session = new VttSession
+            {
+                Id = "session-delete-known",
+                Title = "Delete Known Campaign"
+            };
+
+            File.WriteAllText(path, serializer.Save(session));
+            workspace.AddKnownSnapshotPath(path);
+
+            home.TestOpenGameSelector();
+            home.TestSelectCampaign($"KNOWN:{Path.GetFullPath(path)}");
+            home.TestDeleteSelectedCampaign();
+
+            Assert.IsFalse(home.SavedSessionFiles.Any(s => string.Equals(s.FilePath, Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase)));
+            Assert.IsFalse(File.Exists(Path.GetFullPath(path)));
+            Assert.AreEqual("Deleted selected game from games list.", home.SavedSessionStatusMessage);
+        }
+        finally
+        {
+            DeleteFileIfExists(path);
+        }
+    }
+
+    [TestMethod]
+    public void DeleteSelectedCampaign_ReadonlyCampaign_HidesCampaign()
+    {
+        var workspace = new VttSessionWorkspaceService();
+        workspace.SetCanCreateSession(true);
+        var home = CreateHome(workspace);
+
+        home.TestOpenGameSelector();
+        home.TestSelectCampaign("CHECKERS-CAMPAIGN");
+        home.TestDeleteSelectedCampaign();
+
+        Assert.IsFalse(workspace.ListReadonlyScenarios().Any(s => s.CampaignId == "CHECKERS-CAMPAIGN"));
+        Assert.AreEqual("Deleted selected game from games list.", home.SavedSessionStatusMessage);
     }
 
     [TestMethod]
@@ -230,8 +301,7 @@ public class HomeGameSelectorTests
         StringAssert.Contains(message, "sample snapshots");
         Assert.IsNotNull(workspace.CurrentVttSession);
         Assert.AreEqual("session-sample-001", workspace.CurrentVttSession!.Id);
-        Assert.IsTrue(workspace.CurrentVttSession.Campaigns.Count > 0);
-        Assert.IsNotNull(workspace.CurrentVttSession.Campaigns[0].CurrentScenarioSnapshot);
+        Assert.IsNotNull(workspace.CurrentVttSession.Campaign.CurrentScenarioSnapshot);
     }
 
     [TestMethod]

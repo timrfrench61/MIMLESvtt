@@ -5,6 +5,15 @@
 
 <h1>Equipment</h1>
 
+<p class="text-muted">Search, review, and maintain equipment entries from this screen.</p>
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" href="/content">Back to Content Home</a>
+    <a class="btn btn-outline-secondary" href="/content/import">Open Import</a>
+</div>
+
+<h5>Find Equipment</h5>
+
 <div class="card mb-3">
     <div class="card-body">
         <div class="row g-2 align-items-end">
@@ -35,6 +44,7 @@
                 <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">Clear</button>
             </div>
         </div>
+        <small class="text-muted d-block mt-2">Tip: combine category + search to reduce list size before selecting an item.</small>
     </div>
 </div>
 
@@ -79,6 +89,8 @@
         }
     </div>
 </div>
+
+<h5 class="mt-4">Equipment Details</h5>
 
 <div class="card mt-3">
     <div class="card-body">
@@ -140,6 +152,8 @@
         }
     </div>
 </div>
+
+<h5 class="mt-4">Equipment Entry/Edit</h5>
 
 <div class="card mt-3">
     <div class="card-body">
@@ -235,11 +249,13 @@
         </div>
 
         <div class="d-flex gap-2 mt-3">
-            <button class="btn btn-primary" @onclick="ValidateEditorForm">Validate Form</button>
-            <button class="btn btn-success" @onclick="SaveEquipment">Save</button>
+            <button class="btn btn-outline-secondary" @onclick="ValidateEditorForm">Validate Form</button>
+            <button class="btn btn-primary" @onclick="SaveEquipment">Save</button>
             <button class="btn btn-outline-warning" @onclick="CancelEdit">Cancel</button>
             <button class="btn btn-outline-secondary" @onclick="StartCreateMode">New (Create Mode)</button>
         </div>
+
+        <small class="text-muted d-block mt-2">Validate is optional pre-check. Save is the primary action for persisting changes.</small>
 
         @if (!string.IsNullOrWhiteSpace(editorValidationMessage))
         {

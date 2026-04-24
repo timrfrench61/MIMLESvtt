@@ -5,6 +5,15 @@
 
 <h1>Monsters</h1>
 
+<p class="text-muted">Search, review, and maintain monster content entries from this screen.</p>
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" href="/content">Back to Content Home</a>
+    <a class="btn btn-outline-secondary" href="/content/import">Open Import</a>
+</div>
+
+<h5>Find Monsters</h5>
+
 <div class="card mb-3">
     <div class="card-body">
         <div class="row g-2 align-items-end">
@@ -25,6 +34,9 @@
                 <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">Clear</button>
             </div>
         </div>
+        <small class="text-muted d-block mt-2">Tip: select a row and use View to inspect details before editing.</small>
+
+<h5 class="mt-4">Monster Details</h5>
 
 <div class="card mt-3">
     <div class="card-body">
@@ -80,6 +92,8 @@
             </div>
         </div>
 
+<h5 class="mt-4">Monster Entry/Edit</h5>
+
         <div class="card mt-3">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -126,11 +140,13 @@
         </div>
 
         <div class="d-flex gap-2 mt-3">
-            <button class="btn btn-primary" @onclick="ValidateEditorForm">Validate Form</button>
-            <button class="btn btn-success" @onclick="SaveMonster">Save</button>
+            <button class="btn btn-outline-secondary" @onclick="ValidateEditorForm">Validate Form</button>
+            <button class="btn btn-primary" @onclick="SaveMonster">Save</button>
             <button class="btn btn-outline-warning" @onclick="CancelEdit">Cancel</button>
             <button class="btn btn-outline-secondary" @onclick="StartCreateMode">New (Create Mode)</button>
         </div>
+
+        <small class="text-muted d-block mt-2">Validate is optional pre-check. Save is the primary action for persisting changes.</small>
 
         @if (!string.IsNullOrWhiteSpace(editorValidationMessage))
         {

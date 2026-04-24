@@ -7,6 +7,8 @@
             <span class="badge text-bg-secondary">Reusable Workflow</span>
         </div>
 
+        <p class="text-muted mb-3">Use this flow for one-off entry and edit operations when import is not needed.</p>
+
         <div class="mb-2">
             <label class="form-label">Content Type</label>
             <InputSelect class="form-select" @bind-Value="SelectedRoute">
@@ -16,9 +18,15 @@
                 }
             </InputSelect>
         </div>
+        <small class="text-muted d-block mb-2">Choose a content type to preview list/create/detail manual workflow steps.</small>
 
         @if (currentAdapter is not null)
         {
+            <div class="alert alert-light border py-2">
+                <strong>Selected Content Type:</strong> @currentAdapter.ContentTypeName<br />
+                <strong>List Route:</strong> <code>@currentAdapter.ListRoute</code>
+            </div>
+
             <ol class="mb-3">
                 <li><strong>List:</strong> Navigate to <code>@currentAdapter.ListRoute</code></li>
                 <li><strong>Create / Edit:</strong> Use @currentAdapter.EntryLabel mode on selected page.</li>
@@ -31,7 +39,9 @@
             <button class="btn btn-sm btn-primary" @onclick="MarkSaveSuccess">Simulate Save Success</button>
             <button class="btn btn-sm btn-outline-danger" @onclick="MarkSaveFailure">Simulate Save Failure</button>
             <button class="btn btn-sm btn-outline-warning" @onclick="MarkCancel">Simulate Cancel</button>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearSimulation">Clear Result</button>
         </div>
+        <small class="text-muted d-block mt-2">Use simulation controls to preview user-facing save/cancel outcomes for this workflow shell.</small>
 
         @if (!string.IsNullOrWhiteSpace(statusMessage))
         {
@@ -91,5 +101,11 @@
         ResolveAdapter();
         statusSucceeded = true;
         statusMessage = "Canceled edit. No mutation persisted and workflow returned safely.";
+    }
+
+    private void ClearSimulation()
+    {
+        statusSucceeded = false;
+        statusMessage = string.Empty;
     }
 }

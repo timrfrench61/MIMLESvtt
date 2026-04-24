@@ -7,11 +7,15 @@
             <span class="badge text-bg-secondary">Reusable State Shell</span>
         </div>
 
+        <p class="text-muted mb-3">Preview standardized content-list states for empty, loading, success, and error scenarios.</p>
+
         <div class="d-flex flex-wrap gap-2 mb-3">
             <button class="btn btn-sm @(CurrentState == ContentStatusState.Empty ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetState(ContentStatusState.Empty)">Empty</button>
             <button class="btn btn-sm @(CurrentState == ContentStatusState.Loading ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetState(ContentStatusState.Loading)">Loading</button>
             <button class="btn btn-sm @(CurrentState == ContentStatusState.Error ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetState(ContentStatusState.Error)">Error</button>
+            <button class="btn btn-sm @(CurrentState == ContentStatusState.Success ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetState(ContentStatusState.Success)">Success</button>
         </div>
+        <small class="text-muted d-block mb-3">Choose a state to preview reusable status messaging behavior.</small>
 
         @if (CurrentState == ContentStatusState.Empty)
         {
@@ -19,6 +23,7 @@
                 <strong>Empty State</strong><br />
                 Placeholder for no-items/no-results messaging.
             </div>
+            <small class="text-muted d-block mt-2">Use when a list has no entries or a filter returns no matches.</small>
         }
         else if (CurrentState == ContentStatusState.Loading)
         {
@@ -26,6 +31,15 @@
                 <strong>Loading State</strong><br />
                 Placeholder for load-progress/status indicator.
             </div>
+            <small class="text-muted d-block mt-2">Use while loading list data or running background refresh operations.</small>
+        }
+        else if (CurrentState == ContentStatusState.Success)
+        {
+            <div class="alert alert-success mb-0">
+                <strong>Success State</strong><br />
+                Placeholder for completed save/import/update confirmation.
+            </div>
+            <small class="text-muted d-block mt-2">Use after successful create/update/import actions with clear next-step guidance.</small>
         }
         else
         {
@@ -33,6 +47,7 @@
                 <strong>Error State</strong><br />
                 Placeholder for user-visible load/process error details.
             </div>
+            <small class="text-muted d-block mt-2">Use for blocking failures and include retry or recovery instructions.</small>
         }
     </div>
 </div>
@@ -51,6 +66,7 @@
     {
         Empty,
         Loading,
-        Error
+        Error,
+        Success
     }
 }

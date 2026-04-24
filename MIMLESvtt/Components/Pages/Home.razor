@@ -14,11 +14,12 @@
     <div class="card mb-3">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3 class="mb-0">Games (Campaigns)</h3>
+                <h3 class="mb-0">Games</h3>
                 <button class="btn btn-sm btn-outline-secondary" @onclick="CloseGameSelector">Close</button>
             </div>
 
             <div class="mb-4">
+                <h5>Open a Game</h5>
                 <div class="d-flex gap-2 align-items-center mb-2">
                     <span class="text-muted">View:</span>
                     <button class="btn btn-sm @(campaignBrowserViewMode == CampaignBrowserViewMode.DetailList ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetCampaignBrowserViewMode(CampaignBrowserViewMode.DetailList)">Detail List</button>
@@ -32,7 +33,7 @@
 
                 @if (GetCampaignSelections().Count == 0)
                 {
-                    <div class="text-muted">No campaigns are currently available.</div>
+                    <div class="text-muted">No games are currently available.</div>
                 }
                 else if (campaignBrowserViewMode == CampaignBrowserViewMode.DetailList)
                 {
@@ -57,7 +58,8 @@
                         </tbody>
                     </table>
                     <div class="d-flex gap-2 align-items-center">
-                        <button class="btn btn-outline-primary" @onclick="OpenSelectedCampaign" disabled="@string.IsNullOrWhiteSpace(selectedCampaignId)">Open Campaign</button>
+                        <button class="btn btn-primary" @onclick="OpenSelectedCampaign" disabled="@string.IsNullOrWhiteSpace(selectedCampaignId)">Open Campaign</button>
+                        <button class="btn btn-outline-danger" @onclick="DeleteSelectedCampaign" disabled="@string.IsNullOrWhiteSpace(selectedCampaignId)">Delete Selected Game</button>
                         <button class="btn btn-outline-secondary" @onclick="RefreshKnownSessions">Refresh</button>
                     </div>
                 }
@@ -79,14 +81,15 @@
                         }
                     </div>
                     <div class="d-flex gap-2 align-items-center mt-2">
-                        <button class="btn btn-outline-primary" @onclick="OpenSelectedCampaign" disabled="@string.IsNullOrWhiteSpace(selectedCampaignId)">Open Campaign</button>
+                        <button class="btn btn-primary" @onclick="OpenSelectedCampaign" disabled="@string.IsNullOrWhiteSpace(selectedCampaignId)">Open Campaign</button>
+                        <button class="btn btn-outline-danger" @onclick="DeleteSelectedCampaign" disabled="@string.IsNullOrWhiteSpace(selectedCampaignId)">Delete Selected Game</button>
                         <button class="btn btn-outline-secondary" @onclick="RefreshKnownSessions">Refresh</button>
                     </div>
                 }
             </div>
 
             <div class="mb-4">
-                <h5>Join by Code</h5>
+                <h5>Join a Game by Code</h5>
                 <div class="d-flex gap-2 align-items-center mb-2">
                     <InputText @bind-Value="joinCode" class="form-control" style="max-width: 260px;" placeholder="Enter join code" />
                     <button class="btn btn-outline-secondary" @onclick="JoinExistingGame">Join</button>
@@ -98,7 +101,7 @@
             </div>
 
             <div>
-                <h5>Create New Campaign</h5>
+                <h5>Create a Game</h5>
                 <div class="mb-2">
                     <span class="text-muted">Signed in as <strong>@currentUserName</strong> (@(isCurrentUserAdmin ? "Admin" : "Player"))</span>
                 </div>
@@ -111,6 +114,9 @@
                             <option value="@gameboxId">@gameboxId</option>
                         }
                     </InputSelect>
+                </div>
+                <div class="mb-2">
+                    <small class="text-muted">Pick a GameBox template before creating a game campaign.</small>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
                     <button class="btn btn-success" @onclick="StartNewSession" disabled="@(!WorkspaceService.State.CanCreateSession)">Create New Campaign</button>
@@ -127,7 +133,7 @@
                 <h5 class="mt-4">Create New GameBox</h5>
                 <div class="d-flex gap-2 align-items-center mb-2">
                     <InputText @bind-Value="newGameboxId" class="form-control" style="max-width: 280px;" placeholder="GameBox id" />
-                    <button class="btn btn-outline-primary" @onclick="CreateNewGamebox" disabled="@(!WorkspaceService.State.CanCreateSession)">Create</button>
+                    <button class="btn btn-outline-secondary" @onclick="CreateNewGamebox" disabled="@(!WorkspaceService.State.CanCreateSession)">Create</button>
                     <button class="btn btn-primary" @onclick="CreateAndEditNewGamebox" disabled="@(!WorkspaceService.State.CanCreateSession)">Create and Edit</button>
                 </div>
                 @if (!string.IsNullOrWhiteSpace(newGameboxStatusMessage))

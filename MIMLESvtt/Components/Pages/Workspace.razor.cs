@@ -38,7 +38,6 @@ public partial class Workspace : ComponentBase
     private WorkspacePanelTab activeWorkspacePanelTab = WorkspacePanelTab.SessionSummary;
 
     private string? sessionPath;
-    private string? scenarioPath;
     private string scenarioTitle = "Current Workspace Layout";
     private string sessionTitleInput = string.Empty;
     private string turnOrderInput = "player-1, player-2";
@@ -116,6 +115,10 @@ public partial class Workspace : ComponentBase
     private bool showLegalMoveHints;
     private bool isCheckersReferenceMode;
 
+    private bool IsDesignMode => WorkspaceService.State.Mode == WorkspaceMode.Edit;
+    private bool IsPlayMode => WorkspaceService.State.Mode == WorkspaceMode.Play;
+    private bool ShowDesignEntryEditForms => IsDesignMode;
+
     protected override async Task OnInitializedAsync()
     {
         await ApplyAuthorizationStateAsync();
@@ -158,6 +161,51 @@ public partial class Workspace : ComponentBase
         {
             WorkspaceService.State.LastOperationMessage = "Checkers reference mode active.";
             WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
+        }
+
+        ApplySharedControlDefaultsForCurrentMode();
+        EnsureVisibleWorkspaceTabForMode();
+    }
+
+    private void ApplySharedControlDefaultsForCurrentMode()
+    {
+        if (IsPlayMode)
+        {
+            boardVisibility.ShowSurfaces = true;
+            boardVisibility.ShowPieces = true;
+            boardVisibility.ShowMarkers = false;
+            boardVisibility.ActiveSurfaceOnly = true;
+            showLegalMoveHints = false;
+
+            clampToBoard = true;
+            selectedNudgeStep = 5;
+
+            addPieceAtBoardClickMode = false;
+            stampModeEnabled = false;
+        }
+        else
+        {
+            boardVisibility.ShowSurfaces = true;
+            boardVisibility.ShowPieces = true;
+            boardVisibility.ShowMarkers = true;
+            boardVisibility.ActiveSurfaceOnly = true;
+            clampToBoard = false;
+        }
+
+        ApplyBoardVisibilityRules();
+    }
+
+    private void EnsureVisibleWorkspaceTabForMode()
+    {
+        if (ShowDesignEntryEditForms)
+        {
+            return;
+        }
+
+        if (activeWorkspacePanelTab == WorkspacePanelTab.PiecesEntryEdit
+            || activeWorkspacePanelTab == WorkspacePanelTab.MarkerEntryEdit)
+        {
+            activeWorkspacePanelTab = WorkspacePanelTab.SessionSummary;
         }
     }
 
@@ -261,17 +309,38 @@ public partial class Workspace : ComponentBase
 
     private void SaveCurrentSessionAs()
     {
-        Execute(() => WorkspaceService.SaveCurrentSessionAs(sessionPath ?? string.Empty), "Saved current session as file.");
+        var sessionId = WorkspaceService.State.CurrentVttSession?.Id;
+        if (string.IsNullOrWhiteSpace(sessionId))
+        {
+            WorkspaceService.State.LastOperationMessage = "CurrentVttSession is required to save.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
+            return;
+        }
+
+        var defaultPath = Path.Combine(AppContext.BaseDirectory, "App_Data", "campaign-sessions", $"{sessionId}.vttsession.json");
+        Execute(() => WorkspaceService.SaveCurrentSessionAs(defaultPath), "Saved current session as file.");
     }
 
     private void SaveCurrentLayoutAsScenario()
     {
-        Execute(() => WorkspaceService.SaveCurrentLayoutAsScenario(scenarioTitle, scenarioPath ?? string.Empty), "Saved current layout as scenario file.");
+        var scenarioId = WorkspaceService.State.CurrentVttSession?.Campaign?.ScenarioIds.FirstOrDefault();
+        var fileStem = string.IsNullOrWhiteSpace(scenarioId) ? "current-layout" : scenarioId;
+        var defaultPath = Path.Combine(AppContext.BaseDirectory, "App_Data", "readonly-scenarios", $"{fileStem}.vttscenario.json");
+        Execute(() => WorkspaceService.SaveCurrentLayoutAsScenario(scenarioTitle, defaultPath), "Saved current layout as scenario file.");
     }
 
     private void OpenScenarioForPendingPlan()
     {
-        Execute(() => WorkspaceService.ImportScenarioToPendingPlanFromFile(scenarioPath ?? string.Empty), "Opened scenario for pending plan workflow.");
+        var scenarioId = WorkspaceService.State.CurrentVttSession?.Campaign?.ScenarioIds.FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(scenarioId))
+        {
+            WorkspaceService.State.LastOperationMessage = "No campaign scenario is available to open.";
+            WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Error;
+            return;
+        }
+
+        var defaultPath = Path.Combine(AppContext.BaseDirectory, "App_Data", "readonly-scenarios", $"{scenarioId}.vttscenario.json");
+        Execute(() => WorkspaceService.ImportScenarioToPendingPlanFromFile(defaultPath), "Opened scenario for pending plan workflow.");
     }
 
     private void ActivatePendingScenario()
@@ -345,12 +414,22 @@ public partial class Workspace : ComponentBase
 
     private void SwitchToEditMode()
     {
-        Execute(() => WorkspaceService.SetWorkspaceMode(WorkspaceMode.Edit), "Switched workspace mode to Edit.");
+        Execute(() =>
+        {
+            WorkspaceService.SetWorkspaceMode(WorkspaceMode.Edit);
+            ApplySharedControlDefaultsForCurrentMode();
+            EnsureVisibleWorkspaceTabForMode();
+        }, "Switched workspace mode to Edit.");
     }
 
     private void SwitchToPlayMode()
     {
-        Execute(() => WorkspaceService.SetWorkspaceMode(WorkspaceMode.Play), "Switched workspace mode to Play.");
+        Execute(() =>
+        {
+            WorkspaceService.SetWorkspaceMode(WorkspaceMode.Play);
+            ApplySharedControlDefaultsForCurrentMode();
+            EnsureVisibleWorkspaceTabForMode();
+        }, "Switched workspace mode to Play.");
     }
 
     private void AddParticipantToSession()
@@ -1912,18 +1991,6 @@ public partial class Workspace : ComponentBase
 
         selectedPiece = piece;
         return true;
-    }
-
-    private Task OnSessionPathChangedFromPanel(string? value)
-    {
-        sessionPath = value;
-        return Task.CompletedTask;
-    }
-
-    private Task OnScenarioPathChangedFromPanel(string? value)
-    {
-        scenarioPath = value;
-        return Task.CompletedTask;
     }
 
     private Task OnScenarioTitleChangedFromPanel(string value)

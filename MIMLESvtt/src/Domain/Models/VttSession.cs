@@ -1,6 +1,7 @@
 using MIMLESvtt.src.Domain.Models.Pieces;
 using MIMLESvtt.src.Domain.Models.Surfaces;
 using MIMLESvtt.src.Domain.Models.Visibility;
+using System.Text.Json.Serialization;
 
 namespace MIMLESvtt.src.Domain.Models
 {
@@ -36,7 +37,53 @@ namespace MIMLESvtt.src.Domain.Models
 
         public Dictionary<string, object> ModuleState { get; set; } = [];
 
-        public List<VttCampaign> Campaigns { get; set; } = [];
+        public VttCampaign Campaign
+        {
+            get
+            {
+                field ??= new VttCampaign();
+
+                if (string.IsNullOrWhiteSpace(field.SessionId))
+                {
+                    field.SessionId = Id;
+                }
+
+                return field;
+            }
+            set
+            {
+                if (value is null)
+                {
+                    field = new VttCampaign
+                    {
+                        SessionId = Id
+                    };
+                    return;
+                }
+
+                value.SessionId = Id;
+                field = value;
+            }
+        } = new();
+
+        [JsonPropertyName("Campaigns")]
+        public List<VttCampaign> LegacyCampaigns
+        {
+            get => [Campaign];
+            set
+            {
+                var campaign = value.FirstOrDefault() ?? new VttCampaign();
+                campaign.SessionId = Id;
+                Campaign = campaign;
+            }
+        }
+
+        [JsonIgnore]
+        public VttScenario? CurrentVttScenario
+        {
+            get => Campaign.CurrentScenarioSnapshot;
+            set => Campaign.CurrentScenarioSnapshot = value;
+        }
     }
 
 }

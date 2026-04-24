@@ -151,7 +151,50 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
             return NormalizeCampaignBrowserViewMode(document.CampaignBrowserViewMode);
         }
 
-        public void SaveRegistry(string path, IReadOnlyDictionary<string, KnownGameSessionRegistryRecord> registryByPath, string campaignBrowserViewMode)
+        public IReadOnlyList<string> LoadHiddenReadonlyCampaignIds(string path)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+            var fullPath = Path.GetFullPath(path);
+            if (!File.Exists(fullPath))
+            {
+                return [];
+            }
+
+            KnownGameSessionRegistryDocument document;
+            try
+            {
+                document = LoadDocumentCore(fullPath);
+            }
+            catch (InvalidOperationException mainException)
+            {
+                var backupPath = GetBackupPath(fullPath);
+                if (!File.Exists(backupPath))
+                {
+                    throw;
+                }
+
+                try
+                {
+                    document = LoadDocumentCore(backupPath);
+                }
+                catch (Exception backupException)
+                {
+                    throw new InvalidOperationException("Known game session registry and backup are invalid and could not be loaded.", new AggregateException(mainException, backupException));
+                }
+            }
+
+            return (document.HiddenReadonlyCampaignIds ?? [])
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        public void SaveRegistry(
+            string path,
+            IReadOnlyDictionary<string, KnownGameSessionRegistryRecord> registryByPath,
+            string campaignBrowserViewMode,
+            IReadOnlyCollection<string>? hiddenReadonlyCampaignIds = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
             ArgumentNullException.ThrowIfNull(registryByPath);
@@ -191,7 +234,12 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
                 Version = CurrentVersion,
                 Entries = entries,
                 KnownPaths = entries.Select(e => e.SessionPath).ToList(),
-                CampaignBrowserViewMode = NormalizeCampaignBrowserViewMode(campaignBrowserViewMode)
+                CampaignBrowserViewMode = NormalizeCampaignBrowserViewMode(campaignBrowserViewMode),
+                HiddenReadonlyCampaignIds = (hiddenReadonlyCampaignIds ?? [])
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(id => id, StringComparer.OrdinalIgnoreCase)
+                    .ToList()
             };
 
             var json = JsonSerializer.Serialize(document);
@@ -289,6 +337,8 @@ namespace MIMLESvtt.src.Domain.Persistence.Services.Import
             public List<string> KnownPaths { get; set; } = [];
 
             public string CampaignBrowserViewMode { get; set; } = DefaultCampaignBrowserViewMode;
+
+            public List<string> HiddenReadonlyCampaignIds { get; set; } = [];
         }
 
         private sealed class KnownGameSessionRegistryEntry

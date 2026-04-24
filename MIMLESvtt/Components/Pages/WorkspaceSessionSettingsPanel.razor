@@ -20,24 +20,52 @@ else
         </div>
     </div>
 
-    <ul>
-        <li><strong>Session #:</strong> @SessionCounter</li>
-        <li><strong>Title:</strong> @CurrentVttSession.Title</li>
-        <li><strong>Mode:</strong> @WorkspaceState.Mode</li>
-        <li><strong>Current File:</strong> @(WorkspaceState.CurrentFilePath ?? "(none)")</li>
-        <li><strong>Dirty:</strong> @WorkspaceState.IsDirty</li>
-        <li><strong>Participants:</strong> @CurrentVttSession.Participants.Count</li>
-        <li><strong>Surfaces:</strong> @CurrentVttSession.Surfaces.Count</li>
-        <li><strong>Pieces:</strong> @CurrentVttSession.Pieces.Count</li>
-        <li><strong>Pending VTT Scenario:</strong> @(WorkspaceState.CurrentPendingVttScenarioPlan?.ScenarioTitle ?? "(none)")</li>
-        <li><strong>Last Operation:</strong> @(WorkspaceState.LastOperationMessage ?? "(none)")</li>
-    </ul>
+    @if (IsPlayMode)
+    {
+        <div class="mb-3 p-2 border rounded bg-light">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <strong>Play Snapshot</strong>
+                <span class="badge text-bg-success">Play</span>
+                <span>Session: <strong>@CurrentVttSession.Title</strong></span>
+                <span>Campaign: <strong>@CurrentVttSession.Campaign.Name</strong></span>
+                <span>Scenario: <strong>@(CurrentVttSession.Campaign.ScenarioIds.FirstOrDefault() ?? "(none)")</strong></span>
+                <span>Pieces: <strong>@CurrentVttSession.Pieces.Count</strong></span>
+                <span>Participants: <strong>@CurrentVttSession.Participants.Count</strong></span>
+            </div>
+        </div>
+
+        <ul>
+            <li><strong>Session #:</strong> @SessionCounter</li>
+            <li><strong>Mode:</strong> @WorkspaceState.Mode</li>
+            <li><strong>Current File:</strong> @(WorkspaceState.CurrentFilePath ?? "(none)")</li>
+            <li><strong>Last Operation:</strong> @(WorkspaceState.LastOperationMessage ?? "(none)")</li>
+        </ul>
+    }
+    else
+    {
+        <ul>
+            <li><strong>Session #:</strong> @SessionCounter</li>
+            <li><strong>Title:</strong> @CurrentVttSession.Title</li>
+            <li><strong>Mode:</strong> @WorkspaceState.Mode</li>
+            <li><strong>Current File:</strong> @(WorkspaceState.CurrentFilePath ?? "(none)")</li>
+            <li><strong>Dirty:</strong> @WorkspaceState.IsDirty</li>
+            <li><strong>Campaign:</strong> @CurrentVttSession.Campaign.Name (@CurrentVttSession.Campaign.Id)</li>
+            <li><strong>Campaign GameBox:</strong> @(string.IsNullOrWhiteSpace(CurrentVttSession.Campaign.GameboxId) ? "(none)" : CurrentVttSession.Campaign.GameboxId)</li>
+            <li><strong>Campaign Scenario:</strong> @CurrentVttSession.Campaign.ScenarioIds.FirstOrDefault()</li>
+            <li><strong>Participants:</strong> @CurrentVttSession.Participants.Count</li>
+            <li><strong>Surfaces:</strong> @CurrentVttSession.Surfaces.Count</li>
+            <li><strong>Pieces:</strong> @CurrentVttSession.Pieces.Count</li>
+            <li><strong>Pending VTT Scenario:</strong> @(WorkspaceState.CurrentPendingVttScenarioPlan?.ScenarioTitle ?? "(none)")</li>
+            <li><strong>Last Operation:</strong> @(WorkspaceState.LastOperationMessage ?? "(none)")</li>
+        </ul>
+    }
 }
 
 @code {
     [Parameter] public VttSession? CurrentVttSession { get; set; }
     [Parameter] public VttSessionWorkspaceState WorkspaceState { get; set; } = null!;
     [Parameter] public int SessionCounter { get; set; }
+    [Parameter] public bool IsPlayMode { get; set; }
 
     [Parameter] public string SessionTitleInput { get; set; } = string.Empty;
     [Parameter] public EventCallback<string> SessionTitleInputChanged { get; set; }

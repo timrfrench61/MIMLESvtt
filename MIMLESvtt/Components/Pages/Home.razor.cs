@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.JSInterop;
 using MIMLESvtt.src.Domain.Persistence.Models;
 using MIMLESvtt.src.Domain.Persistence.VttSessionNSPC;
 
@@ -15,6 +16,7 @@ public partial class Home : ComponentBase
 
     [Inject] public NavigationManager Navigation { get; set; } = default!;
     [Inject] public AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+    [Inject] public IJSRuntime JsRuntime { get; set; } = default!;
     [Inject] public VttSessionWorkspaceService WorkspaceService { get; set; } = default!;
 
     private bool isGameSelectorOpen;
@@ -92,6 +94,61 @@ public partial class Home : ComponentBase
         {
             newCampaignGameboxId = availableGameboxIds[0];
         }
+    }
+
+    private async Task DeleteSelectedCampaign()
+    {
+        var confirmed = await JsRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete the selected game?");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        DeleteSelectedCampaignCore();
+    }
+
+    private void DeleteSelectedCampaignCore()
+    {
+        if (string.IsNullOrWhiteSpace(selectedCampaignId))
+        {
+            savedSessionStatusMessage = "Select a campaign first.";
+            return;
+        }
+
+        var selected = GetCampaignSelections()
+            .FirstOrDefault(s => string.Equals(s.CampaignId, selectedCampaignId, StringComparison.OrdinalIgnoreCase));
+
+        if (selected is null)
+        {
+            savedSessionStatusMessage = "Selected campaign could not be found.";
+            return;
+        }
+
+        if (selected.IsReadonlySeed)
+        {
+            WorkspaceService.SetReadonlyCampaignHidden(selected.CampaignId, true);
+            selectedCampaignId = null;
+            RefreshSavedSessions();
+            savedSessionStatusMessage = "Deleted selected game from games list.";
+            return;
+        }
+
+        if (selected.IsKnownSessionEntry && !string.IsNullOrWhiteSpace(selected.SessionPath))
+        {
+            if (!WorkspaceService.DeleteKnownSnapshotPath(selected.SessionPath))
+            {
+                savedSessionStatusMessage = "Unable to delete selected game.";
+                return;
+            }
+
+            selectedCampaignId = null;
+            RefreshKnownSessionRegistryStatus();
+            RefreshSavedSessions();
+            savedSessionStatusMessage = "Deleted selected game from games list.";
+            return;
+        }
+
+        savedSessionStatusMessage = "Delete is only available for saved or readonly games.";
     }
 
     private void CreateNewGamebox()
@@ -411,9 +468,9 @@ public partial class Home : ComponentBase
         if (WorkspaceService.TryJoinExistingGame(joinCode, out var message))
         {
             RefreshSavedSessions();
-            if (WorkspaceService.CurrentVttSession?.Campaigns.Count > 0)
+            if (WorkspaceService.CurrentVttSession?.Campaign is not null)
             {
-                selectedCampaignId = WorkspaceService.CurrentVttSession.Campaigns[0].Id;
+                selectedCampaignId = WorkspaceService.CurrentVttSession.Campaign.Id;
             }
             else
             {
@@ -452,20 +509,21 @@ public partial class Home : ComponentBase
 
         if (WorkspaceService.CurrentVttSession is not null)
         {
-            selections.AddRange(
-                WorkspaceService.CurrentVttSession.Campaigns
-                    .Where(c => !c.IsHidden)
-                    .Select(c => new CampaignSelectionEntry
-                    {
-                        CampaignId = c.Id,
-                        CampaignName = c.Name,
-                        CurrentScenarioId = c.ScenarioIds.FirstOrDefault() ?? $"{c.Id}-CURRENT-SCENARIO",
-                        CurrentScenarioName = c.CurrentScenarioSnapshot?.Title ?? "Current Scenario",
-                        CurrentSnapshotPath = "Current session snapshot",
-                        IsReadonlySeed = false,
-                        IsKnownSessionEntry = false,
-                        SessionPath = WorkspaceService.State.CurrentFilePath
-                    }));
+            var campaign = WorkspaceService.CurrentVttSession.Campaign;
+            if (!campaign.IsHidden)
+            {
+                selections.Add(new CampaignSelectionEntry
+                {
+                    CampaignId = campaign.Id,
+                    CampaignName = campaign.Name,
+                    CurrentScenarioId = campaign.ScenarioIds.FirstOrDefault() ?? $"{campaign.Id}-CURRENT-SCENARIO",
+                    CurrentScenarioName = WorkspaceService.CurrentVttSession.CurrentVttScenario?.Title ?? "Current Scenario",
+                    CurrentSnapshotPath = "Current session snapshot",
+                    IsReadonlySeed = false,
+                    IsKnownSessionEntry = false,
+                    SessionPath = WorkspaceService.State.CurrentFilePath
+                });
+            }
         }
 
         selections.AddRange(
@@ -634,6 +692,7 @@ public partial class Home : ComponentBase
     internal void TestCreateAndEditNewGamebox() => CreateAndEditNewGamebox();
     internal void TestSelectCampaign(string campaignId) => SelectCampaign(campaignId);
     internal void TestOpenSelectedCampaign() => OpenSelectedCampaign();
+    internal void TestDeleteSelectedCampaign() => DeleteSelectedCampaignCore();
     internal string TestCampaignBrowserViewMode() => campaignBrowserViewMode.ToString();
     internal void TestSetCampaignBrowserViewMode(string value) => SetCampaignBrowserViewMode(ParseCampaignBrowserViewMode(value));
 }

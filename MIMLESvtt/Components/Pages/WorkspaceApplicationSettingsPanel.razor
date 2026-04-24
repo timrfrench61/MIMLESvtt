@@ -4,30 +4,15 @@
 </div>
 
 <div class="mb-3">
-    <button class="btn btn-primary me-2" @onclick="CreateNewSessionClicked">Create New Session</button>
-    <button class="btn btn-success me-2" @onclick="OpenSessionClicked">Load Game</button>
     <button class="btn btn-outline-success me-2" @onclick="SaveSessionClicked">Save Game</button>
-    <button class="btn btn-outline-primary me-2" @onclick="SaveSessionAsClicked">Save Game As</button>
     <button class="btn btn-outline-info me-2" @onclick="SaveLayoutAsScenarioClicked">Save Current Layout As Scenario</button>
     <button class="btn btn-warning me-2" @onclick="OpenScenarioClicked">Open Scenario For Pending Plan</button>
     <button class="btn btn-danger" @onclick="ActivateScenarioClicked">Activate Pending Scenario</button>
 </div>
 
 <div class="mb-3">
-    <label class="form-label">Game save file path (.session.json)</label>
-    <input class="form-control" value="@SessionPath" @oninput="OnSessionPathChanged" />
-</div>
-<div class="mb-3">
-    <label class="form-label">Scenario file path (.scenario.json)</label>
-    <input class="form-control" value="@ScenarioPath" @oninput="OnScenarioPathChanged" />
-</div>
-<div class="mb-3">
-    <label class="form-label">Scenario title for export</label>
+    <label class="form-label">Scenario title </label>
     <input class="form-control" value="@ScenarioTitle" @oninput="OnScenarioTitleChanged" />
-</div>
-<div class="mb-3">
-    <button class="btn btn-outline-info me-2" @onclick="SaveLayoutAsScenarioClicked">Save Current Layout As Scenario</button>
-    <button class="btn btn-warning" @onclick="OpenScenarioClicked">Open Scenario For Pending Plan</button>
 </div>
 
 @code {
@@ -44,18 +29,8 @@
     [Parameter] public EventCallback OpenScenarioClicked { get; set; }
     [Parameter] public EventCallback ActivateScenarioClicked { get; set; }
 
-    [Parameter] public string? SessionPath { get; set; }
-    [Parameter] public EventCallback<string?> SessionPathChanged { get; set; }
-
-    [Parameter] public string? ScenarioPath { get; set; }
-    [Parameter] public EventCallback<string?> ScenarioPathChanged { get; set; }
-
     [Parameter] public string ScenarioTitle { get; set; } = string.Empty;
     [Parameter] public EventCallback<string> ScenarioTitleChanged { get; set; }
-
-    private Task OnSessionPathChanged(ChangeEventArgs args) => SessionPathChanged.InvokeAsync(args.Value?.ToString());
-
-    private Task OnScenarioPathChanged(ChangeEventArgs args) => ScenarioPathChanged.InvokeAsync(args.Value?.ToString());
 
     private Task OnScenarioTitleChanged(ChangeEventArgs args) => ScenarioTitleChanged.InvokeAsync(args.Value?.ToString() ?? string.Empty);
 }

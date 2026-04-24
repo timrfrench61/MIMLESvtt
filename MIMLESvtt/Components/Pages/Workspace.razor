@@ -65,7 +65,7 @@
 
 <aside class="workspace-slide-panel @(isWorkspacePanelOpen ? "open" : string.Empty)">
     <div class="workspace-slide-panel-header">
-        <strong>Workspace Controls</strong>
+        <strong>Current Game Session</strong>
         <div class="d-flex gap-2">
             <a class="btn btn-sm btn-outline-primary" href="/">Back to Selector</a>
             <button class="btn btn-sm btn-outline-secondary" @onclick="CloseWorkspacePanel">Close</button>
@@ -96,10 +96,6 @@
     SaveLayoutAsScenarioClicked="SaveCurrentLayoutAsScenario"
     OpenScenarioClicked="OpenScenarioForPendingPlan"
     ActivateScenarioClicked="ActivatePendingScenario"
-    SessionPath="sessionPath"
-    SessionPathChanged="OnSessionPathChangedFromPanel"
-    ScenarioPath="scenarioPath"
-    ScenarioPathChanged="OnScenarioPathChangedFromPanel"
     ScenarioTitle="scenarioTitle"
     ScenarioTitleChanged="OnScenarioTitleChangedFromPanel" />
 
@@ -122,17 +118,17 @@
             <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.SessionSummary ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.SessionSummary">Session Summary</button>
         </li>
         <li class="nav-item">
-            <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.SessionEntryEdit ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.SessionEntryEdit">Session Entry/Edit</button>
+            <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.Surfaces ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.Surfaces">Surfaces Entry/Edit</button>
         </li>
-        <li class="nav-item">
-            <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.Surfaces ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.Surfaces">Surfaces</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.PiecesEntryEdit ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.PiecesEntryEdit">Pieces Entry/Edit</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.MarkerEntryEdit ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.MarkerEntryEdit">Marker Entry/Edit</button>
-        </li>
+        @if (ShowDesignEntryEditForms)
+        {
+            <li class="nav-item">
+                <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.PiecesEntryEdit ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.PiecesEntryEdit">Pieces Entry/Edit</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.MarkerEntryEdit ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.MarkerEntryEdit">Marker Entry/Edit</button>
+            </li>
+        }
     </ul>
 }
 
@@ -142,12 +138,72 @@
     CurrentVttSession="WorkspaceService.State.CurrentVttSession"
     WorkspaceState="WorkspaceService.State"
     SessionCounter="sessionCounter"
+    IsPlayMode="IsPlayMode"
     SessionTitleInput="@sessionTitleInput"
     SessionTitleInputChanged="OnSessionTitleInputChangedFromPanel"
     UpdateSessionTitleClicked="UpdateSessionTitle" />
 
 @if (WorkspaceService.State.CurrentVttSession is not null)
 {
+
+    @if (IsPlayMode)
+    {
+        <div class="mb-3 p-2 border rounded bg-light">
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <strong>Play Commands</strong>
+                <span class="badge text-bg-success">Play</span>
+                <span>Turn: <strong>@WorkspaceService.State.CurrentVttSession.TurnNumber</strong></span>
+                <span>Current Player: <strong>@GetCurrentTurnParticipant()</strong></span>
+                <span>Phase: <strong>@(string.IsNullOrWhiteSpace(WorkspaceService.State.CurrentVttSession.CurrentPhase) ? "(none)" : WorkspaceService.State.CurrentVttSession.CurrentPhase)</strong></span>
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <button class="btn btn-sm btn-outline-primary" @onclick="PreviousTurn" disabled="@(WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)">Previous Turn</button>
+                <button class="btn btn-sm btn-outline-primary" @onclick="AdvanceTurn" disabled="@(WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)">Next Turn</button>
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <InputText @bind-Value="phaseInput" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Current phase" />
+                <button class="btn btn-sm btn-outline-secondary" @onclick="SetCurrentPhase">Set Phase</button>
+            </div>
+        </div>
+
+        <div class="mb-3 p-2 border rounded bg-light">
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <strong>Initiative Snapshot</strong>
+                <span>Current: <strong>@GetCurrentTurnParticipant()</strong></span>
+                <span>Index: <strong>@WorkspaceService.State.CurrentVttSession.CurrentTurnIndex</strong></span>
+            </div>
+            @if (WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)
+            {
+                <small class="text-muted">No turn order initialized yet.</small>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Participant</th>
+                                <th>Owned Pieces</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var i = 0; i < WorkspaceService.State.CurrentVttSession.TurnOrder.Count; i++)
+                            {
+                                var participantId = WorkspaceService.State.CurrentVttSession.TurnOrder[i];
+                                var isActive = i == WorkspaceService.State.CurrentVttSession.CurrentTurnIndex;
+                                <tr class="@(isActive ? "table-primary" : string.Empty)">
+                                    <td>@(i + 1)</td>
+                                    <td>@GetParticipantDisplayById(participantId)</td>
+                                    <td>@GetOwnedPiecesSummary(participantId)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
 
     <div class="mb-3 p-2 border rounded bg-light">
         <div class="d-flex flex-wrap gap-2 align-items-center">
@@ -158,106 +214,122 @@
         </div>
     </div>
 
-    <div class="mb-3 p-2 border rounded bg-light">
-        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-            <strong>Developer Settings</strong>
-            <span class="badge text-bg-warning">Pre-alpha</span>
+    @if (ShowDesignEntryEditForms)
+    {
+        <div class="mb-3 p-2 border rounded bg-light">
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <strong>Developer Settings</strong>
+                <span class="badge text-bg-warning">Pre-alpha</span>
+            </div>
+            <div class="d-flex flex-wrap gap-3 align-items-center">
+                <div class="form-check mb-0">
+                    <input id="dev-enable-multiplayer" class="form-check-input" type="checkbox" @bind="WorkspaceService.State.Settings.EnableMultiplayer" @bind:after="OnDeveloperSettingsChanged" />
+                    <label class="form-check-label" for="dev-enable-multiplayer">Enable Multiplayer</label>
+                </div>
+                <div class="form-check mb-0">
+                    <input id="dev-enable-rules-validation" class="form-check-input" type="checkbox" @bind="WorkspaceService.State.Settings.EnableRulesValidation" @bind:after="OnDeveloperSettingsChanged" />
+                    <label class="form-check-label" for="dev-enable-rules-validation">Enable Rules Validation</label>
+                </div>
+                <div class="form-check mb-0">
+                    <input id="dev-enable-stamp-mode" class="form-check-input" type="checkbox" @bind="WorkspaceService.State.Settings.EnableStampMode" @bind:after="OnDeveloperSettingsChanged" />
+                    <label class="form-check-label" for="dev-enable-stamp-mode">Enable Stamp Mode</label>
+                </div>
+                <div class="form-check mb-0">
+                    <input id="dev-enable-board-interaction" class="form-check-input" type="checkbox" @bind="WorkspaceService.State.Settings.EnableBoardInteraction" @bind:after="OnDeveloperSettingsChanged" />
+                    <label class="form-check-label" for="dev-enable-board-interaction">Enable Board Interaction</label>
+                </div>
+            </div>
         </div>
-        <div class="d-flex flex-wrap gap-3 align-items-center">
-            <div class="form-check mb-0">
-                <input id="dev-enable-multiplayer" class="form-check-input" type="checkbox" @bind="WorkspaceService.State.Settings.EnableMultiplayer" @bind:after="OnDeveloperSettingsChanged" />
-                <label class="form-check-label" for="dev-enable-multiplayer">Enable Multiplayer</label>
-            </div>
-            <div class="form-check mb-0">
-                <input id="dev-enable-rules-validation" class="form-check-input" type="checkbox" @bind="WorkspaceService.State.Settings.EnableRulesValidation" @bind:after="OnDeveloperSettingsChanged" />
-                <label class="form-check-label" for="dev-enable-rules-validation">Enable Rules Validation</label>
-            </div>
-            <div class="form-check mb-0">
-                <input id="dev-enable-stamp-mode" class="form-check-input" type="checkbox" @bind="WorkspaceService.State.Settings.EnableStampMode" @bind:after="OnDeveloperSettingsChanged" />
-                <label class="form-check-label" for="dev-enable-stamp-mode">Enable Stamp Mode</label>
-            </div>
-            <div class="form-check mb-0">
-                <input id="dev-enable-board-interaction" class="form-check-input" type="checkbox" @bind="WorkspaceService.State.Settings.EnableBoardInteraction" @bind:after="OnDeveloperSettingsChanged" />
-                <label class="form-check-label" for="dev-enable-board-interaction">Enable Board Interaction</label>
-            </div>
-        </div>
-    </div>
+    }
 
-    <div class="mb-3 p-2 border rounded bg-light">
-        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-            <strong>Turn / Phase</strong>
-            <span>Turn: <strong>@WorkspaceService.State.CurrentVttSession.TurnNumber</strong></span>
-            <span>Index: <strong>@WorkspaceService.State.CurrentVttSession.CurrentTurnIndex</strong></span>
-            <span>Current Player: <strong>@GetCurrentTurnParticipant()</strong></span>
-            <span>Phase: <strong>@(string.IsNullOrWhiteSpace(WorkspaceService.State.CurrentVttSession.CurrentPhase) ? "(none)" : WorkspaceService.State.CurrentVttSession.CurrentPhase)</strong></span>
-            <button class="btn btn-sm btn-outline-primary" @onclick="PreviousTurn" disabled="@(WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)">Previous Turn</button>
-            <button class="btn btn-sm btn-outline-primary" @onclick="AdvanceTurn" disabled="@(WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)">Next Turn</button>
-        </div>
-        <div class="d-flex flex-wrap gap-2 align-items-center">
-            <InputText @bind-Value="turnOrderInput" class="form-control form-control-sm" style="max-width: 360px;" placeholder="Turn order: p1, p2, p3" />
-            <button class="btn btn-sm btn-outline-secondary" @onclick="InitializeTurnOrderFromInput">Initialize Turn Order</button>
-            <InputText @bind-Value="phaseInput" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Current phase" />
-            <button class="btn btn-sm btn-outline-secondary" @onclick="SetCurrentPhase">Set Phase</button>
-        </div>
-    </div>
-
-    <div class="mb-3 p-2 border rounded bg-light">
-        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-            <strong>Initiative / Roster</strong>
-            <span>Current: <strong>@GetCurrentTurnParticipant()</strong></span>
-            <span>Turn: <strong>@WorkspaceService.State.CurrentVttSession.TurnNumber</strong></span>
-            <span>Phase: <strong>@(string.IsNullOrWhiteSpace(WorkspaceService.State.CurrentVttSession.CurrentPhase) ? "(none)" : WorkspaceService.State.CurrentVttSession.CurrentPhase)</strong></span>
+    @if (IsDesignMode)
+    {
+        <div class="mb-3 p-2 border rounded bg-light">
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <strong>Turn / Phase</strong>
+                <span>Turn: <strong>@WorkspaceService.State.CurrentVttSession.TurnNumber</strong></span>
+                <span>Index: <strong>@WorkspaceService.State.CurrentVttSession.CurrentTurnIndex</strong></span>
+                <span>Current Player: <strong>@GetCurrentTurnParticipant()</strong></span>
+                <span>Phase: <strong>@(string.IsNullOrWhiteSpace(WorkspaceService.State.CurrentVttSession.CurrentPhase) ? "(none)" : WorkspaceService.State.CurrentVttSession.CurrentPhase)</strong></span>
+                <button class="btn btn-sm btn-outline-primary" @onclick="PreviousTurn" disabled="@(WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)">Previous Turn</button>
+                <button class="btn btn-sm btn-outline-primary" @onclick="AdvanceTurn" disabled="@(WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)">Next Turn</button>
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <InputText @bind-Value="turnOrderInput" class="form-control form-control-sm" style="max-width: 360px;" placeholder="Turn order: p1, p2, p3" />
+                <button class="btn btn-sm btn-outline-secondary" @onclick="InitializeTurnOrderFromInput">Initialize Turn Order</button>
+                <InputText @bind-Value="phaseInput" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Current phase" />
+                <button class="btn btn-sm btn-outline-secondary" @onclick="SetCurrentPhase">Set Phase</button>
+            </div>
         </div>
 
-        @if (WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)
+        <div class="mb-3 p-2 border rounded bg-light">
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <strong>Initiative / Roster</strong>
+                <span>Current: <strong>@GetCurrentTurnParticipant()</strong></span>
+                <span>Turn: <strong>@WorkspaceService.State.CurrentVttSession.TurnNumber</strong></span>
+                <span>Phase: <strong>@(string.IsNullOrWhiteSpace(WorkspaceService.State.CurrentVttSession.CurrentPhase) ? "(none)" : WorkspaceService.State.CurrentVttSession.CurrentPhase)</strong></span>
+            </div>
+
+            @if (WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)
+            {
+                <small class="text-muted">No turn order initialized yet.</small>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Participant</th>
+                                <th>Owned Pieces</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var i = 0; i < WorkspaceService.State.CurrentVttSession.TurnOrder.Count; i++)
+                            {
+                                var participantId = WorkspaceService.State.CurrentVttSession.TurnOrder[i];
+                                var isActive = i == WorkspaceService.State.CurrentVttSession.CurrentTurnIndex;
+                                <tr class="@(isActive ? "table-primary" : string.Empty)">
+                                    <td>@(i + 1)</td>
+                                    <td>@GetParticipantDisplayById(participantId)</td>
+                                    <td>@GetOwnedPiecesSummary(participantId)</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => MoveTurnParticipantUp(participantId)" disabled="@(i == 0)">↑</button>
+                                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => MoveTurnParticipantDown(participantId)" disabled="@(i == WorkspaceService.State.CurrentVttSession.TurnOrder.Count - 1)">↓</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="mb-3 p-2 border rounded bg-light">
+        @if (ShowDesignEntryEditForms)
         {
-            <small class="text-muted">No turn order initialized yet.</small>
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <strong>Participants</strong>
+                <InputText @bind-Value="participantIdInput" class="form-control form-control-sm" style="max-width: 160px;" placeholder="Id" />
+                <InputText @bind-Value="participantNameInput" class="form-control form-control-sm" style="max-width: 200px;" placeholder="Name" />
+                <button class="btn btn-sm btn-outline-primary" @onclick="AddParticipantToSession">Add Participant</button>
+                <InputText @bind-Value="removeParticipantIdInput" class="form-control form-control-sm" style="max-width: 180px;" placeholder="Remove Id" />
+                <button class="btn btn-sm btn-outline-danger" @onclick="RemoveParticipantFromSession">Remove Participant</button>
+                <InputText @bind-Value="renameParticipantIdInput" class="form-control form-control-sm" style="max-width: 160px;" placeholder="Rename Id" />
+                <InputText @bind-Value="renameParticipantNameInput" class="form-control form-control-sm" style="max-width: 200px;" placeholder="New Name" />
+                <button class="btn btn-sm btn-outline-secondary" @onclick="RenameParticipantInSession">Rename Participant</button>
+            </div>
         }
         else
         {
-            <div class="table-responsive">
-                <table class="table table-sm mb-0 align-middle">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Participant</th>
-                            <th>Owned Pieces</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (var i = 0; i < WorkspaceService.State.CurrentVttSession.TurnOrder.Count; i++)
-                        {
-                            var participantId = WorkspaceService.State.CurrentVttSession.TurnOrder[i];
-                            var isActive = i == WorkspaceService.State.CurrentVttSession.CurrentTurnIndex;
-                            <tr class="@(isActive ? "table-primary" : string.Empty)">
-                                <td>@(i + 1)</td>
-                                <td>@GetParticipantDisplayById(participantId)</td>
-                                <td>@GetOwnedPiecesSummary(participantId)</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => MoveTurnParticipantUp(participantId)" disabled="@(i == 0)">↑</button>
-                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => MoveTurnParticipantDown(participantId)" disabled="@(i == WorkspaceService.State.CurrentVttSession.TurnOrder.Count - 1)">↓</button>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <strong>Participants</strong>
+                <span class="text-muted">Participant editing is available in Edit mode.</span>
             </div>
         }
-    </div>
-
-    <div class="mb-3 p-2 border rounded bg-light">
-        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-            <strong>Participants</strong>
-            <InputText @bind-Value="participantIdInput" class="form-control form-control-sm" style="max-width: 160px;" placeholder="Id" />
-            <InputText @bind-Value="participantNameInput" class="form-control form-control-sm" style="max-width: 200px;" placeholder="Name" />
-            <button class="btn btn-sm btn-outline-primary" @onclick="AddParticipantToSession">Add Participant</button>
-            <InputText @bind-Value="removeParticipantIdInput" class="form-control form-control-sm" style="max-width: 180px;" placeholder="Remove Id" />
-            <button class="btn btn-sm btn-outline-danger" @onclick="RemoveParticipantFromSession">Remove Participant</button>
-            <InputText @bind-Value="renameParticipantIdInput" class="form-control form-control-sm" style="max-width: 160px;" placeholder="Rename Id" />
-            <InputText @bind-Value="renameParticipantNameInput" class="form-control form-control-sm" style="max-width: 200px;" placeholder="New Name" />
-            <button class="btn btn-sm btn-outline-secondary" @onclick="RenameParticipantInSession">Rename Participant</button>
-        </div>
 
         @if (WorkspaceService.State.CurrentVttSession.Participants.Count == 0)
         {
@@ -287,76 +359,48 @@
 }
 }
 
-@if (activeWorkspacePanelTab == WorkspacePanelTab.SessionEntryEdit)
-{
-@if (WorkspaceService.State.CurrentVttSession is not null)
-{
-    <h3>Setup</h3>
-
-    <h4>Add Surface</h4>
-    <div class="row g-2 mb-3">
-        <div class="col">
-            <InputText @bind-Value="newSurfaceId" class="form-control" placeholder="Surface Id" />
-        </div>
-        <div class="col">
-            <InputText @bind-Value="newSurfaceDefinitionId" class="form-control" placeholder="Definition Id" />
-        </div>
-        <div class="col">
-            <InputSelect @bind-Value="newSurfaceType" class="form-select">
-                @foreach (var type in Enum.GetValues<SurfaceType>())
-                {
-                    <option value="@type">@type</option>
-                }
-            </InputSelect>
-        </div>
-        <div class="col">
-            <InputSelect @bind-Value="newCoordinateSystem" class="form-select">
-                @foreach (var system in Enum.GetValues<CoordinateSystem>())
-                {
-                    <option value="@system">@system</option>
-                }
-            </InputSelect>
-        </div>
-        <div class="col-auto">
-            <button class="btn btn-outline-secondary" @onclick="AddSurface">Add Surface</button>
-        </div>
-    </div>
-
-    <h4>Add Piece</h4>
-    <div class="row g-2 mb-3">
-        <div class="col">
-            <InputText @bind-Value="newPieceId" class="form-control" placeholder="Piece Id" />
-        </div>
-        <div class="col">
-            <InputText @bind-Value="newPieceDefinitionId" class="form-control" placeholder="Definition Id" />
-        </div>
-        <div class="col">
-            <InputText @bind-Value="newPieceSurfaceId" class="form-control" placeholder="Target Surface Id" />
-        </div>
-        <div class="col">
-            <InputNumber @bind-Value="newPieceX" class="form-control" />
-        </div>
-        <div class="col">
-            <InputNumber @bind-Value="newPieceY" class="form-control" />
-        </div>
-        <div class="col">
-            <InputNumber @bind-Value="newPieceRotation" class="form-control" />
-        </div>
-        <div class="col">
-            <InputText @bind-Value="newPieceOwnerParticipantId" class="form-control" placeholder="Owner (optional)" />
-        </div>
-        <div class="col-auto">
-            <button class="btn btn-outline-secondary" @onclick="AddPiece">Add Piece</button>
-        </div>
-    </div>
-}
-}
-
 @if (activeWorkspacePanelTab == WorkspacePanelTab.Surfaces)
 {
 @if (WorkspaceService.State.CurrentVttSession is not null)
 {
-    <h3>Surfaces</h3>
+    <h3>Surfaces Entry/Edit</h3>
+
+    @if (ShowDesignEntryEditForms)
+    {
+        <h4>Add Surface</h4>
+        <div class="row g-2 mb-3">
+            <div class="col">
+                <InputText @bind-Value="newSurfaceId" class="form-control" placeholder="Surface Id" />
+            </div>
+            <div class="col">
+                <InputText @bind-Value="newSurfaceDefinitionId" class="form-control" placeholder="Definition Id" />
+            </div>
+            <div class="col">
+                <InputSelect @bind-Value="newSurfaceType" class="form-select">
+                    @foreach (var type in Enum.GetValues<SurfaceType>())
+                    {
+                        <option value="@type">@type</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col">
+                <InputSelect @bind-Value="newCoordinateSystem" class="form-select">
+                    @foreach (var system in Enum.GetValues<CoordinateSystem>())
+                    {
+                        <option value="@system">@system</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary" @onclick="AddSurface">Add Surface</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info py-2">Surface authoring is available in Edit mode.</div>
+    }
+
     @if (WorkspaceService.State.CurrentVttSession.Surfaces.Count == 0)
     {
         <p>No surfaces in current session.</p>
@@ -503,6 +547,10 @@
             {
                 <div class="alert alert-warning py-2 mt-2 mb-0">Marker cues are currently hidden by the Show Markers toggle.</div>
             }
+            @if (IsPlayMode)
+            {
+                <div class="alert alert-info py-2 mt-2 mb-0">Play defaults active: markers and legal-move hints are minimized for clarity.</div>
+            }
         </div>
 
         <div class="mb-3 p-2 border rounded bg-light">
@@ -592,272 +640,283 @@
             }
         </div>
 
-        <div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
-            <span><strong>Group Move Δ</strong></span>
-            <InputNumber @bind-Value="groupMoveDeltaX" class="form-control form-control-sm" style="max-width: 120px;" />
-            <InputNumber @bind-Value="groupMoveDeltaY" class="form-control form-control-sm" style="max-width: 120px;" />
-            <button class="btn btn-sm btn-outline-primary" @onclick="MoveSelectedGroupByDelta">Move Selected Group</button>
-        </div>
-
-        <div class="mb-3 p-2 border rounded bg-light">
-            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                <strong>Piece Groups (Stack-lite)</strong>
-                <InputText @bind-Value="groupLabelInput" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Group label (optional)" />
-                <button class="btn btn-sm btn-outline-primary" @onclick="CreateGroupFromSelection">Create From Selection</button>
-                <InputNumber @bind-Value="groupMoveDeltaX" class="form-control form-control-sm" style="max-width: 110px;" />
-                <InputNumber @bind-Value="groupMoveDeltaY" class="form-control form-control-sm" style="max-width: 110px;" />
-                <button class="btn btn-sm btn-outline-secondary" @onclick="MoveSelectedGroupByDeltaControl" disabled="@string.IsNullOrWhiteSpace(selectedGroupId)">Move Group By Δ</button>
-            </div>
-
-            @if (board.PieceGroups.Count == 0)
-            {
-                <small class="text-muted">No groups yet. Select multiple pieces and create a temporary group.</small>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0 align-middle">
-                        <thead>
-                            <tr>
-                                <th>Label</th>
-                                <th>Members</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var group in board.PieceGroups)
-                            {
-                                var isActiveGroup = string.Equals(selectedGroupId, group.GroupId, StringComparison.Ordinal);
-                                <tr class="@(isActiveGroup ? "table-primary" : string.Empty)">
-                                    <td>@group.Label</td>
-                                    <td>@board.GetGroupMembersSummary(group.GroupId)</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => SelectGroup(group.GroupId)">Select Group</button>
-                                        <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => MoveGroupByDelta(group.GroupId)">Move</button>
-                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DisbandGroup(group.GroupId)">Disband</button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-
-        <div class="row g-2 mb-3">
-            <div class="col-auto align-self-end">
-                <div class="form-check">
-                    <input id="add-at-click-toggle" class="form-check-input" type="checkbox" @bind="addPieceAtBoardClickMode" />
-                    <label class="form-check-label" for="add-at-click-toggle">Add Piece At Board Click</label>
-                </div>
-            </div>
-            @if (addPieceAtBoardClickMode)
-            {
-                <div class="col-auto align-self-end">
-                    <div class="form-check">
-                        <input id="stamp-mode-toggle" class="form-check-input" type="checkbox" @bind="stampModeEnabled" disabled="@(!WorkspaceService.State.Settings.EnableStampMode)" />
-                        <label class="form-check-label" for="stamp-mode-toggle">Stamp Mode (repeat placement)</label>
-                    </div>
-                </div>
-                <div class="col">
-                    <InputText @bind-Value="quickCreatePieceId" @bind-Value:after="OnQuickCreatePieceIdEdited" class="form-control" placeholder="Quick Piece Id" />
-                </div>
-                <div class="col">
-                    <InputText @bind-Value="quickCreateDefinitionId" @bind-Value:after="OnQuickCreateDefinitionEdited" class="form-control" placeholder="Quick Definition Id" />
-                </div>
-                <div class="col">
-                    <InputText @bind-Value="quickCreateOwnerParticipantId" class="form-control" placeholder="Owner (optional)" />
-                </div>
-                <div class="col">
-                    <InputNumber @bind-Value="quickCreateRotation" class="form-control" />
-                </div>
-                <div class="col-12">
-                    <small>Next Id Preview (editable): <strong>@quickCreatePieceId</strong></small>
-                </div>
-            }
-            <div class="col-auto">
-                <label class="form-label mb-0">Nudge Step</label>
-                <select class="form-select" @bind="selectedNudgeStep">
-                    <option value="1">1</option>
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                </select>
-            </div>
-            <div class="col-auto align-self-end">
-                <div class="form-check">
-                    <input id="clamp-toggle" class="form-check-input" type="checkbox" @bind="clampToBoard" />
-                    <label class="form-check-label" for="clamp-toggle">Clamp Movement To Board</label>
-                </div>
-            </div>
-            <div class="col-auto">
-                <button class="btn btn-outline-dark" @onclick="MoveFromBoardPanel">Move Selected To Clicked Position</button>
-            </div>
-            <div class="col-auto">
-                <button class="btn btn-outline-dark" @onclick="CenterSelected">Center Selected</button>
-            </div>
-            <div class="col-auto">
-                <button class="btn btn-outline-dark" @onclick="RotateLeftQuick">Rotate Left</button>
-            </div>
-            <div class="col-auto">
-                <button class="btn btn-outline-dark" @onclick="RotateRightQuick">Rotate Right</button>
-            </div>
-            <div class="col-auto align-self-center">
-                <small>Last board click: (@lastBoardClickX, @lastBoardClickY)</small>
-            </div>
-        </div>
-
-        @if (addPieceAtBoardClickMode)
+        @if (IsDesignMode)
         {
-            <div class="mb-3 p-2 border rounded bg-light">
-                <div class="d-flex flex-wrap gap-2 align-items-center">
-                    <span><strong>Stamp Session:</strong></span>
-                    <span>Add-at-click: <strong>@(addPieceAtBoardClickMode ? "On" : "Off")</strong></span>
-                    <span>Stamp: <strong>@(stampModeEnabled ? "On" : "Off")</strong></span>
-                    <span>Surface: <strong>@(board.ActiveSurfaceId ?? "(none)")</strong></span>
-                    <span>Next Id: <strong>@(string.IsNullOrWhiteSpace(quickCreatePieceId) ? "(empty)" : quickCreatePieceId)</strong></span>
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="NudgeNextIdDown" disabled="@string.IsNullOrWhiteSpace(quickCreatePieceId)">Id -1</button>
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="NudgeNextIdUp" disabled="@string.IsNullOrWhiteSpace(quickCreatePieceId)">Id +1</button>
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="ResetNextIdPreviewToBase">Reset Id To Base</button>
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="ClearNextIdPreview">Clear Id Preview</button>
+            <details class="mb-3 p-2 border rounded bg-light" open>
+                <summary><strong>Advanced Board Authoring</strong></summary>
+
+                <div class="mt-2 mb-3 d-flex flex-wrap gap-2 align-items-center">
+                    <span><strong>Group Move Δ</strong></span>
+                    <InputNumber @bind-Value="groupMoveDeltaX" class="form-control form-control-sm" style="max-width: 120px;" />
+                    <InputNumber @bind-Value="groupMoveDeltaY" class="form-control form-control-sm" style="max-width: 120px;" />
+                    <button class="btn btn-sm btn-outline-primary" @onclick="MoveSelectedGroupByDelta">Move Selected Group</button>
                 </div>
-                <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
-                    <span>Base Id: <strong>@(string.IsNullOrWhiteSpace(quickCreateBasePieceId) ? "(empty)" : quickCreateBasePieceId)</strong></span>
-                    <div class="form-check mb-0">
-                        <input id="remember-definition-by-surface" class="form-check-input" type="checkbox" @bind="rememberDefinitionPerSurface" />
-                        <label class="form-check-label" for="remember-definition-by-surface">Remember DefinitionId Per Surface</label>
+
+                <div class="mb-3 p-2 border rounded bg-light">
+                    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                        <strong>Piece Groups (Stack-lite)</strong>
+                        <InputText @bind-Value="groupLabelInput" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Group label (optional)" />
+                        <button class="btn btn-sm btn-outline-primary" @onclick="CreateGroupFromSelection">Create From Selection</button>
+                        <InputNumber @bind-Value="groupMoveDeltaX" class="form-control form-control-sm" style="max-width: 110px;" />
+                        <InputNumber @bind-Value="groupMoveDeltaY" class="form-control form-control-sm" style="max-width: 110px;" />
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="MoveSelectedGroupByDeltaControl" disabled="@string.IsNullOrWhiteSpace(selectedGroupId)">Move Group By Δ</button>
+                    </div>
+
+                    @if (board.PieceGroups.Count == 0)
+                    {
+                        <small class="text-muted">No groups yet. Select multiple pieces and create a temporary group.</small>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Label</th>
+                                        <th>Members</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var group in board.PieceGroups)
+                                    {
+                                        var isActiveGroup = string.Equals(selectedGroupId, group.GroupId, StringComparison.Ordinal);
+                                        <tr class="@(isActiveGroup ? "table-primary" : string.Empty)">
+                                            <td>@group.Label</td>
+                                            <td>@board.GetGroupMembersSummary(group.GroupId)</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => SelectGroup(group.GroupId)">Select Group</button>
+                                                <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => MoveGroupByDelta(group.GroupId)">Move</button>
+                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DisbandGroup(group.GroupId)">Disband</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-auto align-self-end">
+                        <div class="form-check">
+                            <input id="add-at-click-toggle" class="form-check-input" type="checkbox" @bind="addPieceAtBoardClickMode" />
+                            <label class="form-check-label" for="add-at-click-toggle">Add Piece At Board Click</label>
+                        </div>
+                    </div>
+                    @if (addPieceAtBoardClickMode)
+                    {
+                        <div class="col-auto align-self-end">
+                            <div class="form-check">
+                                <input id="stamp-mode-toggle" class="form-check-input" type="checkbox" @bind="stampModeEnabled" disabled="@(!WorkspaceService.State.Settings.EnableStampMode)" />
+                                <label class="form-check-label" for="stamp-mode-toggle">Stamp Mode (repeat placement)</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <InputText @bind-Value="quickCreatePieceId" @bind-Value:after="OnQuickCreatePieceIdEdited" class="form-control" placeholder="Quick Piece Id" />
+                        </div>
+                        <div class="col">
+                            <InputText @bind-Value="quickCreateDefinitionId" @bind-Value:after="OnQuickCreateDefinitionEdited" class="form-control" placeholder="Quick Definition Id" />
+                        </div>
+                        <div class="col">
+                            <InputText @bind-Value="quickCreateOwnerParticipantId" class="form-control" placeholder="Owner (optional)" />
+                        </div>
+                        <div class="col">
+                            <InputNumber @bind-Value="quickCreateRotation" class="form-control" />
+                        </div>
+                        <div class="col-12">
+                            <small>Next Id Preview (editable): <strong>@quickCreatePieceId</strong></small>
+                        </div>
+                    }
+                    <div class="col-auto">
+                        <label class="form-label mb-0">Nudge Step</label>
+                        <select class="form-select" @bind="selectedNudgeStep">
+                            <option value="1">1</option>
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                        </select>
+                    </div>
+                    <div class="col-auto align-self-end">
+                        <div class="form-check">
+                            <input id="clamp-toggle" class="form-check-input" type="checkbox" @bind="clampToBoard" />
+                            <label class="form-check-label" for="clamp-toggle">Clamp Movement To Board</label>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-outline-dark" @onclick="MoveFromBoardPanel">Move Selected To Clicked Position</button>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-outline-dark" @onclick="CenterSelected">Center Selected</button>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-outline-dark" @onclick="RotateLeftQuick">Rotate Left</button>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-outline-dark" @onclick="RotateRightQuick">Rotate Right</button>
+                    </div>
+                    <div class="col-auto align-self-center">
+                        <small>Last board click: (@lastBoardClickX, @lastBoardClickY)</small>
                     </div>
                 </div>
-                <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
-                    <span><strong>Stamp Presets:</strong></span>
-                    <InputText @bind-Value="stampPresetNameInput" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Preset name (optional)" />
-                    <button class="btn btn-sm btn-outline-primary" @onclick="SaveStampPreset">Save Preset</button>
-                    <select class="form-select form-select-sm" style="max-width: 260px;" value="@selectedStampPresetName" @onchange="OnStampPresetSelected">
-                        <option value="">(select preset)</option>
-                        @foreach (var preset in board.StampPresets)
+
+                @if (addPieceAtBoardClickMode)
+                {
+                    <div class="mb-3 p-2 border rounded bg-light">
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            <span><strong>Stamp Session:</strong></span>
+                            <span>Add-at-click: <strong>@(addPieceAtBoardClickMode ? "On" : "Off")</strong></span>
+                            <span>Stamp: <strong>@(stampModeEnabled ? "On" : "Off")</strong></span>
+                            <span>Surface: <strong>@(board.ActiveSurfaceId ?? "(none)")</strong></span>
+                            <span>Next Id: <strong>@(string.IsNullOrWhiteSpace(quickCreatePieceId) ? "(empty)" : quickCreatePieceId)</strong></span>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="NudgeNextIdDown" disabled="@string.IsNullOrWhiteSpace(quickCreatePieceId)">Id -1</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="NudgeNextIdUp" disabled="@string.IsNullOrWhiteSpace(quickCreatePieceId)">Id +1</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="ResetNextIdPreviewToBase">Reset Id To Base</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearNextIdPreview">Clear Id Preview</button>
+                        </div>
+                        <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
+                            <span>Base Id: <strong>@(string.IsNullOrWhiteSpace(quickCreateBasePieceId) ? "(empty)" : quickCreateBasePieceId)</strong></span>
+                            <div class="form-check mb-0">
+                                <input id="remember-definition-by-surface" class="form-check-input" type="checkbox" @bind="rememberDefinitionPerSurface" />
+                                <label class="form-check-label" for="remember-definition-by-surface">Remember DefinitionId Per Surface</label>
+                            </div>
+                        </div>
+                        <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
+                            <span><strong>Stamp Presets:</strong></span>
+                            <InputText @bind-Value="stampPresetNameInput" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Preset name (optional)" />
+                            <button class="btn btn-sm btn-outline-primary" @onclick="SaveStampPreset">Save Preset</button>
+                            <select class="form-select form-select-sm" style="max-width: 260px;" value="@selectedStampPresetName" @onchange="OnStampPresetSelected">
+                                <option value="">(select preset)</option>
+                                @foreach (var preset in board.StampPresets)
+                                {
+                                    <option value="@preset.Name">@preset.Name (@preset.DefinitionId)</option>
+                                }
+                            </select>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="UseSelectedStampPreset" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName)">Use Preset</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearPresetSelection">Clear Selection</button>
+                            <InputText @bind-Value="stampPresetRenameInput" class="form-control form-control-sm" style="max-width: 200px;" placeholder="Rename selected to" />
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="RenameSelectedStampPreset" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName)">Rename</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="DuplicateSelectedStampPreset" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName)">Duplicate</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="SetSelectedPresetAsDefaultForSurface" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName) || string.IsNullOrWhiteSpace(board.ActiveSurfaceId)">Set Default For Surface</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearDefaultPresetForSurface" disabled="@string.IsNullOrWhiteSpace(board.ActiveSurfaceId)">Clear Surface Default</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelectedStampPreset" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName)">Delete Preset</button>
+                        </div>
+                        <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
+                            <span>Active preset: <strong>@(board.ActiveStampPresetName ?? "(none)")</strong></span>
+                            <span>Surface default: <strong>@(GetSurfaceDefaultPresetName() ?? "(none)")</strong></span>
+                            <span>Active is surface default: <strong>@(IsActivePresetSurfaceDefault() ? "Yes" : "No")</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 p-2 border rounded bg-light">
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                            <strong>Cross-Surface Stamp Queue</strong>
+                            <InputText @bind-Value="stampQueueNote" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Optional label" />
+                            <button class="btn btn-sm btn-outline-primary" @onclick="AddCurrentSetupToStampQueue">Add Current Setup To Queue</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="ApplyNextQueueItem" disabled="@(board.StampQueue.Count == 0)">Next Queue Item</button>
+                            <span>Active Queue Index: <strong>@(board.ActiveStampQueueIndex >= 0 ? (board.ActiveStampQueueIndex + 1).ToString() : "(none)")</strong></span>
+                        </div>
+
+                        @if (board.StampQueue.Count == 0)
                         {
-                            <option value="@preset.Name">@preset.Name (@preset.DefinitionId)</option>
+                            <small class="text-muted">Queue is empty. Add current surface/preset/id context to build a stamping sequence.</small>
                         }
-                    </select>
-                    <button class="btn btn-sm btn-outline-primary" @onclick="UseSelectedStampPreset" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName)">Use Preset</button>
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="ClearPresetSelection">Clear Selection</button>
-                    <InputText @bind-Value="stampPresetRenameInput" class="form-control form-control-sm" style="max-width: 200px;" placeholder="Rename selected to" />
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="RenameSelectedStampPreset" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName)">Rename</button>
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="DuplicateSelectedStampPreset" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName)">Duplicate</button>
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="SetSelectedPresetAsDefaultForSurface" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName) || string.IsNullOrWhiteSpace(board.ActiveSurfaceId)">Set Default For Surface</button>
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="ClearDefaultPresetForSurface" disabled="@string.IsNullOrWhiteSpace(board.ActiveSurfaceId)">Clear Surface Default</button>
-                    <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelectedStampPreset" disabled="@string.IsNullOrWhiteSpace(selectedStampPresetName)">Delete Preset</button>
-                </div>
-                <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
-                    <span>Active preset: <strong>@(board.ActiveStampPresetName ?? "(none)")</strong></span>
-                    <span>Surface default: <strong>@(GetSurfaceDefaultPresetName() ?? "(none)")</strong></span>
-                    <span>Active is surface default: <strong>@(IsActivePresetSurfaceDefault() ? "Yes" : "No")</strong></span>
-                </div>
-            </div>
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0 align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Surface</th>
+                                            <th>Preset</th>
+                                            <th>Next Id</th>
+                                            <th>Label</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (var i = 0; i < board.StampQueue.Count; i++)
+                                        {
+                                            var queueItem = board.StampQueue[i];
+                                            var rowIsActive = i == board.ActiveStampQueueIndex;
 
-            <div class="mb-3 p-2 border rounded bg-light">
-                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                    <strong>Cross-Surface Stamp Queue</strong>
-                    <InputText @bind-Value="stampQueueNote" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Optional label" />
-                    <button class="btn btn-sm btn-outline-primary" @onclick="AddCurrentSetupToStampQueue">Add Current Setup To Queue</button>
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="ApplyNextQueueItem" disabled="@(board.StampQueue.Count == 0)">Next Queue Item</button>
-                    <span>Active Queue Index: <strong>@(board.ActiveStampQueueIndex >= 0 ? (board.ActiveStampQueueIndex + 1).ToString() : "(none)")</strong></span>
-                </div>
+                                            <tr class="@(rowIsActive ? "table-primary" : string.Empty)">
+                                                <td>@(i + 1)</td>
+                                                <td>@queueItem.SurfaceId</td>
+                                                <td>@(queueItem.PresetName ?? "(none)")</td>
+                                                <td>
+                                                    <input class="form-control form-control-sm"
+                                                           value="@queueItem.NextPieceId"
+                                                           @onchange="args => UpdateQueueItemNextId(i, args)" />
+                                                </td>
+                                                <td>@(string.IsNullOrWhiteSpace(queueItem.Label) ? "(none)" : queueItem.Label)</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ApplyQueueItem(i)">Apply</button>
+                                                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => MoveQueueItemUp(i)" disabled="@(i == 0)">↑</button>
+                                                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => MoveQueueItemDown(i)" disabled="@(i == board.StampQueue.Count - 1)">↓</button>
+                                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveQueueItem(i)">Remove</button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
 
-                @if (board.StampQueue.Count == 0)
-                {
-                    <small class="text-muted">Queue is empty. Add current surface/preset/id context to build a stamping sequence.</small>
-                }
-                else
-                {
-                    <div class="table-responsive">
-                        <table class="table table-sm mb-0 align-middle">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Surface</th>
-                                    <th>Preset</th>
-                                    <th>Next Id</th>
-                                    <th>Label</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @for (var i = 0; i < board.StampQueue.Count; i++)
-                                {
-                                    var queueItem = board.StampQueue[i];
-                                    var rowIsActive = i == board.ActiveStampQueueIndex;
+                        <div class="mt-3 d-flex flex-wrap gap-2 align-items-center">
+                            <strong>Queue Templates</strong>
+                            <InputText @bind-Value="queueTemplateNameInput" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Template name" />
+                            <button class="btn btn-sm btn-outline-primary" @onclick="SaveQueueAsTemplate">Save Current Queue As Template</button>
+                            <span>Selected Template: <strong>@(selectedQueueTemplateName ?? "(none)")</strong></span>
+                        </div>
 
-                                    <tr class="@(rowIsActive ? "table-primary" : string.Empty)">
-                                        <td>@(i + 1)</td>
-                                        <td>@queueItem.SurfaceId</td>
-                                        <td>@(queueItem.PresetName ?? "(none)")</td>
-                                        <td>
-                                            <input class="form-control form-control-sm"
-                                                   value="@queueItem.NextPieceId"
-                                                   @onchange="args => UpdateQueueItemNextId(i, args)" />
-                                        </td>
-                                        <td>@(string.IsNullOrWhiteSpace(queueItem.Label) ? "(none)" : queueItem.Label)</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ApplyQueueItem(i)">Apply</button>
-                                            <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => MoveQueueItemUp(i)" disabled="@(i == 0)">↑</button>
-                                            <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => MoveQueueItemDown(i)" disabled="@(i == board.StampQueue.Count - 1)">↓</button>
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveQueueItem(i)">Remove</button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
+                        @if (board.StampQueueTemplates.Count == 0)
+                        {
+                            <small class="text-muted">No templates yet. Save current queue to reuse this workflow in the session.</small>
+                        }
+                        else
+                        {
+                            <div class="table-responsive mt-2">
+                                <table class="table table-sm mb-0 align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Template</th>
+                                            <th>Steps</th>
+                                            <th>Rename To</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var template in board.StampQueueTemplates)
+                                        {
+                                            var isActiveTemplate = string.Equals(template.TemplateName, selectedQueueTemplateName, StringComparison.Ordinal);
+                                            <tr class="@(isActiveTemplate ? "table-primary" : string.Empty)">
+                                                <td>@template.TemplateName</td>
+                                                <td>@template.Items.Count</td>
+                                                <td>
+                                                    <input class="form-control form-control-sm"
+                                                           value="@GetTemplateRenameValue(template.TemplateName)"
+                                                           @onchange="args => SetTemplateRenameValue(template.TemplateName, args)" />
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ApplyQueueTemplate(template.TemplateName)">Apply</button>
+                                                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => RenameQueueTemplate(template.TemplateName)">Rename</button>
+                                                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => DuplicateQueueTemplate(template.TemplateName)">Duplicate</button>
+                                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteQueueTemplate(template.TemplateName)">Delete</button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
                     </div>
                 }
-
-                <div class="mt-3 d-flex flex-wrap gap-2 align-items-center">
-                    <strong>Queue Templates</strong>
-                    <InputText @bind-Value="queueTemplateNameInput" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Template name" />
-                    <button class="btn btn-sm btn-outline-primary" @onclick="SaveQueueAsTemplate">Save Current Queue As Template</button>
-                    <span>Selected Template: <strong>@(selectedQueueTemplateName ?? "(none)")</strong></span>
-                </div>
-
-                @if (board.StampQueueTemplates.Count == 0)
-                {
-                    <small class="text-muted">No templates yet. Save current queue to reuse this workflow in the session.</small>
-                }
-                else
-                {
-                    <div class="table-responsive mt-2">
-                        <table class="table table-sm mb-0 align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Template</th>
-                                    <th>Steps</th>
-                                    <th>Rename To</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var template in board.StampQueueTemplates)
-                                {
-                                    var isActiveTemplate = string.Equals(template.TemplateName, selectedQueueTemplateName, StringComparison.Ordinal);
-                                    <tr class="@(isActiveTemplate ? "table-primary" : string.Empty)">
-                                        <td>@template.TemplateName</td>
-                                        <td>@template.Items.Count</td>
-                                        <td>
-                                            <input class="form-control form-control-sm"
-                                                   value="@GetTemplateRenameValue(template.TemplateName)"
-                                                   @onchange="args => SetTemplateRenameValue(template.TemplateName, args)" />
-                                        </td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ApplyQueueTemplate(template.TemplateName)">Apply</button>
-                                            <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => RenameQueueTemplate(template.TemplateName)">Rename</button>
-                                            <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => DuplicateQueueTemplate(template.TemplateName)">Duplicate</button>
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteQueueTemplate(template.TemplateName)">Delete</button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-            </div>
+            </details>
+        }
+        else
+        {
+            <div class="mb-3 alert alert-info py-2">Advanced board authoring tools are available in Edit mode.</div>
         }
 
         <div class="mb-3">
@@ -964,9 +1023,39 @@
 
 @if (activeWorkspacePanelTab == WorkspacePanelTab.PiecesEntryEdit)
 {
+@if (ShowDesignEntryEditForms)
+{
 @if (WorkspaceService.State.CurrentVttSession is not null)
 {
-    <h3>Pieces</h3>
+    <h3>Pieces Entry/Edit</h3>
+
+    <h4>Add Piece</h4>
+    <div class="row g-2 mb-3">
+        <div class="col">
+            <InputText @bind-Value="newPieceId" class="form-control" placeholder="Piece Id" />
+        </div>
+        <div class="col">
+            <InputText @bind-Value="newPieceDefinitionId" class="form-control" placeholder="Definition Id" />
+        </div>
+        <div class="col">
+            <InputText @bind-Value="newPieceSurfaceId" class="form-control" placeholder="Target Surface Id" />
+        </div>
+        <div class="col">
+            <InputNumber @bind-Value="newPieceX" class="form-control" />
+        </div>
+        <div class="col">
+            <InputNumber @bind-Value="newPieceY" class="form-control" />
+        </div>
+        <div class="col">
+            <InputNumber @bind-Value="newPieceRotation" class="form-control" />
+        </div>
+        <div class="col">
+            <InputText @bind-Value="newPieceOwnerParticipantId" class="form-control" placeholder="Owner (optional)" />
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-secondary" @onclick="AddPiece">Add Piece</button>
+        </div>
+    </div>
 
     @if (WorkspaceService.State.CurrentVttSession.Pieces.Count == 0)
     {
@@ -1056,8 +1145,11 @@
     }
 }
 }
+}
 
 @if (activeWorkspacePanelTab == WorkspacePanelTab.MarkerEntryEdit)
+{
+@if (ShowDesignEntryEditForms)
 {
 @if (WorkspaceService.State.CurrentVttSession is not null)
 {
@@ -1093,6 +1185,7 @@
             <button class="btn btn-outline-primary" @onclick="RemoveMarker">Remove Marker</button>
         </div>
     </div>
+}
 }
 }
 

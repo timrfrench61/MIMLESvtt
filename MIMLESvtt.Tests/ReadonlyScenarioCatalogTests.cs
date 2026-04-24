@@ -42,8 +42,7 @@ public class ReadonlyScenarioCatalogTests
         service.ActivateReadonlyScenario("CHECKERS-SCENARIO");
 
         Assert.IsNotNull(service.State.CurrentVttSession);
-        Assert.AreEqual(1, service.State.CurrentVttSession!.Campaigns.Count);
-        Assert.AreEqual("CHECKERS-CAMPAIGN", service.State.CurrentVttSession.Campaigns[0].Id);
+        Assert.AreEqual("CHECKERS-CAMPAIGN", service.State.CurrentVttSession!.Campaign.Id);
         Assert.IsTrue(service.State.CurrentVttSession.Pieces.Count > 0);
         Assert.IsTrue(service.State.CurrentVttSession.ModuleState.TryGetValue("RulesProfile", out var rulesProfile));
         Assert.AreEqual("Checkers", rulesProfile?.ToString());

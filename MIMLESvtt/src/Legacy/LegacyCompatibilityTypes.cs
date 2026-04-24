@@ -88,7 +88,7 @@ public class TableSessionSnapshotSerializer : VttSessionSnapshotSerializer
             Visibility = session.Visibility,
             ActionLog = session.ActionLog,
             ModuleState = session.ModuleState,
-            Campaigns = session.Campaigns
+            Campaign = session.Campaign
         };
     }
 }
@@ -154,7 +154,7 @@ public class SessionWorkspaceService : VttSessionWorkspaceService, ITableSession
             Visibility = CurrentVttSession.Visibility,
             ActionLog = CurrentVttSession.ActionLog,
             ModuleState = CurrentVttSession.ModuleState,
-            Campaigns = CurrentVttSession.Campaigns
+            Campaign = CurrentVttSession.Campaign
         };
 
     public void OpenTableSessionFromFile(string path)

@@ -17,4 +17,10 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="docs\07-decomposition\" />
+    <Folder Include="docs\08-refactoring\" />
+    <Folder Include="docs\01-design-patterns\" />
+  </ItemGroup>
+
 </Project>

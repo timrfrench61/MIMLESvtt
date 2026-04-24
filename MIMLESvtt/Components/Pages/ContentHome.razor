@@ -5,19 +5,87 @@
 
 <h1>Content Management</h1>
 
+<h5 class="mb-2">Content Workflow Hub</h5>
+
 <div class="alert alert-info">
-    Content route group is active. Choose a content type below.
+    Manage game content from this hub. Choose a content type or open the import workflow.
 </div>
 
-<ul>
-    <li><a href="/content/monsters">Monsters</a></li>
-    <li><a href="/content/treasure">Treasure</a></li>
-    <li><a href="/content/equipment">Equipment</a></li>
-    <li><a href="/content/magic-items">Magic Items</a></li>
-</ul>
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" href="/">Back to Game Launcher</a>
+</div>
+
+<h5>Open Content Type</h5>
+<p class="text-muted mb-2">Choose a content family to search, inspect details, and perform entry/edit updates.</p>
+<div class="row g-2 mb-3">
+    <div class="col-12 col-md-6 col-lg-3">
+        <a class="btn btn-outline-primary w-100" href="/content/monsters">Monsters</a>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+        <a class="btn btn-outline-primary w-100" href="/content/treasure">Treasure</a>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+        <a class="btn btn-outline-primary w-100" href="/content/equipment">Equipment</a>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+        <a class="btn btn-outline-primary w-100" href="/content/magic-items">Magic Items</a>
+    </div>
+</div>
+<small class="text-muted d-block mb-3">Start with a content type for direct review/edit, or use import for bulk operations.</small>
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" href="/content/import">Import Workflow</a>
+</div>
+
+<h5>Import Content</h5>
+<p class="text-muted mb-2">Use import when adding or validating content in bulk from supported files.</p>
+
+<div class="mb-2">
+    <small class="text-muted">Import shell below is reusable preview; use dedicated import page for focused runs.</small>
+</div>
+
+<div class="mb-3">
+    <a class="btn btn-primary" href="/content/import">Open Content Import Page</a>
+</div>
 
 <ContentImportWorkflowShell />
 
+<div class="alert alert-light border mt-3">
+    <strong>Import first?</strong><br />
+    Use import for batches and then review results in the content type pages.
+</div>
+
+<h5 class="mt-4">Manual Entry</h5>
+<p class="text-muted mb-2">Use manual entry for one-off edits and smaller updates.</p>
+
+<div class="mb-2">
+    <small class="text-muted">Manual workflow shell below demonstrates expected save/failure/cancel messaging.</small>
+</div>
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" href="/content/monsters">Open Monsters</a>
+    <a class="btn btn-outline-secondary" href="/content/treasure">Open Treasure</a>
+    <a class="btn btn-outline-secondary" href="/content/equipment">Open Equipment</a>
+    <a class="btn btn-outline-secondary" href="/content/magic-items">Open Magic Items</a>
+</div>
+
 <ContentManualEntryWorkflowShell />
 
+<div class="alert alert-light border mt-3">
+    <strong>Manual entry first?</strong><br />
+    Use direct content pages for focused edits and record-by-record review.
+</div>
+
+<h5 class="mt-4">Status</h5>
+
+<p class="text-muted mb-2">Use this shell to preview standardized list state messaging before applying it to content pages.</p>
+
+<div class="mb-2">
+    <small class="text-muted">Recommended order: Empty → Loading → Success/Error to validate copy consistency.</small>
+</div>
+
 <ContentStatusStateShell Title="Content List Status" />
+
+<div class="mt-3">
+    <a class="btn btn-outline-secondary" href="/content/import">Continue to Import</a>
+</div>
