@@ -9,14 +9,33 @@
 
         <p class="text-muted mb-3">Preview standardized content-list states for empty, loading, success, and error scenarios.</p>
 
-        <div class="d-flex flex-wrap gap-2 mb-3">
+        <div class="mb-3 d-flex gap-2 flex-wrap">
+            <a class="btn btn-sm btn-outline-secondary" href="#status-state-controls">Controls</a>
+            <a class="btn btn-sm btn-outline-secondary" href="#status-state-preview">Preview</a>
+        </div>
+
+        <div class="mb-2">
+            <small class="text-muted">Current State: <strong>@CurrentState</strong></small>
+        </div>
+
+        <div class="mb-2">
+            <small class="text-muted">Use this shell to verify copy tone and actionability before applying to production lists.</small>
+        </div>
+
+        <div id="status-state-controls" class="d-flex flex-wrap gap-2 mb-3">
             <button class="btn btn-sm @(CurrentState == ContentStatusState.Empty ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetState(ContentStatusState.Empty)">Empty</button>
             <button class="btn btn-sm @(CurrentState == ContentStatusState.Loading ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetState(ContentStatusState.Loading)">Loading</button>
             <button class="btn btn-sm @(CurrentState == ContentStatusState.Error ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetState(ContentStatusState.Error)">Error</button>
             <button class="btn btn-sm @(CurrentState == ContentStatusState.Success ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetState(ContentStatusState.Success)">Success</button>
         </div>
         <small class="text-muted d-block mb-3">Choose a state to preview reusable status messaging behavior.</small>
+        <small class="text-muted d-block mb-3">Recommended validation order: Empty -> Loading -> Success -> Error.</small>
 
+        <div class="mb-3 d-flex gap-2 flex-wrap">
+            <button class="btn btn-sm btn-outline-secondary" @onclick="() => SetState(ContentStatusState.Empty)">Reset to Empty</button>
+        </div>
+
+        <div id="status-state-preview">
         @if (CurrentState == ContentStatusState.Empty)
         {
             <div class="alert alert-light border mb-0">
@@ -49,6 +68,17 @@
             </div>
             <small class="text-muted d-block mt-2">Use for blocking failures and include retry or recovery instructions.</small>
         }
+        </div>
+
+        <div class="mt-3 text-end">
+            <small class="text-muted">Reusable shell preview for content state messaging behavior.</small>
+        </div>
+
+        <div class="mt-2 d-flex gap-2 flex-wrap">
+            <a class="btn btn-sm btn-outline-secondary" href="/content/import">Open Import</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/content">Open Content Hub</a>
+            <a class="btn btn-sm btn-outline-secondary" href="#status-state-controls">Back to Controls</a>
+        </div>
     </div>
 </div>
 

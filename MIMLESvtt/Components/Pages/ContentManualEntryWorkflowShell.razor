@@ -9,7 +9,41 @@
 
         <p class="text-muted mb-3">Use this flow for one-off entry and edit operations when import is not needed.</p>
 
+        <div class="alert alert-light border py-2">
+            <strong>Workflow intent:</strong> preview manual entry UX outcomes (success, warning, error, info) before wiring full persistence.
+        </div>
+
+        <div class="mb-3 d-flex gap-2 flex-wrap">
+            <a class="btn btn-sm btn-outline-secondary" href="/content">Content Hub</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/content/import">Import Workflow</a>
+        </div>
+
+        <div class="mb-3 d-flex gap-2 flex-wrap">
+            <a class="btn btn-sm btn-outline-secondary" href="#manual-selector">Selector</a>
+            <a class="btn btn-sm btn-outline-secondary" href="#manual-steps">Steps</a>
+            <a class="btn btn-sm btn-outline-secondary" href="#manual-sim">Simulation</a>
+            <a class="btn btn-sm btn-outline-secondary" href="#manual-status">Status</a>
+            <a class="btn btn-sm btn-outline-secondary" href="#manual-history">History</a>
+        </div>
+
         <div class="mb-2">
+            <small class="text-muted">Current simulation status: <span class="badge @GetStatusBadgeClass()">@GetStatusLabel()</span></small>
+        </div>
+
+        <div class="mb-2 d-flex gap-2 flex-wrap align-items-center">
+            <small class="text-muted">Events: <strong>@simulationHistory.Count</strong></small>
+            <small class="text-muted">Success: <strong>@GetHistoryCountByOutcome(SimulationOutcome.Success)</strong></small>
+            <small class="text-muted">Warning: <strong>@GetHistoryCountByOutcome(SimulationOutcome.Warning)</strong></small>
+            <small class="text-muted">Error: <strong>@GetHistoryCountByOutcome(SimulationOutcome.Error)</strong></small>
+            <small class="text-muted">Info: <strong>@GetHistoryCountByOutcome(SimulationOutcome.Info)</strong></small>
+        </div>
+
+        <div class="mb-2">
+            <small class="text-muted">Simulation mode helps document expected UX feedback before wiring live persistence.</small>
+        </div>
+
+        <h6 class="mb-2">Content Type Selector</h6>
+        <div id="manual-selector" class="mb-2">
             <label class="form-label">Content Type</label>
             <InputSelect class="form-select" @bind-Value="SelectedRoute">
                 @foreach (var adapter in adapters)
@@ -20,14 +54,58 @@
         </div>
         <small class="text-muted d-block mb-2">Choose a content type to preview list/create/detail manual workflow steps.</small>
 
+        <div class="mb-3 d-flex gap-2 flex-wrap">
+            <a class="btn btn-sm btn-outline-secondary" href="/content/monsters">Monsters</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/content/treasure">Treasure</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/content/equipment">Equipment</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/content/magic-items">Magic Items</a>
+        </div>
+        <small class="text-muted d-block mb-3">Use quick links to open real entry pages while keeping this shell for message validation.</small>
+
+        <div class="table-responsive mb-3">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Content Type</th>
+                        <th>Route</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var adapter in adapters)
+                    {
+                        var isSelected = string.Equals(adapter.ListRoute, SelectedRoute, StringComparison.Ordinal);
+                        <tr class="@(isSelected ? "table-primary" : string.Empty)">
+                            <td>@adapter.ContentTypeName</td>
+                            <td><code>@adapter.ListRoute</code></td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => SelectRoute(adapter.ListRoute)">Select</button>
+                                <a class="btn btn-sm btn-outline-secondary" href="@adapter.ListRoute">Open</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
         @if (currentAdapter is not null)
         {
+            <h6 class="mb-2">Selected Workflow Context</h6>
             <div class="alert alert-light border py-2">
                 <strong>Selected Content Type:</strong> @currentAdapter.ContentTypeName<br />
                 <strong>List Route:</strong> <code>@currentAdapter.ListRoute</code>
+                <br />
+                <strong>Entry Label:</strong> @currentAdapter.EntryLabel
+                <br />
+                <strong>Detail Label:</strong> @currentAdapter.DetailLabel
+                <br />
+                <a class="btn btn-sm btn-outline-secondary mt-2" href="@currentAdapter.ListRoute">Open Selected Content Page</a>
             </div>
 
-            <ol class="mb-3">
+            <small class="text-muted d-block mb-2">Use the selected page for real edits; this shell demonstrates workflow messaging behavior.</small>
+
+            <ol id="manual-steps" class="mb-3">
+                <li><strong>Select:</strong> Choose target content type in selector.</li>
                 <li><strong>List:</strong> Navigate to <code>@currentAdapter.ListRoute</code></li>
                 <li><strong>Create / Edit:</strong> Use @currentAdapter.EntryLabel mode on selected page.</li>
                 <li><strong>Detail / Review:</strong> Confirm saved values in @currentAdapter.DetailLabel section.</li>
@@ -35,18 +113,71 @@
             </ol>
         }
 
-        <div class="d-flex flex-wrap gap-2">
+        <h6 class="mb-2">Simulation Controls</h6>
+        <div id="manual-sim" class="d-flex flex-wrap gap-2">
             <button class="btn btn-sm btn-primary" @onclick="MarkSaveSuccess">Simulate Save Success</button>
             <button class="btn btn-sm btn-outline-danger" @onclick="MarkSaveFailure">Simulate Save Failure</button>
+            <button class="btn btn-sm btn-outline-warning" @onclick="MarkValidationWarning">Simulate Validation Warning</button>
+            <button class="btn btn-sm btn-outline-info" @onclick="MarkInfoReturn">Simulate Informational Return</button>
+            <button class="btn btn-sm btn-outline-info" @onclick="MarkPermissionInfo">Simulate Permission Info</button>
+            <button class="btn btn-sm btn-outline-danger" @onclick="MarkConflictError">Simulate Conflict Error</button>
             <button class="btn btn-sm btn-outline-warning" @onclick="MarkCancel">Simulate Cancel</button>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="RunSmokeSimulationSet">Run Smoke Set</button>
             <button class="btn btn-sm btn-outline-secondary" @onclick="ClearSimulation">Clear Result</button>
         </div>
         <small class="text-muted d-block mt-2">Use simulation controls to preview user-facing save/cancel outcomes for this workflow shell.</small>
+        <small class="text-muted d-block">Success/Cancel are non-error outcomes; Failure simulates a blocking validation/persist path.</small>
+        <small class="text-muted d-block">Clear Result returns status to Not run for the next simulation pass.</small>
 
-        @if (!string.IsNullOrWhiteSpace(statusMessage))
+        @if (!string.IsNullOrWhiteSpace(statusMessage) && statusOutcome != SimulationOutcome.None)
         {
-            <div class="alert @(statusSucceeded ? "alert-success" : "alert-danger") mt-3 mb-0">@statusMessage</div>
+            <div id="manual-status" class="alert @GetStatusAlertClass() mt-3 mb-0">
+                <strong>@GetStatusLabel():</strong> @statusMessage
+            </div>
+            @if (lastStatusUtc is not null)
+            {
+                <small class="text-muted d-block mt-1">Last update (UTC): @lastStatusUtc.Value.ToString("u")</small>
+            }
         }
+
+        @if (simulationHistory.Count > 0)
+        {
+            <div id="manual-history" class="mt-3">
+                <h6 class="mb-1">Recent Simulation Events</h6>
+                <div class="d-flex gap-2 mb-2">
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="ClearHistory">Clear History</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>UTC Time</th>
+                                <th>Outcome</th>
+                                <th>Message</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var historyItem in simulationHistory)
+                            {
+                                <tr>
+                                    <td><small>@historyItem.TimestampUtc.ToString("u")</small></td>
+                                    <td><span class="badge @GetBadgeClassByOutcome(historyItem.Outcome)">@historyItem.Outcome</span></td>
+                                    <td><small>@historyItem.Message</small></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <div class="mt-3 text-end">
+            <small class="text-muted">Reusable shell preview for manual entry workflow behavior.</small>
+        </div>
+
+        <div class="mt-2">
+            <a class="btn btn-sm btn-outline-secondary" href="#manual-selector">Back to Selector</a>
+        </div>
     </div>
 </div>
 
@@ -56,7 +187,9 @@
     private string selectedRoute = string.Empty;
     private IContentManualEntryWorkflowAdapter? currentAdapter;
     private string statusMessage = string.Empty;
-    private bool statusSucceeded;
+    private SimulationOutcome statusOutcome = SimulationOutcome.None;
+    private DateTimeOffset? lastStatusUtc;
+    private readonly List<SimulationHistoryEntry> simulationHistory = [];
 
     protected override void OnInitialized()
     {
@@ -80,32 +213,173 @@
         currentAdapter = adapters.FirstOrDefault(a => string.Equals(a.ListRoute, selectedRoute, StringComparison.Ordinal));
     }
 
+    private void SelectRoute(string route)
+    {
+        SelectedRoute = route;
+    }
+
     private void MarkSaveSuccess()
     {
         ResolveAdapter();
-        statusSucceeded = true;
         statusMessage = currentAdapter is null
             ? "Saved entry through manual workflow."
             : $"Saved {currentAdapter.ContentTypeName} entry and returned to list/detail flow.";
+        statusOutcome = SimulationOutcome.Success;
+        RecordSimulationHistory();
     }
 
     private void MarkSaveFailure()
     {
         ResolveAdapter();
-        statusSucceeded = false;
         statusMessage = "Save failed. Validation summary should block persistence and keep user on entry form.";
+        statusOutcome = SimulationOutcome.Error;
+        RecordSimulationHistory();
+    }
+
+    private void MarkValidationWarning()
+    {
+        ResolveAdapter();
+        statusMessage = "Validation warning returned. Review optional fields and confirm before persisting.";
+        statusOutcome = SimulationOutcome.Warning;
+        RecordSimulationHistory();
+    }
+
+    private void MarkInfoReturn()
+    {
+        ResolveAdapter();
+        statusMessage = "Returned to list without mutation. Use this state for informational non-error navigation feedback.";
+        statusOutcome = SimulationOutcome.Info;
+        RecordSimulationHistory();
+    }
+
+    private void MarkPermissionInfo()
+    {
+        ResolveAdapter();
+        statusMessage = "Operation requires elevated rights. User remains in read-only flow with guidance.";
+        statusOutcome = SimulationOutcome.Info;
+        RecordSimulationHistory();
+    }
+
+    private void MarkConflictError()
+    {
+        ResolveAdapter();
+        statusMessage = "Save conflict detected. Refresh list/detail state and retry with latest values.";
+        statusOutcome = SimulationOutcome.Error;
+        RecordSimulationHistory();
     }
 
     private void MarkCancel()
     {
         ResolveAdapter();
-        statusSucceeded = true;
         statusMessage = "Canceled edit. No mutation persisted and workflow returned safely.";
+        statusOutcome = SimulationOutcome.Info;
+        RecordSimulationHistory();
     }
 
     private void ClearSimulation()
     {
-        statusSucceeded = false;
+        statusOutcome = SimulationOutcome.None;
         statusMessage = string.Empty;
+        lastStatusUtc = null;
     }
+
+    private void RunSmokeSimulationSet()
+    {
+        MarkSaveSuccess();
+        MarkValidationWarning();
+        MarkSaveFailure();
+        MarkInfoReturn();
+    }
+
+    private void ClearHistory()
+    {
+        simulationHistory.Clear();
+    }
+
+    private void RecordSimulationHistory()
+    {
+        lastStatusUtc = DateTimeOffset.UtcNow;
+        simulationHistory.Insert(0, new SimulationHistoryEntry(lastStatusUtc.Value, statusOutcome, statusMessage));
+
+        if (simulationHistory.Count > 8)
+        {
+            simulationHistory.RemoveRange(8, simulationHistory.Count - 8);
+        }
+    }
+
+    private string GetStatusLabel()
+    {
+        return statusOutcome switch
+        {
+            SimulationOutcome.Success => "Success",
+            SimulationOutcome.Error => "Error",
+            SimulationOutcome.Warning => "Warning",
+            SimulationOutcome.Info => "Info",
+            _ => "Not run"
+        };
+    }
+
+    private string GetStatusBadgeClass()
+    {
+        return statusOutcome switch
+        {
+            SimulationOutcome.Success => "text-bg-success",
+            SimulationOutcome.Error => "text-bg-danger",
+            SimulationOutcome.Warning => "text-bg-warning",
+            SimulationOutcome.Info => "text-bg-info",
+            _ => "text-bg-secondary"
+        };
+    }
+
+    private string GetStatusAlertClass()
+    {
+        return statusOutcome switch
+        {
+            SimulationOutcome.Success => "alert-success",
+            SimulationOutcome.Error => "alert-danger",
+            SimulationOutcome.Warning => "alert-warning",
+            SimulationOutcome.Info => "alert-info",
+            _ => "alert-light"
+        };
+    }
+
+    private string GetBadgeClassByOutcome(SimulationOutcome outcome)
+    {
+        return outcome switch
+        {
+            SimulationOutcome.Success => "text-bg-success",
+            SimulationOutcome.Error => "text-bg-danger",
+            SimulationOutcome.Warning => "text-bg-warning",
+            SimulationOutcome.Info => "text-bg-info",
+            _ => "text-bg-secondary"
+        };
+    }
+
+    private int GetHistoryCountByOutcome(SimulationOutcome outcome)
+    {
+        var count = 0;
+        foreach (var entry in simulationHistory)
+        {
+            if (entry.Outcome == outcome)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private enum SimulationOutcome
+    {
+        None,
+        Success,
+        Error,
+        Warning,
+        Info
+    }
+
+    private sealed record SimulationHistoryEntry(
+        DateTimeOffset TimestampUtc,
+        SimulationOutcome Outcome,
+        string Message);
 }

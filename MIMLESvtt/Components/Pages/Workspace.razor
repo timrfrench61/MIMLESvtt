@@ -9,7 +9,81 @@
 
 <PageTitle>Workspace</PageTitle>
 
-<h1>Workspace</h1>
+<div class="workspace-page-header">
+    <h3 class="mb-0">@GetWorkspaceHeaderTitle()</h3>
+    <button class="workspace-panel-toggle-button" type="button" @onclick="ToggleWorkspacePanel" aria-label="@(isWorkspacePanelOpen ? "Close workspace controls" : "Open workspace controls")" title="@(isWorkspacePanelOpen ? "Close controls" : "Open controls")">
+        <span aria-hidden="true">@(isWorkspacePanelOpen ? "✕" : "☰")</span>
+    </button>
+</div>
+
+@if (WorkspaceService.State.CurrentVttSession is not null)
+{
+    <div class="card mb-3 border-success">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <h5 class="mb-1">Play Turn</h5>
+                    @if (IsPlayMode)
+                    {
+                        <small class="text-muted">Current: <strong>@GetCurrentTurnParticipant()</strong> | Turn: <strong>@WorkspaceService.State.CurrentVttSession.TurnNumber</strong></small>
+                    }
+                    else
+                    {
+                        <small class="text-muted">Switch to Play mode, then click <strong>Play Turn</strong>.</small>
+                    }
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                    @if (!IsPlayMode)
+                    {
+                        <button class="btn btn-success" @onclick="SwitchToPlayMode">Switch to Play</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-success btn-lg" @onclick="AdvanceTurn" disabled="@(WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)">Next</button>
+                        <button class="btn btn-outline-secondary" @onclick="PreviousTurn" disabled="@(WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)">Previous</button>
+                    }
+                </div>
+            </div>
+
+            @if (IsPlayMode && WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)
+            {
+                <div class="alert alert-warning mt-3 mb-0">
+                    No turn order exists yet. Initialize one in Session Summary or click below.
+                    <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="InitializeTurnOrderFromInput">Initialize Turn Order</button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<div class="mb-3 p-2 border rounded bg-light d-flex flex-wrap gap-2 align-items-center">
+    <strong>Workspace Mode</strong>
+    <span class="badge @(WorkspaceService.State.Mode == WorkspaceMode.Edit ? "text-bg-secondary" : "text-bg-success")">@WorkspaceService.State.Mode</span>
+    <button class="btn btn-sm @(WorkspaceService.State.Mode == WorkspaceMode.Play ? "btn-success" : "btn-outline-success")" @onclick="SwitchToPlayMode" disabled="@(WorkspaceService.State.Mode == WorkspaceMode.Play)">Play</button>
+    <button class="btn btn-sm @(WorkspaceService.State.Mode == WorkspaceMode.Edit ? "btn-primary" : "btn-outline-primary")" @onclick="SwitchToEditMode" disabled="@(WorkspaceService.State.Mode == WorkspaceMode.Edit)">Design</button>
+    <small class="text-muted">Play focuses runtime controls; Design focuses setup and authoring tools.</small>
+</div>
+
+@if (IsPlayMode && WorkspaceService.State.CurrentVttSession is not null)
+{
+    <div class="mb-3 p-2 border rounded bg-light d-flex flex-wrap gap-2 align-items-center">
+        <strong>Play Quick Controls</strong>
+        <span>Turn: <strong>@WorkspaceService.State.CurrentVttSession.TurnNumber</strong></span>
+        <span>Current: <strong>@GetCurrentTurnParticipant()</strong></span>
+        <button class="btn btn-sm btn-outline-primary" @onclick="PreviousTurn" disabled="@(WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)">Previous Turn</button>
+        <button class="btn btn-sm btn-primary" @onclick="AdvanceTurn" disabled="@(WorkspaceService.State.CurrentVttSession.TurnOrder.Count == 0)">Next Turn</button>
+    </div>
+}
+
+@if (showModeEntryPrompt)
+{
+    <div class="alert alert-info py-2">
+        <strong>Choose your mode:</strong>
+        Use <strong>Play</strong> for running turns and adjudication, or <strong>Design</strong> for setup and authoring.
+        <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="DismissModeEntryPrompt">Dismiss</button>
+    </div>
+}
 
 @if (isCheckersReferenceMode)
 {
@@ -53,10 +127,6 @@
             break;
     }
 </div>
-
-<button class="btn btn-primary workspace-panel-fab" @onclick="ToggleWorkspacePanel">
-    @(isWorkspacePanelOpen ? "Hide Workspace Controls" : "Show Workspace Controls")
-</button>
 
 @if (isWorkspacePanelOpen)
 {
@@ -113,23 +183,26 @@
 
 @if (WorkspaceService.State.CurrentVttSession is not null)
 {
-    <ul class="nav nav-tabs mb-3">
-        <li class="nav-item">
-            <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.SessionSummary ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.SessionSummary">Session Summary</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.Surfaces ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.Surfaces">Surfaces Entry/Edit</button>
-        </li>
-        @if (ShowDesignEntryEditForms)
+    <div class="mb-3">
+        <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-2" @onclick="ToggleWorkspaceTabMenu">
+            <span aria-hidden="true">☰</span>
+            <span>Sections</span>
+        </button>
+        <small class="text-muted d-block mt-1">Selected: <strong>@GetWorkspaceTabLabel(activeWorkspacePanelTab)</strong></small>
+
+        @if (isWorkspaceTabMenuOpen)
         {
-            <li class="nav-item">
-                <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.PiecesEntryEdit ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.PiecesEntryEdit">Pieces Entry/Edit</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link @(activeWorkspacePanelTab == WorkspacePanelTab.MarkerEntryEdit ? "active" : string.Empty)" @onclick="() => activeWorkspacePanelTab = WorkspacePanelTab.MarkerEntryEdit">Marker Entry/Edit</button>
-            </li>
+            <div class="list-group mt-2">
+                <button type="button" class="list-group-item list-group-item-action @(activeWorkspacePanelTab == WorkspacePanelTab.SessionSummary ? "active" : string.Empty)" @onclick="() => SelectWorkspacePanelTab(WorkspacePanelTab.SessionSummary)">Session Summary</button>
+                <button type="button" class="list-group-item list-group-item-action @(activeWorkspacePanelTab == WorkspacePanelTab.Surfaces ? "active" : string.Empty)" @onclick="() => SelectWorkspacePanelTab(WorkspacePanelTab.Surfaces)">Surfaces Entry/Edit</button>
+                @if (ShowDesignEntryEditForms)
+                {
+                    <button type="button" class="list-group-item list-group-item-action @(activeWorkspacePanelTab == WorkspacePanelTab.PiecesEntryEdit ? "active" : string.Empty)" @onclick="() => SelectWorkspacePanelTab(WorkspacePanelTab.PiecesEntryEdit)">Pieces Entry/Edit</button>
+                    <button type="button" class="list-group-item list-group-item-action @(activeWorkspacePanelTab == WorkspacePanelTab.MarkerEntryEdit ? "active" : string.Empty)" @onclick="() => SelectWorkspacePanelTab(WorkspacePanelTab.MarkerEntryEdit)">Marker Entry/Edit</button>
+                }
+            </div>
         }
-    </ul>
+    </div>
 }
 
 @if (activeWorkspacePanelTab == WorkspacePanelTab.SessionSummary)

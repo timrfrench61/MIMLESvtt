@@ -3,7 +3,7 @@
 
 <PageTitle>Content Import</PageTitle>
 
-<h1>Content Import</h1>
+<h1 id="top-import">Content Import</h1>
 
 <p class="text-muted">Use this page for bulk content import and staged validation before persistence.</p>
 
@@ -11,7 +11,24 @@
     Use the staged workflow below to validate content before applying changes.
 </div>
 
+<div class="mb-2">
+    <small class="text-muted">This page supports repeat import-review cycles for content operations.</small>
+</div>
+
+<h5>Navigation</h5>
+<p class="text-muted mb-2">Use these links to move between import and per-type review/edit pages.</p>
+
 <div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm btn-outline-secondary" href="#top-import">Top</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#import-navigation">Nav</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#import-review">Review</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#import-cycle-controls">Cycle</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#import-workflow-shell">Workflow</a>
+</div>
+<small class="text-muted d-block mb-3">Use section shortcuts to move through navigation, review, cycle, and workflow blocks.</small>
+
+<div id="import-navigation" class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" href="/">Game Launcher</a>
     <a class="btn btn-outline-secondary" href="/content">Back to Content Home</a>
     <a class="btn btn-outline-secondary" href="/content/monsters">Open Monsters</a>
     <a class="btn btn-outline-secondary" href="/content/treasure">Open Treasure</a>
@@ -20,4 +37,50 @@
 </div>
 <small class="text-muted d-block mb-3">Use quick links to switch between import and per-type review pages during content passes.</small>
 
+<div class="mb-2 d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm btn-outline-secondary" href="#import-workflow-shell">Jump to Workflow</a>
+</div>
+
+<div id="import-review" class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-primary" href="/content/monsters">Review Monsters</a>
+    <a class="btn btn-outline-secondary" href="/content/treasure">Review Treasure</a>
+    <a class="btn btn-outline-secondary" href="/content/equipment">Review Equipment</a>
+    <a class="btn btn-outline-secondary" href="/content/magic-items">Review Magic Items</a>
+</div>
+<small class="text-muted d-block mb-3">After import, start review with one content type and proceed through the others.</small>
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm btn-outline-secondary" href="/content/monsters#list-monsters">Go to Monster List</a>
+    <a class="btn btn-sm btn-outline-secondary" href="/content/treasure#list-treasure">Go to Treasure List</a>
+    <a class="btn btn-sm btn-outline-secondary" href="/content/equipment#list-equipment">Go to Equipment List</a>
+    <a class="btn btn-sm btn-outline-secondary" href="/content/magic-items#list-magic-items">Go to Magic Item List</a>
+</div>
+
+<h6 id="import-cycle-controls" class="mb-2">Cycle Controls</h6>
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" href="/content/import">Reset Import Page</a>
+    <a class="btn btn-outline-secondary" href="/content">Open Content Hub</a>
+    <a class="btn btn-outline-secondary" href="/content/monsters#edit-monsters">Open Monster Editor</a>
+    <a class="btn btn-outline-secondary" href="/content/treasure#edit-treasure">Open Treasure Editor</a>
+    <a class="btn btn-outline-secondary" href="/content/equipment#edit-equipment">Open Equipment Editor</a>
+    <a class="btn btn-outline-secondary" href="/content/magic-items#edit-magic-items">Open Magic Item Editor</a>
+</div>
+
+<div class="alert alert-light border py-2">
+    <strong>Recommended pass:</strong> Import -> Review details in content pages -> Apply manual fixes -> Re-run import if needed.
+</div>
+
+<small class="text-muted d-block mb-3">If review surfaces issues, return here and run another staged validation cycle.</small>
+
+<div class="mb-3">
+    <a class="btn btn-sm btn-outline-secondary" href="#import-navigation">Back to Navigation Links</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#import-cycle-controls">Back to Cycle Controls</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#top-import">Back to Top</a>
+</div>
+
+<hr />
+
+<h5 id="import-workflow-shell">Import Workflow Shell</h5>
+<small class="text-muted d-block mb-2">The shell below now includes run counters and stage history for iterative pass tracking.</small>
 <ContentImportWorkflowShell />

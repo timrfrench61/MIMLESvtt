@@ -133,6 +133,40 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
                 .ToList();
         }
 
+        public bool TryLoadGamebox(string gameboxId, out VttGamebox gamebox)
+        {
+            gamebox = new VttGamebox();
+
+            if (!TryResolveGameboxPath(gameboxId, out var gameboxPath))
+            {
+                return false;
+            }
+
+            gamebox = _snapshotFileWorkflowService.LoadVttGamebox(gameboxPath);
+            return true;
+        }
+
+        public void UpdateGameboxManifest(string gameboxId, string name, string description)
+        {
+            if (!State.CanCreateSession)
+            {
+                throw new InvalidOperationException("Only admins can update Gameboxes.");
+            }
+
+            if (!TryResolveGameboxPath(gameboxId, out var gameboxPath))
+            {
+                throw new InvalidOperationException("Selected Gamebox was not found.");
+            }
+
+            var gamebox = _snapshotFileWorkflowService.LoadVttGamebox(gameboxPath);
+            gamebox.Manifest ??= new VttGameboxManifest();
+            gamebox.Manifest.Name = string.IsNullOrWhiteSpace(name) ? gameboxId.Trim().ToUpperInvariant() : name.Trim();
+            gamebox.Manifest.Description = string.IsNullOrWhiteSpace(description) ? string.Empty : description.Trim();
+
+            _snapshotFileWorkflowService.SaveVttGamebox(gamebox, gameboxPath);
+            _snapshotFileLibraryService.RefreshEntry(gameboxPath);
+        }
+
         public IReadOnlyList<KnownGameSession> ListKnownGameSessions()
         {
             var hasNewJoinCodeAssignments = false;
@@ -634,17 +668,43 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
 
             if (string.IsNullOrWhiteSpace(normalized))
             {
-                throw new InvalidOperationException("A valid GameBox id is required.");
+                throw new InvalidOperationException("A valid Gamebox id is required.");
             }
 
             return normalized;
+        }
+
+        private bool TryResolveGameboxPath(string gameboxId, out string gameboxPath)
+        {
+            gameboxPath = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(gameboxId))
+            {
+                return false;
+            }
+
+            var normalizedGameboxId = gameboxId.Trim().ToUpperInvariant();
+            var gameboxEntry = ListKnownSnapshotFiles()
+                .Where(e => e.DetectedFormatKind == SnapshotFormatKind.VttGameboxSnapshot)
+                .FirstOrDefault(e => string.Equals(
+                    BuildGameboxIdFromFileName(e.FileName),
+                    normalizedGameboxId,
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (gameboxEntry is null || string.IsNullOrWhiteSpace(gameboxEntry.FullPath))
+            {
+                return false;
+            }
+
+            gameboxPath = gameboxEntry.FullPath;
+            return true;
         }
 
         public string CreateNewGamebox(string gameboxId)
         {
             if (!State.CanCreateSession)
             {
-                throw new InvalidOperationException("Only admins can create new GameBoxes.");
+                throw new InvalidOperationException("Only admins can create new Gameboxes.");
             }
 
             var normalizedGameboxId = NormalizeGameboxId(gameboxId);
@@ -652,7 +712,7 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
 
             if (File.Exists(targetPath))
             {
-                throw new InvalidOperationException("GameBox id already exists.");
+                throw new InvalidOperationException("GameboxId already exists.");
             }
 
             var gamebox = new VttGamebox
@@ -660,7 +720,7 @@ namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
                 Manifest = new VttGameboxManifest
                 {
                     Name = normalizedGameboxId,
-                    Description = "User-authored GameBox."
+                    Description = "User-authored Gamebox."
                 }
             };
 

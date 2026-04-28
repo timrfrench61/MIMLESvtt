@@ -114,10 +114,36 @@ public partial class Workspace : ComponentBase
     private string boardVisibilityOwnerFilter = string.Empty;
     private bool showLegalMoveHints;
     private bool isCheckersReferenceMode;
+    private bool showModeEntryPrompt = true;
+    private WorkspaceMode? lastAppliedRequestedMode;
+    private bool isWorkspaceTabMenuOpen;
 
     private bool IsDesignMode => WorkspaceService.State.Mode == WorkspaceMode.Edit;
     private bool IsPlayMode => WorkspaceService.State.Mode == WorkspaceMode.Play;
     private bool ShowDesignEntryEditForms => IsDesignMode;
+
+    private string GetWorkspaceHeaderTitle()
+    {
+        var session = WorkspaceService.State.CurrentVttSession;
+        if (session is null)
+        {
+            return "Workspace";
+        }
+
+        var gameboxTitle = string.IsNullOrWhiteSpace(session.Campaign.GameboxId)
+            ? "Gamebox"
+            : session.Campaign.GameboxId;
+
+        var campaignTitle = string.IsNullOrWhiteSpace(session.Campaign.Name)
+            ? (string.IsNullOrWhiteSpace(session.Title) ? "Campaign" : session.Title)
+            : session.Campaign.Name;
+
+        var scenarioTitle = string.IsNullOrWhiteSpace(session.CurrentVttScenario?.Title)
+            ? (string.IsNullOrWhiteSpace(session.Campaign.ScenarioIds.FirstOrDefault()) ? "Scenario" : session.Campaign.ScenarioIds.First())
+            : session.CurrentVttScenario!.Title;
+
+        return $"{gameboxTitle} - {campaignTitle} - {scenarioTitle}";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -163,6 +189,15 @@ public partial class Workspace : ComponentBase
             WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
         }
 
+        ApplyRequestedModeFromQuery();
+
+        ApplySharedControlDefaultsForCurrentMode();
+        EnsureVisibleWorkspaceTabForMode();
+    }
+
+    protected override void OnParametersSet()
+    {
+        ApplyRequestedModeFromQuery();
         ApplySharedControlDefaultsForCurrentMode();
         EnsureVisibleWorkspaceTabForMode();
     }
@@ -209,6 +244,29 @@ public partial class Workspace : ComponentBase
         }
     }
 
+    private void ToggleWorkspaceTabMenu()
+    {
+        isWorkspaceTabMenuOpen = !isWorkspaceTabMenuOpen;
+    }
+
+    private void SelectWorkspacePanelTab(WorkspacePanelTab tab)
+    {
+        activeWorkspacePanelTab = tab;
+        isWorkspaceTabMenuOpen = false;
+    }
+
+    private static string GetWorkspaceTabLabel(WorkspacePanelTab tab)
+    {
+        return tab switch
+        {
+            WorkspacePanelTab.SessionSummary => "Session Summary",
+            WorkspacePanelTab.Surfaces => "Surfaces Entry/Edit",
+            WorkspacePanelTab.PiecesEntryEdit => "Pieces Entry/Edit",
+            WorkspacePanelTab.MarkerEntryEdit => "Marker Entry/Edit",
+            _ => "Workspace"
+        };
+    }
+
     private bool ResolveCheckersReferenceModeFromQuery()
     {
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
@@ -224,6 +282,68 @@ public partial class Workspace : ComponentBase
         }
 
         return string.Equals(modeValue.ToString(), "checkers", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private WorkspaceMode? ResolveWorkspaceModeFromQuery()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        if (string.IsNullOrWhiteSpace(uri.Query))
+        {
+            return null;
+        }
+
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        if (!query.TryGetValue("mode", out var modeValue))
+        {
+            return null;
+        }
+
+        var modeText = modeValue.ToString();
+        if (string.Equals(modeText, "play", StringComparison.OrdinalIgnoreCase))
+        {
+            return WorkspaceMode.Play;
+        }
+
+        if (string.Equals(modeText, "edit", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(modeText, "design", StringComparison.OrdinalIgnoreCase))
+        {
+            return WorkspaceMode.Edit;
+        }
+
+        return null;
+    }
+
+    private void ApplyRequestedModeFromQuery()
+    {
+        var requestedMode = ResolveWorkspaceModeFromQuery();
+        if (requestedMode is null)
+        {
+            lastAppliedRequestedMode = null;
+            return;
+        }
+
+        if (lastAppliedRequestedMode == requestedMode)
+        {
+            return;
+        }
+
+        lastAppliedRequestedMode = requestedMode;
+        WorkspaceService.SetWorkspaceMode(requestedMode.Value);
+        showModeEntryPrompt = false;
+
+        if (requestedMode == WorkspaceMode.Play)
+        {
+            isWorkspacePanelOpen = false;
+            activeWorkspacePanelTab = WorkspacePanelTab.SessionSummary;
+            isWorkspaceTabMenuOpen = false;
+            WorkspaceService.State.LastOperationMessage = "Workspace opened directly in Play mode.";
+        }
+        else
+        {
+            WorkspaceService.State.LastOperationMessage = "Workspace opened directly in Edit mode.";
+        }
+
+        WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
     }
 
     private async Task ApplyAuthorizationStateAsync()
@@ -419,6 +539,7 @@ public partial class Workspace : ComponentBase
             WorkspaceService.SetWorkspaceMode(WorkspaceMode.Edit);
             ApplySharedControlDefaultsForCurrentMode();
             EnsureVisibleWorkspaceTabForMode();
+            showModeEntryPrompt = false;
         }, "Switched workspace mode to Edit.");
     }
 
@@ -429,7 +550,13 @@ public partial class Workspace : ComponentBase
             WorkspaceService.SetWorkspaceMode(WorkspaceMode.Play);
             ApplySharedControlDefaultsForCurrentMode();
             EnsureVisibleWorkspaceTabForMode();
+            showModeEntryPrompt = false;
         }, "Switched workspace mode to Play.");
+    }
+
+    private void DismissModeEntryPrompt()
+    {
+        showModeEntryPrompt = false;
     }
 
     private void AddParticipantToSession()

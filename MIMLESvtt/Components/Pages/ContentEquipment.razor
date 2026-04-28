@@ -3,7 +3,7 @@
 
 <PageTitle>Equipment</PageTitle>
 
-<h1>Equipment</h1>
+<h1 id="top-equipment">Equipment</h1>
 
 <p class="text-muted">Search, review, and maintain equipment entries from this screen.</p>
 
@@ -12,7 +12,32 @@
     <a class="btn btn-outline-secondary" href="/content/import">Open Import</a>
 </div>
 
-<h5>Find Equipment</h5>
+<h6 class="mb-2">Related Content</h6>
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" href="/content/monsters">Open Monsters</a>
+    <a class="btn btn-outline-secondary" href="/content/treasure">Open Treasure</a>
+    <span class="badge text-bg-primary align-self-center">Current: Equipment</span>
+    <a class="btn btn-outline-secondary" href="/content/magic-items">Open Magic Items</a>
+</div>
+<small class="text-muted d-block mb-3">Use related links to continue cross-type content review after finishing this page.</small>
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <button class="btn btn-sm btn-outline-secondary" @onclick="StartCreateMode">Start New Entry</button>
+    <a class="btn btn-sm btn-outline-secondary" href="/content/import">Open Import Workflow</a>
+    <a class="btn btn-sm btn-outline-secondary" href="/content">Open Content Hub</a>
+</div>
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm btn-outline-secondary" href="#top-equipment">Top</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#find-equipment">Find</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#list-equipment">List</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#details-equipment">Details</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#edit-equipment">Entry/Edit</a>
+</div>
+<small class="text-muted d-block mb-3">Recommended sequence: Find -> List -> Details -> Entry/Edit.</small>
+
+<h5 id="find-equipment">Find Equipment</h5>
+<p class="text-muted mb-2">Use search, category, and sort to narrow the list before opening details or edit mode.</p>
 
 <div class="card mb-3">
     <div class="card-body">
@@ -48,11 +73,16 @@
     </div>
 </div>
 
+<h5 id="list-equipment">Equipment List Results</h5>
+<div class="mb-2 d-flex gap-3 flex-wrap">
+    <small class="text-muted">Visible: <strong>@VisibleEquipment.Count</strong></small>
+    <small class="text-muted">Selected: <strong>@(string.IsNullOrWhiteSpace(selectedEquipmentId) ? "(none)" : selectedEquipmentId)</strong></small>
+</div>
 <div class="card">
     <div class="card-body">
         @if (VisibleEquipment.Count == 0)
         {
-            <div class="alert alert-light border mb-0">No equipment matches current filters.</div>
+            <div class="alert alert-light border mb-0">No equipment matches current filters. Try clearing filters or broadening your search.</div>
         }
         else
         {
@@ -66,6 +96,7 @@
                             <th>Type</th>
                             <th class="text-end">Cost</th>
                             <th class="text-end">Weight</th>
+                            <th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -86,18 +117,29 @@
                     </tbody>
                 </table>
             </div>
+
+<div class="mt-2 d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm btn-outline-secondary" href="#edit-equipment">Go to Entry/Edit</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#top-equipment">Back to Top</a>
+</div>
         }
+        <small class="text-muted d-block mt-2">Select any row and choose <strong>View</strong> to populate the detail panel below.</small>
     </div>
 </div>
 
-<h5 class="mt-4">Equipment Details</h5>
+<h5 id="details-equipment" class="mt-4">Equipment Details</h5>
+<p class="text-muted mb-2">Review read-only detail values before applying entry/edit changes.</p>
+<div class="mb-2 d-flex gap-3 flex-wrap">
+    <small class="text-muted">Selected: <strong>@(string.IsNullOrWhiteSpace(selectedEquipmentId) ? "(none)" : selectedEquipmentId)</strong></small>
+    <small class="text-muted">Editor Mode: <strong>@(IsEditMode ? "Edit" : "Create")</strong></small>
+</div>
 
 <div class="card mt-3">
     <div class="card-body">
         <h5 class="card-title">Equipment Detail (Read-only)</h5>
         @if (SelectedEquipment is null)
         {
-            <div class="alert alert-light border mb-0">Select equipment to view details.</div>
+            <div class="alert alert-light border mb-0">Select an equipment entry from the list to view details.</div>
         }
         else
         {
@@ -153,7 +195,8 @@
     </div>
 </div>
 
-<h5 class="mt-4">Equipment Entry/Edit</h5>
+<h5 id="edit-equipment" class="mt-4">Equipment Entry/Edit</h5>
+<p class="text-muted mb-2">Use this section to create new equipment or edit the currently selected entry.</p>
 
 <div class="card mt-3">
     <div class="card-body">
@@ -206,6 +249,7 @@
                 TypeChanged="OnEditorTypeChanged"
                 Types="@AvailableTypes" />
         </div>
+        <small class="text-muted d-block mt-2">Use category/type selector to keep equipment taxonomy consistent.</small>
 
         <div class="card mt-3">
             <div class="card-body">
@@ -213,6 +257,7 @@
                     <h6 class="mb-0">Ruleset Extensions (AD&amp;D1 / BRP)</h6>
                     <button class="btn btn-sm btn-outline-secondary" @onclick="AddExtensionRow">Add Extension</button>
                 </div>
+                <small class="text-muted d-block mb-2">Use extensions for ruleset-specific fields that are not part of the core equipment model.</small>
 
                 @if (extensionRows.Count == 0)
                 {
@@ -256,6 +301,8 @@
         </div>
 
         <small class="text-muted d-block mt-2">Validate is optional pre-check. Save is the primary action for persisting changes.</small>
+        <small class="text-muted d-block">Use <strong>New</strong> to clear editor values and start a fresh entry after save/review.</small>
+        <small class="text-muted d-block">Use <strong>Cancel</strong> to leave edit mode without persisting form changes.</small>
 
         @if (!string.IsNullOrWhiteSpace(editorValidationMessage))
         {
@@ -270,5 +317,15 @@
                 @editorSaveMessage
             </div>
         }
+
+        <div class="mt-3 d-flex gap-2 flex-wrap">
+            <a class="btn btn-sm btn-outline-secondary" href="#find-equipment">Back to Find</a>
+            <a class="btn btn-sm btn-outline-secondary" href="#list-equipment">Back to List</a>
+            <a class="btn btn-sm btn-outline-secondary" href="#details-equipment">Back to Details</a>
+            <a class="btn btn-sm btn-outline-secondary" href="#top-equipment">Back to Top</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/content/import">Open Import</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/content/magic-items">Next: Magic Items</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/content">Open Content Hub</a>
+        </div>
     </div>
 </div>

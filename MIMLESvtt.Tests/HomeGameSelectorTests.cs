@@ -375,7 +375,7 @@ public class HomeGameSelectorTests
         home.TestSetNewCampaignGameboxId(string.Empty);
         home.TestStartNewSession();
 
-        Assert.AreEqual("Select a valid GameBox before creating a campaign.", home.NewSessionStatusMessage);
+        Assert.AreEqual("Select a valid Gamebox before creating a campaign.", home.NewSessionStatusMessage);
     }
 
     [TestMethod]

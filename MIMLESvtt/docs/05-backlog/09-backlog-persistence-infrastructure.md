@@ -64,7 +64,7 @@ Define how reusable content is stored separately from live session state.
 
 **Implementation Update:**
 - Reusable authored content and runtime state are separated by snapshot type.
-- Scenario and GameBox files represent reusable content artifacts.
+- Scenario and Gamebox files represent reusable content artifacts.
 - Session snapshots represent live runtime game state and progression.
 
 ---

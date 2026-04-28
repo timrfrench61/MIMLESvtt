@@ -32,7 +32,7 @@ Use these terms consistently in UI and docs:
 - **Session**: runtime/table state container.
 - **Campaign**: single campaign attached to a session (`VttSession.Campaign`).
 - **Scenario**: playable scenario state/content within campaign flow.
-- **GameBox**: content package identity.
+- **Gamebox**: content package identity.
 
 Copy guidance:
 - Prefer user-facing wording in UI labels.
@@ -47,11 +47,11 @@ Use this table as the live execution view for UI/UX planning and delivery.
 
 | Phase | Focus | Status | Owner | Target Window | Notes |
 |---|---|---|---|---|---|
-| Phase 0 | Foundation and doc merge setup | In Progress | Product Owner + UX Lead | Sprint 0 (current) | Canonical file moved to `docs/04-ui-ux/01-ui-ux-roadmap.md`. |
-| Phase 1 | Current-state UX audit | In Progress | UX Lead + Blazor UI Lead | Sprint 1 | Workspace Design/Play split matrix and first implementation pass completed. |
+| Phase 0 | Foundation and doc merge setup | Done | Product Owner + UX Lead | Sprint 0 (current) | Canonical file established at `docs/04-ui-ux/01-ui-ux-roadmap.md`. |
+| Phase 1 | Current-state UX audit | Done | UX Lead + Blazor UI Lead | Sprint 1 | Workspace Design/Play split matrix and implementation audit completed. |
 | Phase 2 | Information architecture and navigation | Done | UX Lead + App Shell Owner | Sprint 1-2 | Route/link matrix finalized, placement decisions recorded, and navigation test checklist added. |
-| Phase 3 | Design system baseline | In Progress | Blazor UI Lead | Sprint 2 | Baseline drafted; Home action hierarchy and Workspace advanced-control tiering slices implemented. |
-| Phase 4 | Vertical slice UX specs | In Progress | Feature Owners (Home / Workspace / Content / Import) | Sprint 2-4 | Workspace split slice Step 1-5 implemented. |
+| Phase 3 | Design system baseline | In Progress | Blazor UI Lead | Sprint 2 | Baseline drafted and applied across Home, Workspace, Content hub, and import/manual/status shells. |
+| Phase 4 | Vertical slice UX specs | In Progress | Feature Owners (Home / Workspace / Content / Import) | Sprint 2-4 | Home + Workspace implemented; Content/Import/Manual/Status slices now in telemetry + deep-link refinement cycle. |
 | Phase 5 | Validation and iteration | Not Started | Product Owner + QA Lead | Sprint 3+ (rolling) | KPI tracking and per-slice UX deltas. |
 
 Status legend:
@@ -436,9 +436,9 @@ Outputs:
 - **Settings/action strip component**: `Components/Pages/WorkspaceApplicationSettingsPanel.razor`
 
 ### Phase 3 Next Actions
-- Apply baseline to Home/Game selector action rows (primary/secondary/destructive consistency).
-- Apply baseline to Workspace advanced sections (foldout/tiering for dense controls).
-- Add a lightweight UI review checklist to PR workflow for new/changed pages.
+- Complete consistency pass across content pages where section ordering/structure is still uneven.
+- Normalize secondary navigation patterns between content detail pages and import workflow.
+- Convert checklist from doc-only usage to a reusable PR template snippet.
 
 ### Phase 3 Slice Progress
 - **Slice A (Done):** Home/Game selector action hierarchy normalized.
@@ -447,7 +447,180 @@ Outputs:
   - Refresh kept secondary.
 - **Slice B (Done):** Workspace Surfaces dense authoring controls moved under an Edit-mode advanced foldout.
   - Play mode now shows concise guidance instead of dense authoring controls.
-- **Slice C (Current):** Add lightweight UI review checklist for PR workflow.
+- **Slice C (Done):** Lightweight UI review checklist added.
+- **Slice D (Done):** Content Home converted into explicit Open / Import / Manual / Status hub sections.
+- **Slice E (Done):** Import workflow shell improved with stage context, reset flow, and clearer validation/persist messaging.
+- **Slice F (Done):** Manual entry workflow shell improved with selection context and simulation status controls.
+- **Slice G (Done):** Status shell extended and clarified with Empty/Loading/Success/Error usage guidance.
+- **Slice H (Done):** Content type pages gained clearer section headings and flow helper text.
+- **Slice I (Done):** Editor action hierarchy normalized (Save as primary, Validate as secondary) across content editors.
+- **Slice J (Done):** Cross-page content navigation links added (content pages <-> import/home).
+- **Slice K (Done):** Content Import page enhanced with workflow-pass guidance and improved wayfinding.
+
+### Phase 4 Vertical Slice Progress (Catch-up)
+- **Home slice:** action hierarchy, section labeling, and helper text refinements completed.
+- **Workspace slice:** Design vs Play split implemented (visibility, play cluster, mode defaults, compact summary tuning).
+- **Content hub slice:** multi-path hub behavior and quick navigation patterns implemented.
+- **Import slice:** staged messaging, recovery actions, and cross-page navigation refinements implemented.
+- **Content detail slices (Monsters/Treasure/Equipment/Magic Items):** structural cleanup and consistency pass actively implemented.
+
+### Known UI Debt / Cleanup Queue (Active)
+Use this queue to track cleanup work discovered during rapid slice iteration.
+
+Progress update:
+- ContentMonsters structural cleanup completed (`Find -> List -> Detail -> Entry/Edit`).
+- ContentTreasure structural cleanup completed (component editor moved to Entry/Edit).
+- Cross-content nav labels normalized to `Open [Type]` pattern across detail pages.
+- List table action-column headings and list-to-detail helper copy standardized.
+- Remaining debt is primarily polish/governance (accessibility sweep, wording harmonization, traceability).
+
+Additional execution update:
+- Related content bars now include explicit current-page badges to reduce context loss during cross-type navigation.
+- Empty-state copy strengthened with suggested user recovery steps (clear filters/broaden search).
+- Entry/edit sections now include explicit "New" button behavior guidance.
+- Import and hub pages gained extra cycle-navigation shortcuts for repeated import-review passes.
+- Manual shell expanded with richer simulation outcomes, structured event history, status counters, and smoke-run support.
+- Import shell expanded with stage telemetry (run count, last run UTC, issue counters) and structured stage history.
+- Internal anchor navigation expanded across Home/Import/Manual/Status shells to reduce long-page scroll friction.
+- Duplicate helper copy cleaned up in content editor guidance (Treasure section).
+- Added workflow-sequence hints and "Back to Find/List" shortcuts across content detail/edit pages.
+- Added additional section-jump guidance on Content Home and Content Import for faster repeated operator passes.
+- Added top-page anchors and "Back to Top" shortcuts across Content Home, Import, and content detail pages.
+- Added cross-page "Next" navigation shortcuts from editor sections to support continuous review loops.
+- Added list telemetry indicators (visible/selected) on content list sections for review context.
+- Added direct import-to-list deep links (`#list-*`) and expanded quick-start shortcuts on Content Home.
+- Added direct deep links from Content Home/Import into editor anchors (`#edit-*`) for faster fix-and-retry loops.
+- Added per-page selected-id/editor-mode context snippets above detail sections for quicker orientation.
+- Added explicit launcher actions for **Play** and **Open in Design** in the Game Launcher game-selection UI.
+- Added **Create and Play** / **Create and Design** actions in game creation flow.
+- Added first-entry Workspace mode guidance prompt and kept persistent mode switch visible at top of Workspace.
+- Added top-level **Play Quick Controls** strip in Workspace (turn snapshot + previous/next) so play actions are visible without opening side panel tabs.
+- Added Game Launcher primary **Play** action and explicit **Open in Design** action in game selection views.
+- Added query-parameter mode entry (`/workspace?mode=play|edit`) and top persistent Workspace mode switch for discoverable play/design UX.
+
+### UX Priority Framework (Working)
+Use this priority model when proposing UI/UX improvements:
+
+- **High**
+  - Blocks task completion or causes repeated user confusion.
+  - Example: inability to discover how to enter Play mode.
+- **Medium**
+  - Does not block completion, but increases time/effort or error risk.
+  - Example: long-page navigation friction and repeated context loss.
+- **Low**
+  - Cosmetic or minor convenience enhancements with low impact on completion.
+  - Example: redundant copy cleanup or optional helper text tuning.
+
+When priority confidence is uncertain:
+- explicitly request product guidance before batching large implementation passes.
+
+1. **ContentMonsters page structure cleanup**
+   - Some heading/order blocks are currently duplicated/misaligned from iterative edits.
+   - Action: normalize section order to `Find -> List -> Detail -> Entry/Edit` and remove accidental nested heading placement.
+
+2. **ContentTreasure page structure cleanup**
+   - Component-composition card placement should be reviewed for clean section grouping and scan order.
+   - Action: align with same section flow used by Monsters/Equipment/Magic Items.
+
+3. **Cross-content nav row consistency**
+   - Top nav rows were added quickly and should be standardized (button order, spacing, primary destination emphasis).
+   - Action: define one canonical ordering and reuse it across all content pages.
+
+4. **Section heading level consistency**
+   - Some pages use mixed heading levels during transition slices.
+   - Action: apply consistent heading ladder (`h1` page title, `h5` section title, muted helper text beneath).
+
+5. **Import shell stage actions review**
+   - Validate/Continue/Back button hierarchy should be reviewed for strict primary-action uniqueness per stage.
+   - Action: run one pass with checklist and update any conflicting primary emphasis.
+
+6. **Manual entry shell parity checks**
+   - Ensure simulation controls and status copy map cleanly to intended real workflows.
+   - Action: confirm language parity with actual save/cancel/error behavior in content pages.
+
+7. **Status shell production-readiness plan**
+   - Shell currently demonstrates states but needs a pattern for migration into real list pages.
+   - Action: define adoption checklist for replacing placeholder messages with live-state wiring.
+
+8. **Accessibility sweep for new helper text/alerts**
+   - Recent helper and alert additions need one pass for readability and semantic order.
+   - Action: verify keyboard flow, heading navigation, and alert usage consistency.
+
+9. **Content page empty-state wording harmonization**
+   - Empty-state copy varies slightly by page.
+   - Action: standardize patterns: “No [type] match current filters.” and “Select [type] to view details.”
+
+10. **Roadmap-to-PR traceability**
+    - Recent slices are documented, but not all are explicitly linked to commit/PR references.
+    - Action: add reference column or note format for future updates.
+
+### Next 50 Slices - Execution Queue (Processed)
+This batch breaks the active UI debt into implementation-sized slices for continuous delivery.
+
+#### Slices 01-10 (ContentMonsters structural cleanup)
+1. Normalize section order to `Find -> List -> Detail -> Entry/Edit`.
+2. Move misplaced `Monster Details` heading to detail section only.
+3. Remove duplicate `Monster Entry/Edit` heading placement.
+4. Ensure filter card closes before list/detail blocks.
+5. Ensure entry/edit card is not nested under filter card.
+6. Keep helper text directly under filter controls.
+7. Keep detail helper text directly above detail card.
+8. Keep ruleset extension card inside entry/edit card only.
+9. Verify action row remains single-primary (`Save`).
+10. Re-run page scan for heading hierarchy consistency.
+
+#### Slices 11-20 (ContentTreasure structural cleanup)
+11. Normalize section order to `Find -> List -> Detail -> Entry/Edit`.
+12. Move misplaced treasure components card into entry/edit section.
+13. Ensure filter row remains contiguous and not interrupted by nested cards.
+14. Keep filter helper text under filter row.
+15. Keep detail heading and card grouped.
+16. Keep entry/edit heading and card grouped.
+17. Ensure component grid appears only in entry/edit flow.
+18. Verify action row remains single-primary (`Save`).
+19. Standardize spacing (`mb-2`/`mb-3`) around section transitions.
+20. Re-run page scan for heading hierarchy consistency.
+
+#### Slices 21-30 (Cross-content nav and copy consistency)
+21. Standardize nav row order: Back Home -> Open Import -> peer content links.
+22. Apply identical button style for peer links.
+23. Ensure all content pages include "Back to Content Home".
+24. Ensure all content pages include "Open Import".
+25. Standardize detail helper copy wording across all content pages.
+26. Standardize filter tip tone and placement.
+27. Standardize empty-state wording pattern by type.
+28. Standardize detail-empty wording pattern by type.
+29. Standardize entry/edit helper wording for validate/save behavior.
+30. Verify terminology stays aligned (Game/Session/Campaign/Gamebox).
+
+#### Slices 31-40 (Import and manual shell hardening)
+31. Ensure import stage buttons have one clear primary per stage.
+32. Confirm reset/back actions are consistently labelled.
+33. Add success-stage next-step guidance parity with other stages.
+34. Keep warning/error distinction explicit in persist stage.
+35. Ensure manual shell status indicator resets correctly.
+36. Confirm manual shell "Open Selected Content Page" route remains valid.
+37. Harmonize simulation button labels with expected outcomes.
+38. Add short guidance for when to use import vs manual shell.
+39. Verify status shell state labels and helper copy remain concise.
+40. Confirm status shell guidance is actionable, not placeholder-only.
+
+#### Slices 41-50 (Validation, accessibility, and governance)
+41. Run content-page keyboard traversal pass (top controls to action rows).
+42. Verify alert order follows task flow (instruction -> action -> outcome).
+43. Check color/contrast consistency on newly added helper alerts.
+44. Verify heading ladder (`h1` then `h5`) across content pages.
+45. Add/update sample checklist audit for Content pages.
+46. Add/update sample checklist audit for Import page.
+47. Add/update sample checklist audit for Manual shell.
+48. Add/update sample checklist audit for Status shell.
+49. Append roadmap note linking this 50-slice batch to next PR cycle.
+50. Update status tracker note after completion of slices 01-50.
+
+Batch owner proposal:
+- UI implementation: Blazor UI Lead
+- UX review: UX Lead
+- Validation: QA Lead
 
 ### UI Review Checklist for PRs (Lightweight)
 Use this checklist for any PR that adds or changes UI in Blazor pages/components.
@@ -455,7 +628,7 @@ Use this checklist for any PR that adds or changes UI in Blazor pages/components
 - [ ] **Action hierarchy:** each section has one clear primary action; secondary/destructive actions are visually subordinate.
 - [ ] **Mode awareness:** Design vs Play visibility rules are respected where applicable.
 - [ ] **State coverage:** loading/empty/error/success states are handled for the changed section.
-- [ ] **Terminology consistency:** copy uses current baseline terms (Game, Session, Campaign, Scenario, GameBox).
+- [ ] **Terminology consistency:** copy uses current baseline terms (Game, Session, Campaign, Scenario, Gamebox).
 - [ ] **Feedback quality:** status/alert messages clearly describe what changed.
 - [ ] **Navigation integrity:** route and entry-point links still match Phase 2 matrix.
 - [ ] **Accessibility basics:** controls are keyboard reachable, labelled, and not color-only for status.
@@ -502,7 +675,113 @@ Checklist results:
 
 Follow-up notes:
 - Consider adding grouped section subtitles for "Open", "Join", and "Create" flows to improve first-scan clarity.
-- Consider adding helper text for GameBox selection when creating campaigns.
+- Consider adding helper text for Gamebox selection when creating campaigns.
+
+### Sample Checklist Audit - Content Pages (Current Slice)
+Scope audited:
+- `Components/Pages/ContentMonsters.razor`
+- `Components/Pages/ContentTreasure.razor`
+- `Components/Pages/ContentEquipment.razor`
+- `Components/Pages/ContentMagicItems.razor`
+
+Checklist results:
+- [x] **Action hierarchy:** Save is primary and Validate remains secondary in editor sections.
+- [x] **Mode awareness:** not applicable (content pages do not use Design/Play mode split).
+- [x] **State coverage:** list empty and detail-empty states are present with recovery hints.
+- [x] **Terminology consistency:** content-type labels and editor copy align to current baseline.
+- [x] **Feedback quality:** validation/save alerts remain visible in editor context.
+- [x] **Navigation integrity:** page routes and deep links (`#find/#list/#details/#edit`) remain valid.
+- [x] **Accessibility basics:** label presence retained; button text is explicit and non-ambiguous.
+- [x] **Regression check:** build passes after navigation/telemetry additions.
+
+Follow-up notes:
+- Verify keyboard tab order through dense editor tables (extensions/components/effect metadata).
+- Consider adding compact collapsed mode for long editor sub-sections.
+
+### Sample Checklist Audit - Import/Manual/Status Shells (Current Slice)
+Scope audited:
+- `Components/Pages/ContentImport.razor`
+- `Components/Pages/ContentImportWorkflowShell.razor`
+- `Components/Pages/ContentImportWorkflowShell.razor.cs`
+- `Components/Pages/ContentManualEntryWorkflowShell.razor`
+- `Components/Pages/ContentStatusStateShell.razor`
+
+Checklist results:
+- [x] **Action hierarchy:** stage controls and cycle actions have clear dominant actions per context.
+- [x] **Mode awareness:** not applicable for these shell previews.
+- [x] **State coverage:** status outcomes now include success/warning/error/info and stage history context.
+- [x] **Terminology consistency:** import/manual/status guidance uses aligned operational terms.
+- [x] **Feedback quality:** telemetry counters, timestamps, and structured history improve feedback clarity.
+- [x] **Navigation integrity:** shell anchor links and page deep links are operational.
+- [x] **Accessibility basics:** controls use explicit text labels; status cues are not color-only.
+- [x] **Regression check:** build passes after telemetry/history expansion.
+
+Follow-up notes:
+- Add focused test coverage around new telemetry/history helper methods.
+- Evaluate whether history caps (8/12) should be configurable.
+
+### Next 50 Slices - Wave 2 (Execution Queue)
+This queue continues from the first processed batch and targets validation, consistency hardening, and production-readiness.
+
+#### Slices 51-60 (Content page interaction hardening)
+51. Normalize keyboard focus order for Monsters editor controls.
+52. Normalize keyboard focus order for Treasure editor controls.
+53. Normalize keyboard focus order for Equipment editor controls.
+54. Normalize keyboard focus order for Magic Items editor controls.
+55. Add row-hover cue consistency across all content list tables.
+56. Verify selected-row contrast consistency in all list tables.
+57. Add explicit aria-labels for View buttons where needed.
+58. Validate badge + helper text spacing consistency across pages.
+59. Ensure table action columns have identical header wording.
+60. Confirm all back-to-top links target valid ids.
+
+#### Slices 61-70 (Editor sub-section usability)
+61. Standardize extension/components/metadata subsection heading style.
+62. Add concise helper copy for empty extension rows (Monsters).
+63. Add concise helper copy for empty extension rows (Equipment).
+64. Add concise helper copy for empty component rows (Treasure).
+65. Add concise helper copy for empty metadata rows (Magic Items).
+66. Align add/remove row button sizing in all editor tables.
+67. Ensure remove actions stay right-aligned in each subsection table.
+68. Add “Back to Entry/Edit” link near long subsection tables.
+69. Verify editor status alerts stay in predictable vertical order.
+70. Confirm no duplicate helper lines remain in editor sections.
+
+#### Slices 71-80 (Import shell production shaping)
+71. Add stage-history empty-state text when no history exists.
+72. Add helper hint for history retention cap in import shell.
+73. Expose stage-history count next to history heading.
+74. Add quick jump from history block back to stage controls.
+75. Verify stage button emphasis remains single-primary per stage.
+76. Add concise help text for duplicate-policy intent.
+77. Add concise help text for import-type implications.
+78. Validate alert severity alignment against issue severity.
+79. Confirm reset controls do not imply data persistence.
+80. Add checklist note for future real-file picker integration.
+
+#### Slices 81-90 (Manual/status shell production shaping)
+81. Add manual shell empty-history helper text.
+82. Show manual history cap note under event table.
+83. Verify simulation badge colors vs alert classes for parity.
+84. Add shortcut from manual history back to simulation controls.
+85. Ensure manual smoke set order is documented in helper text.
+86. Add status shell empty-preview helper text for first-use context.
+87. Add status shell note clarifying preview vs production binding.
+88. Verify status reset button placement consistency.
+89. Add status shell anchor back-to-top action.
+90. Validate status shell link destinations after future route changes.
+
+#### Slices 91-100 (Validation + governance)
+91. Add roadmap traceability note format for slice -> PR mapping.
+92. Add sample “slice completion entry” template for updates.
+93. Add accessibility mini-checklist for content editor tables.
+94. Add accessibility mini-checklist for shell telemetry tables.
+95. Add guideline for helper-text maximum line density.
+96. Add regression checklist for deep-link anchor maintenance.
+97. Add regression checklist for list telemetry counters.
+98. Add regression checklist for history/telemetry counters.
+99. Mark completed Wave 1 queue items as migrated to execution log.
+100. Update status tracker notes after Wave 2 completion.
 
 ### Phase 4 - Vertical Slice UX Specs (Implementation-Ready)
 Goals:

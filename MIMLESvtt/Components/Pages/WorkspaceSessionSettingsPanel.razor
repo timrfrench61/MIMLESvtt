@@ -50,7 +50,7 @@ else
             <li><strong>Current File:</strong> @(WorkspaceState.CurrentFilePath ?? "(none)")</li>
             <li><strong>Dirty:</strong> @WorkspaceState.IsDirty</li>
             <li><strong>Campaign:</strong> @CurrentVttSession.Campaign.Name (@CurrentVttSession.Campaign.Id)</li>
-            <li><strong>Campaign GameBox:</strong> @(string.IsNullOrWhiteSpace(CurrentVttSession.Campaign.GameboxId) ? "(none)" : CurrentVttSession.Campaign.GameboxId)</li>
+            <li><strong>Campaign Gamebox:</strong> @(string.IsNullOrWhiteSpace(CurrentVttSession.Campaign.GameboxId) ? "(none)" : CurrentVttSession.Campaign.GameboxId)</li>
             <li><strong>Campaign Scenario:</strong> @CurrentVttSession.Campaign.ScenarioIds.FirstOrDefault()</li>
             <li><strong>Participants:</strong> @CurrentVttSession.Participants.Count</li>
             <li><strong>Surfaces:</strong> @CurrentVttSession.Surfaces.Count</li>

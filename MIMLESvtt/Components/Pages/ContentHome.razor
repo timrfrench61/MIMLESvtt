@@ -1,9 +1,174 @@
 @page "/content"
 @attribute [Authorize]
+@using Microsoft.AspNetCore.Components
+@using MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
+@inject NavigationManager Navigation
+@inject VttSessionWorkspaceService WorkspaceService
 
+<PageTitle>Gamebox</PageTitle>
+
+@code {
+    [SupplyParameterFromQuery(Name = "tab")]
+    public string? Tab { get; set; }
+
+    [SupplyParameterFromQuery(Name = "gameboxId")]
+    public string? GameboxId { get; set; }
+
+    private string editableGameboxName = string.Empty;
+    private string editableGameboxDescription = string.Empty;
+    private string? gameboxStatusMessage;
+    private string lastLoadedGameboxId = string.Empty;
+
+    private string ActiveTab => string.IsNullOrWhiteSpace(Tab) ? "gamebox" : Tab!.Trim().ToLowerInvariant();
+    private string GameboxTitle => string.IsNullOrWhiteSpace(editableGameboxName) ? "Gamebox" : editableGameboxName;
+
+    protected override void OnParametersSet()
+    {
+        if (!string.Equals(ActiveTab, "gamebox", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var normalizedGameboxId = string.IsNullOrWhiteSpace(GameboxId) ? string.Empty : GameboxId.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(normalizedGameboxId))
+        {
+            editableGameboxName = string.Empty;
+            editableGameboxDescription = string.Empty;
+            gameboxStatusMessage = "Gamebox id was not provided.";
+            lastLoadedGameboxId = string.Empty;
+            return;
+        }
+
+        if (string.Equals(lastLoadedGameboxId, normalizedGameboxId, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (!WorkspaceService.TryLoadGamebox(normalizedGameboxId, out var gamebox))
+        {
+            editableGameboxName = normalizedGameboxId;
+            editableGameboxDescription = string.Empty;
+            gameboxStatusMessage = "Selected Gamebox record could not be loaded.";
+            lastLoadedGameboxId = normalizedGameboxId;
+            return;
+        }
+
+        editableGameboxName = string.IsNullOrWhiteSpace(gamebox.Manifest?.Name)
+            ? normalizedGameboxId
+            : gamebox.Manifest.Name;
+        editableGameboxDescription = gamebox.Manifest?.Description ?? string.Empty;
+        gameboxStatusMessage = "Loaded selected Gamebox.";
+        lastLoadedGameboxId = normalizedGameboxId;
+    }
+
+    private string ResolveTabClass(string key)
+    {
+        return string.Equals(ActiveTab, key, StringComparison.OrdinalIgnoreCase)
+            ? "nav-link active"
+            : "nav-link";
+    }
+
+    private string ResolveTabHref(string key)
+    {
+        var gameboxPart = string.IsNullOrWhiteSpace(GameboxId)
+            ? string.Empty
+            : $"&gameboxId={Uri.EscapeDataString(GameboxId)}";
+
+        return $"/content?tab={key}{gameboxPart}";
+    }
+
+    private void SaveGameboxKeyValues()
+    {
+        var normalizedGameboxId = string.IsNullOrWhiteSpace(GameboxId) ? string.Empty : GameboxId.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(normalizedGameboxId))
+        {
+            gameboxStatusMessage = "Gamebox id was not provided.";
+            return;
+        }
+
+        try
+        {
+            WorkspaceService.UpdateGameboxManifest(normalizedGameboxId, editableGameboxName, editableGameboxDescription);
+            gameboxStatusMessage = "Saved Gamebox key values.";
+            lastLoadedGameboxId = string.Empty;
+            OnParametersSet();
+        }
+        catch (Exception ex)
+        {
+            gameboxStatusMessage = ex.Message;
+        }
+    }
+}
+
+<h1 id="top-content-home">VTT Gamebox (@GameboxTitle)</h1>
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="@ResolveTabClass("gamebox")" href="@ResolveTabHref("gamebox")">Gamebox</a>
+    </li>
+    <li class="nav-item">
+        <a class="@ResolveTabClass("content")" href="@ResolveTabHref("content")">Content</a>
+    </li>
+    <li class="nav-item">
+        <a class="@ResolveTabClass("rules")" href="@ResolveTabHref("rules")">Rules</a>
+    </li>
+</ul>
+
+@if (string.Equals(ActiveTab, "gamebox", StringComparison.OrdinalIgnoreCase))
+{
+    <div class="alert alert-info">
+        <strong>Gamebox Editor</strong><br />
+        Focus this screen on Gamebox key values first, then continue to Content and Rules tabs.
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title mb-2">Gamebox Key Values</h5>
+            <div class="mb-2">
+                <label class="form-label">Gamebox Id</label>
+                <input class="form-control" value="@(string.IsNullOrWhiteSpace(GameboxId) ? string.Empty : GameboxId)" readonly />
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Gamebox Name</label>
+                <InputText @bind-Value="editableGameboxName" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <InputText @bind-Value="editableGameboxDescription" class="form-control" />
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary" @onclick="SaveGameboxKeyValues">Save Gamebox</button>
+                <a class="btn btn-outline-secondary" href="@ResolveTabHref("content")">Continue to Content</a>
+                <a class="btn btn-outline-secondary" href="@ResolveTabHref("rules")">Continue to Rules</a>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(gameboxStatusMessage))
+    {
+        <div class="alert alert-info py-2">@gameboxStatusMessage</div>
+    }
+
+    <div class="d-flex gap-2 flex-wrap mb-3">
+        <a class="btn btn-outline-secondary" href="/">Back to Game Launcher</a>
+    </div>
+}
+else if (string.Equals(ActiveTab, "rules", StringComparison.OrdinalIgnoreCase))
+{
+    <h5 class="mb-2">Rules</h5>
+    <div class="alert alert-info">
+        Rules editing workspace placeholder for Gamebox workflow.
+    </div>
+    <div class="d-flex gap-2 flex-wrap mb-3">
+        <a class="btn btn-outline-secondary" href="@ResolveTabHref("gamebox")">Back to Gamebox</a>
+        <a class="btn btn-outline-secondary" href="@ResolveTabHref("content")">Open Content</a>
+    </div>
+}
+else
+{
 <PageTitle>Content Management</PageTitle>
 
-<h1>Content Management</h1>
+<h1 id="top-content-home">Content Management</h1>
 
 <h5 class="mb-2">Content Workflow Hub</h5>
 
@@ -11,11 +176,40 @@
     Manage game content from this hub. Choose a content type or open the import workflow.
 </div>
 
+<h6 class="mb-2">Hub Navigation</h6>
 <div class="mb-3 d-flex gap-2 flex-wrap">
-    <a class="btn btn-outline-secondary" href="/">Back to Game Launcher</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#top-content-home">Top</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#content-open">Open</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#content-import">Import</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#content-manual">Manual</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#content-status">Status</a>
+</div>
+<small class="text-muted d-block mb-3">Use section shortcuts for fast movement across the workflow hub.</small>
+
+<div class="mb-3 d-flex gap-3 flex-wrap">
+    <small class="text-muted">Quick Start:</small>
+    <a class="btn btn-sm btn-outline-secondary" href="/content/import">Import Pass</a>
+    <a class="btn btn-sm btn-outline-secondary" href="/content/monsters">Monsters First</a>
+    <a class="btn btn-sm btn-outline-secondary" href="/content/treasure">Treasure First</a>
+    <a class="btn btn-sm btn-outline-secondary" href="/content/equipment">Equipment First</a>
+    <a class="btn btn-sm btn-outline-secondary" href="/content/magic-items">Magic Items First</a>
 </div>
 
-<h5>Open Content Type</h5>
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm btn-outline-secondary" href="/content/monsters#edit-monsters">Monster Editor</a>
+    <a class="btn btn-sm btn-outline-secondary" href="/content/treasure#edit-treasure">Treasure Editor</a>
+    <a class="btn btn-sm btn-outline-secondary" href="/content/equipment#edit-equipment">Equipment Editor</a>
+    <a class="btn btn-sm btn-outline-secondary" href="/content/magic-items#edit-magic-items">Magic Item Editor</a>
+</div>
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" href="/">Back to Game Launcher</a>
+    <a class="btn btn-primary" href="/content/import">Start Import Pass</a>
+</div>
+
+<hr />
+
+<h5 id="content-open">Open Content Type</h5>
 <p class="text-muted mb-2">Choose a content family to search, inspect details, and perform entry/edit updates.</p>
 <div class="row g-2 mb-3">
     <div class="col-12 col-md-6 col-lg-3">
@@ -35,9 +229,15 @@
 
 <div class="mb-3 d-flex gap-2 flex-wrap">
     <a class="btn btn-outline-secondary" href="/content/import">Import Workflow</a>
+    <a class="btn btn-outline-secondary" href="/content/monsters">Start With Monsters</a>
 </div>
 
-<h5>Import Content</h5>
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm btn-outline-secondary" href="#content-manual">Jump to Manual</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#content-status">Jump to Status</a>
+</div>
+
+<h5 id="content-import">Import Content</h5>
 <p class="text-muted mb-2">Use import when adding or validating content in bulk from supported files.</p>
 
 <div class="mb-2">
@@ -48,14 +248,19 @@
     <a class="btn btn-primary" href="/content/import">Open Content Import Page</a>
 </div>
 
+<h6 class="mb-2">Embedded Import Preview</h6>
 <ContentImportWorkflowShell />
+
+<div class="mt-2 mb-3">
+    <a class="btn btn-sm btn-outline-secondary" href="#content-import">Back to Import Section</a>
+</div>
 
 <div class="alert alert-light border mt-3">
     <strong>Import first?</strong><br />
     Use import for batches and then review results in the content type pages.
 </div>
 
-<h5 class="mt-4">Manual Entry</h5>
+<h5 id="content-manual" class="mt-4">Manual Entry</h5>
 <p class="text-muted mb-2">Use manual entry for one-off edits and smaller updates.</p>
 
 <div class="mb-2">
@@ -69,14 +274,19 @@
     <a class="btn btn-outline-secondary" href="/content/magic-items">Open Magic Items</a>
 </div>
 
+<h6 class="mb-2">Embedded Manual Workflow Preview</h6>
 <ContentManualEntryWorkflowShell />
+
+<div class="mt-2 mb-3">
+    <a class="btn btn-sm btn-outline-secondary" href="#content-manual">Back to Manual Section</a>
+</div>
 
 <div class="alert alert-light border mt-3">
     <strong>Manual entry first?</strong><br />
     Use direct content pages for focused edits and record-by-record review.
 </div>
 
-<h5 class="mt-4">Status</h5>
+<h5 id="content-status" class="mt-4">Status</h5>
 
 <p class="text-muted mb-2">Use this shell to preview standardized list state messaging before applying it to content pages.</p>
 
@@ -84,8 +294,28 @@
     <small class="text-muted">Recommended order: Empty → Loading → Success/Error to validate copy consistency.</small>
 </div>
 
+<h6 class="mb-2">Embedded Status Preview</h6>
 <ContentStatusStateShell Title="Content List Status" />
+
+<div class="mt-2 mb-3">
+    <a class="btn btn-sm btn-outline-secondary" href="#content-status">Back to Status Section</a>
+</div>
 
 <div class="mt-3">
     <a class="btn btn-outline-secondary" href="/content/import">Continue to Import</a>
 </div>
+
+<div class="mt-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" href="/content/monsters">Review Monsters</a>
+    <a class="btn btn-outline-secondary" href="/content/treasure">Review Treasure</a>
+    <a class="btn btn-outline-secondary" href="/content/equipment">Review Equipment</a>
+    <a class="btn btn-outline-secondary" href="/content/magic-items">Review Magic Items</a>
+</div>
+
+<small class="text-muted d-block mt-2">Use Review links after import or manual edits to verify final state across content families.</small>
+
+<div class="mt-2">
+    <a class="btn btn-sm btn-outline-secondary" href="#content-open">Back to Top Sections</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#top-content-home">Back to Page Top</a>
+</div>
+}

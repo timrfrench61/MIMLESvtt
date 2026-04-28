@@ -6,7 +6,7 @@
 - Shift strategy to larger UI-connected vertical slices delivering visible working capability, avoiding micro-infrastructure passes unless directly required by the UI slice.
 - Avoid architecture jargon like 'boundaries'; use direct programming terms like 'code layers' and keep explanations concrete.
 - Maintain a clean separation where root domain classes are data models located in a root/domain models directory, not placed under persistence.
-- Consider using a more user-facing name like 'GameBox' instead of 'VttGamebox' for content package naming.
+- Consider using a more user-facing name like 'Gamebox' instead of 'VttGamebox' for content package naming.
 - Structure the domain model so that `VttSession` has a single `VttCampaign` and a `CurrentVttScenario` (scenario static once published), rather than multiple campaigns per session.
 
 ## Component Refactoring
@@ -23,3 +23,9 @@
 ## UI and Session Management
 - Ensure that the Join by Code feature adds the code/session into the campaigns list.
 - The Campaigns UI should support both detail-list and card views while remembering the user's last selected view option.
+
+## UX Improvement Guidelines
+- When discussing UX work, focus on concrete improvements, clearly state what was improved, and if prioritization is uncertain, ask the user for guidance before proceeding.
+- When the user says 'selected' in this context, clarify whether they mean the selected/primary action button (e.g., btn-success Next button) rather than a selected menu/tab item before styling.
+- Treat requests about color/layout/UX as site-wide theming unless scoped otherwise, and clarify the target scope before implementing.
+- When documenting theming, include explicit button color semantics (what each color means and when to use it).

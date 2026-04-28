@@ -194,11 +194,38 @@
     color: #842029;
 }
 
-.workspace-panel-fab {
-    position: fixed;
-    top: 84px;
-    right: 16px;
-    z-index: 1090;
+.workspace-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.workspace-panel-toggle-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 44px;
+    min-width: 48px;
+    border: 1px solid #9ea4aa;
+    border-radius: 6px;
+    background: #adb5bd;
+    color: #ffffff;
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    z-index: 1;
+}
+
+.workspace-panel-toggle-button:hover,
+.workspace-panel-toggle-button:focus {
+    background: #949da6;
+    color: #ffffff;
+    outline: none;
 }
 
 .workspace-panel-backdrop {
@@ -238,4 +265,19 @@
 .workspace-slide-panel-body {
     overflow-y: auto;
     padding: 1rem;
+}
+
+.workspace-slide-panel .list-group-item.active,
+.workspace-slide-panel .list-group-item.active:hover,
+.workspace-slide-panel .list-group-item.active:focus {
+    background-color: silver !important;
+    border-color: silver !important;
+    color: #ffffff !important;
+}
+
+.btn-success
+{
+    background-color: silver !important;
+    border-color: silver !important;
+    color: #ffffff !important;
 }

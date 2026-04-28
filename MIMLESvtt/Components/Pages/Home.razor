@@ -58,10 +58,12 @@
                         </tbody>
                     </table>
                     <div class="d-flex gap-2 align-items-center">
-                        <button class="btn btn-primary" @onclick="OpenSelectedCampaign" disabled="@string.IsNullOrWhiteSpace(selectedCampaignId)">Open Campaign</button>
+                        <button class="btn btn-primary" @onclick="OpenSelectedCampaignForPlay" disabled="@string.IsNullOrWhiteSpace(selectedCampaignId)">Play</button>
+                        <button class="btn btn-outline-secondary" @onclick="OpenSelectedCampaignForDesign" disabled="@string.IsNullOrWhiteSpace(selectedCampaignId)">Open in Design</button>
                         <button class="btn btn-outline-danger" @onclick="DeleteSelectedCampaign" disabled="@string.IsNullOrWhiteSpace(selectedCampaignId)">Delete Selected Game</button>
                         <button class="btn btn-outline-secondary" @onclick="RefreshKnownSessions">Refresh</button>
                     </div>
+                    <small class="text-muted d-block mt-2">Play opens Workspace directly in Play mode. Use Open in Design for setup/editing workflows.</small>
                 }
                 else
                 {
@@ -81,10 +83,12 @@
                         }
                     </div>
                     <div class="d-flex gap-2 align-items-center mt-2">
-                        <button class="btn btn-primary" @onclick="OpenSelectedCampaign" disabled="@string.IsNullOrWhiteSpace(selectedCampaignId)">Open Campaign</button>
+                        <button class="btn btn-primary" @onclick="OpenSelectedCampaignForPlay" disabled="@string.IsNullOrWhiteSpace(selectedCampaignId)">Play</button>
+                        <button class="btn btn-outline-secondary" @onclick="OpenSelectedCampaignForDesign" disabled="@string.IsNullOrWhiteSpace(selectedCampaignId)">Open in Design</button>
                         <button class="btn btn-outline-danger" @onclick="DeleteSelectedCampaign" disabled="@string.IsNullOrWhiteSpace(selectedCampaignId)">Delete Selected Game</button>
                         <button class="btn btn-outline-secondary" @onclick="RefreshKnownSessions">Refresh</button>
                     </div>
+                    <small class="text-muted d-block mt-2">Play opens Workspace directly in Play mode. Use Open in Design for setup/editing workflows.</small>
                 }
             </div>
 
@@ -108,31 +112,35 @@
                 <div class="d-flex gap-2 align-items-center mb-2">
                     <InputText @bind-Value="newSessionTitle" class="form-control" style="max-width: 240px;" placeholder="Campaign name" />
                     <InputSelect @bind-Value="newCampaignGameboxId" class="form-select" style="max-width: 280px;">
-                        <option value="">Select GameBox</option>
+                        <option value="">Select Gamebox</option>
                         @foreach (var gameboxId in availableGameboxIds)
                         {
                             <option value="@gameboxId">@gameboxId</option>
                         }
                     </InputSelect>
+                    <button class="btn btn-outline-secondary" @onclick="EditSelectedGamebox" disabled="@string.IsNullOrWhiteSpace(newCampaignGameboxId)">Edit Gamebox</button>
                 </div>
                 <div class="mb-2">
-                    <small class="text-muted">Pick a GameBox template before creating a game campaign.</small>
+                    <small class="text-muted">Pick a Gamebox template before creating a game campaign.</small>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
-                    <button class="btn btn-success" @onclick="StartNewSession" disabled="@(!WorkspaceService.State.CanCreateSession)">Create New Campaign</button>
+                    <button class="btn btn-success" @onclick="StartNewSession" disabled="@(!WorkspaceService.State.CanCreateSession)">Create (Stay Here)</button>
+                    <button class="btn btn-primary" @onclick="StartNewSessionForPlay" disabled="@(!WorkspaceService.State.CanCreateSession)">Create and Play</button>
+                    <button class="btn btn-outline-secondary" @onclick="StartNewSessionForDesign" disabled="@(!WorkspaceService.State.CanCreateSession)">Create and Design</button>
                     @if (!WorkspaceService.State.CanCreateSession)
                     {
                         <span class="text-muted">Admin rights required.</span>
                     }
                 </div>
+                <small class="text-muted d-block mt-2">Create and Play opens Workspace directly in Play mode. Create and Design opens Workspace in Edit mode.</small>
                 @if (!string.IsNullOrWhiteSpace(newSessionStatusMessage))
                 {
                     <div class="alert alert-info py-2 mt-2">@newSessionStatusMessage</div>
                 }
 
-                <h5 class="mt-4">Create New GameBox</h5>
+                <h5 class="mt-4">Create New Gamebox</h5>
                 <div class="d-flex gap-2 align-items-center mb-2">
-                    <InputText @bind-Value="newGameboxId" class="form-control" style="max-width: 280px;" placeholder="GameBox id" />
+                    <InputText @bind-Value="newGameboxId" class="form-control" style="max-width: 280px;" placeholder="GameboxId" />
                     <button class="btn btn-outline-secondary" @onclick="CreateNewGamebox" disabled="@(!WorkspaceService.State.CanCreateSession)">Create</button>
                     <button class="btn btn-primary" @onclick="CreateAndEditNewGamebox" disabled="@(!WorkspaceService.State.CanCreateSession)">Create and Edit</button>
                 </div>

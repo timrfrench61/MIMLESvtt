@@ -165,7 +165,7 @@ public partial class Home : ComponentBase
     {
         if (string.IsNullOrWhiteSpace(newGameboxId))
         {
-            newGameboxStatusMessage = "GameBox id is required.";
+            newGameboxStatusMessage = "Gamebox id is required.";
             return;
         }
 
@@ -174,7 +174,7 @@ public partial class Home : ComponentBase
             var createdGameboxId = WorkspaceService.CreateNewGamebox(newGameboxId);
             newGameboxId = createdGameboxId;
             RefreshGameboxOptions();
-            newGameboxStatusMessage = "Created new GameBox.";
+            newGameboxStatusMessage = "Created new Gamebox.";
 
             if (string.IsNullOrWhiteSpace(newCampaignGameboxId))
             {
@@ -183,13 +183,24 @@ public partial class Home : ComponentBase
 
             if (navigateToEdit)
             {
-                Navigation.NavigateTo("/content");
+                Navigation.NavigateTo($"/content?tab=gamebox&gameboxId={Uri.EscapeDataString(createdGameboxId)}");
             }
         }
         catch (Exception ex)
         {
             newGameboxStatusMessage = ex.Message;
         }
+    }
+
+    private void EditSelectedGamebox()
+    {
+        if (string.IsNullOrWhiteSpace(newCampaignGameboxId))
+        {
+            newSessionStatusMessage = "Select a Gamebox to edit.";
+            return;
+        }
+
+        Navigation.NavigateTo($"/content?tab=gamebox&gameboxId={Uri.EscapeDataString(newCampaignGameboxId)}");
     }
 
     private void RefreshKnownSessionRegistryStatus()
@@ -570,7 +581,17 @@ public partial class Home : ComponentBase
         return $"KNOWN:{Path.GetFullPath(sessionPath)}";
     }
 
-    private void OpenSelectedCampaign()
+    private void OpenSelectedCampaignForPlay()
+    {
+        OpenSelectedCampaign("play");
+    }
+
+    private void OpenSelectedCampaignForDesign()
+    {
+        OpenSelectedCampaign("edit");
+    }
+
+    private void OpenSelectedCampaign(string mode)
     {
         if (string.IsNullOrWhiteSpace(selectedCampaignId))
         {
@@ -604,12 +625,33 @@ public partial class Home : ComponentBase
                 savedSessionStatusMessage = $"Opened campaign {selectedCampaignId}.";
             }
 
-            Navigation.NavigateTo("/workspace");
+            Navigation.NavigateTo($"/workspace?mode={mode}");
         }
         catch (Exception ex)
         {
             savedSessionStatusMessage = ex.Message;
         }
+    }
+
+    private void StartNewSessionForPlay()
+    {
+        StartNewSessionAndNavigate("play");
+    }
+
+    private void StartNewSessionForDesign()
+    {
+        StartNewSessionAndNavigate("edit");
+    }
+
+    private void StartNewSessionAndNavigate(string mode)
+    {
+        StartNewSession();
+        if (!string.IsNullOrWhiteSpace(newSessionStatusMessage) && !newSessionStatusMessage.Contains("Created", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        Navigation.NavigateTo($"/workspace?mode={mode}");
     }
 
     private void StartNewSession()
@@ -618,7 +660,7 @@ public partial class Home : ComponentBase
         {
             if (string.IsNullOrWhiteSpace(newCampaignGameboxId))
             {
-                newSessionStatusMessage = "Select a valid GameBox before creating a campaign.";
+                newSessionStatusMessage = "Select a valid Gamebox before creating a campaign.";
                 return;
             }
 
@@ -638,7 +680,7 @@ public partial class Home : ComponentBase
     {
         if (string.IsNullOrWhiteSpace(newCampaignGameboxId))
         {
-                newSessionStatusMessage = "Select a valid GameBox before creating a campaign.";
+                newSessionStatusMessage = "Select a valid Gamebox before creating a campaign.";
             return;
         }
 
@@ -691,7 +733,7 @@ public partial class Home : ComponentBase
     internal void TestCreateNewGamebox() => CreateNewGamebox();
     internal void TestCreateAndEditNewGamebox() => CreateAndEditNewGamebox();
     internal void TestSelectCampaign(string campaignId) => SelectCampaign(campaignId);
-    internal void TestOpenSelectedCampaign() => OpenSelectedCampaign();
+    internal void TestOpenSelectedCampaign() => OpenSelectedCampaignForPlay();
     internal void TestDeleteSelectedCampaign() => DeleteSelectedCampaignCore();
     internal string TestCampaignBrowserViewMode() => campaignBrowserViewMode.ToString();
     internal void TestSetCampaignBrowserViewMode(string value) => SetCampaignBrowserViewMode(ParseCampaignBrowserViewMode(value));

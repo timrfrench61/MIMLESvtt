@@ -3,7 +3,7 @@
 
 <PageTitle>Monsters</PageTitle>
 
-<h1>Monsters</h1>
+<h1 id="top-monsters">Monsters</h1>
 
 <p class="text-muted">Search, review, and maintain monster content entries from this screen.</p>
 
@@ -12,7 +12,32 @@
     <a class="btn btn-outline-secondary" href="/content/import">Open Import</a>
 </div>
 
-<h5>Find Monsters</h5>
+<h6 class="mb-2">Related Content</h6>
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <span class="badge text-bg-primary align-self-center">Current: Monsters</span>
+    <a class="btn btn-outline-secondary" href="/content/treasure">Open Treasure</a>
+    <a class="btn btn-outline-secondary" href="/content/equipment">Open Equipment</a>
+    <a class="btn btn-outline-secondary" href="/content/magic-items">Open Magic Items</a>
+</div>
+<small class="text-muted d-block mb-3">Use related links to continue cross-type content review after finishing this page.</small>
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <button class="btn btn-sm btn-outline-secondary" @onclick="StartCreateMode">Start New Entry</button>
+    <a class="btn btn-sm btn-outline-secondary" href="/content/import">Open Import Workflow</a>
+    <a class="btn btn-sm btn-outline-secondary" href="/content">Open Content Hub</a>
+</div>
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm btn-outline-secondary" href="#top-monsters">Top</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#find-monsters">Find</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#list-monsters">List</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#details-monsters">Details</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#edit-monsters">Entry/Edit</a>
+</div>
+<small class="text-muted d-block mb-3">Recommended sequence: Find -> List -> Details -> Entry/Edit.</small>
+
+<h5 id="find-monsters">Find Monsters</h5>
+<p class="text-muted mb-2">Use search and sort to narrow the list before opening details or edit mode.</p>
 
 <div class="card mb-3">
     <div class="card-body">
@@ -35,142 +60,19 @@
             </div>
         </div>
         <small class="text-muted d-block mt-2">Tip: select a row and use View to inspect details before editing.</small>
-
-<h5 class="mt-4">Monster Details</h5>
-
-<div class="card mt-3">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h5 class="card-title mb-0">Monster Entry/Edit (Validation Slice)</h5>
-            <span class="badge @(IsEditMode ? "text-bg-primary" : "text-bg-secondary")">@(IsEditMode ? "Edit" : "Create")</span>
-        </div>
-
-        <div class="row g-2">
-            <div class="col-md-4">
-                <label class="form-label">Id (required)</label>
-                <InputText class="form-control" @bind-Value="editId" />
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Name (required)</label>
-                <InputText class="form-control" @bind-Value="editName" />
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Category (required)</label>
-                <InputText class="form-control" @bind-Value="editCategory" />
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Level/Threat</label>
-                <InputNumber class="form-control" @bind-Value="editLevelOrThreat" />
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Hit Points</label>
-                <InputNumber class="form-control" @bind-Value="editHitPoints" />
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Movement</label>
-                <InputNumber class="form-control" @bind-Value="editMovement" />
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Armor/Defense</label>
-                <InputNumber class="form-control" @bind-Value="editArmorOrDefense" />
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Attack Profile</label>
-                <InputText class="form-control" @bind-Value="editAttackProfile" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Source</label>
-                <InputText class="form-control" @bind-Value="editSource" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Tags</label>
-                <InputText class="form-control" @bind-Value="editTags" />
-            </div>
-            <div class="col-12">
-                <label class="form-label">Description</label>
-                <InputTextArea class="form-control" @bind-Value="editDescription" rows="2" />
-            </div>
-        </div>
-
-<h5 class="mt-4">Monster Entry/Edit</h5>
-
-        <div class="card mt-3">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0">Ruleset Extensions (AD&amp;D1 / BRP)</h6>
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="AddExtensionRow">Add Extension</button>
-                </div>
-
-                @if (extensionRows.Count == 0)
-                {
-                    <div class="alert alert-light border mb-0">No extensions configured. Add rows for ruleset-specific metadata.</div>
-                }
-                else
-                {
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Key (required when value set)</th>
-                                    <th>Value</th>
-                                    <th class="text-end">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @for (var i = 0; i < extensionRows.Count; i++)
-                                {
-                                    var row = extensionRows[i];
-                                    <tr>
-                                        <td>
-                                            <InputText class="form-control" @bind-Value="row.Key" />
-                                        </td>
-                                        <td>
-                                            <InputText class="form-control" @bind-Value="row.Value" />
-                                        </td>
-                                        <td class="text-end">
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveExtensionRow(i)">Remove</button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-            </div>
-        </div>
-
-        <div class="d-flex gap-2 mt-3">
-            <button class="btn btn-outline-secondary" @onclick="ValidateEditorForm">Validate Form</button>
-            <button class="btn btn-primary" @onclick="SaveMonster">Save</button>
-            <button class="btn btn-outline-warning" @onclick="CancelEdit">Cancel</button>
-            <button class="btn btn-outline-secondary" @onclick="StartCreateMode">New (Create Mode)</button>
-        </div>
-
-        <small class="text-muted d-block mt-2">Validate is optional pre-check. Save is the primary action for persisting changes.</small>
-
-        @if (!string.IsNullOrWhiteSpace(editorValidationMessage))
-        {
-            <div class="alert @(editorValidationPassed ? "alert-success" : "alert-danger") mt-3 mb-0">
-                @editorValidationMessage
-            </div>
-        }
-
-        @if (!string.IsNullOrWhiteSpace(editorSaveMessage))
-        {
-            <div class="alert @(editorSaveSucceeded ? "alert-success" : "alert-danger") mt-2 mb-0">
-                @editorSaveMessage
-            </div>
-        }
-    </div>
-</div>
     </div>
 </div>
 
+<h5 id="list-monsters">Monster List Results</h5>
+<div class="mb-2 d-flex gap-3 flex-wrap">
+    <small class="text-muted">Visible: <strong>@VisibleMonsters.Count</strong></small>
+    <small class="text-muted">Selected: <strong>@(string.IsNullOrWhiteSpace(selectedMonsterId) ? "(none)" : selectedMonsterId)</strong></small>
+</div>
 <div class="card">
     <div class="card-body">
         @if (VisibleMonsters.Count == 0)
         {
-            <div class="alert alert-light border mb-0">No monsters match current filters.</div>
+            <div class="alert alert-light border mb-0">No monsters match current filters. Try clearing filters or broadening your search.</div>
         }
         else
         {
@@ -183,6 +85,7 @@
                             <th>Category</th>
                             <th class="text-end">Level/Threat</th>
                             <th class="text-end">HP</th>
+                            <th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -202,8 +105,21 @@
                     </tbody>
                 </table>
             </div>
+
+<div class="mt-2 d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm btn-outline-secondary" href="#edit-monsters">Go to Entry/Edit</a>
+    <a class="btn btn-sm btn-outline-secondary" href="#top-monsters">Back to Top</a>
+</div>
         }
+        <small class="text-muted d-block mt-2">Select any row and choose <strong>View</strong> to populate the detail panel below.</small>
     </div>
+</div>
+
+<h5 id="details-monsters" class="mt-4">Monster Details</h5>
+<p class="text-muted mb-2">Review read-only detail values before applying entry/edit changes.</p>
+<div class="mb-2 d-flex gap-3 flex-wrap">
+    <small class="text-muted">Selected: <strong>@(string.IsNullOrWhiteSpace(selectedMonsterId) ? "(none)" : selectedMonsterId)</strong></small>
+    <small class="text-muted">Editor Mode: <strong>@(IsEditMode ? "Edit" : "Create")</strong></small>
 </div>
 
 <div class="card mt-3">
@@ -211,7 +127,7 @@
         <h5 class="card-title">Monster Detail (Read-only)</h5>
         @if (SelectedMonster is null)
         {
-            <div class="alert alert-light border mb-0">Select a monster to view details.</div>
+            <div class="alert alert-light border mb-0">Select a monster from the list to view details.</div>
         }
         else
         {
@@ -267,5 +183,145 @@
                 </dd>
             </dl>
         }
+    </div>
+</div>
+
+<h5 id="edit-monsters" class="mt-4">Monster Entry/Edit</h5>
+<p class="text-muted mb-2">Use this section to create a new monster or edit the currently selected entry.</p>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="card-title mb-0">Monster Entry/Edit</h5>
+            <span class="badge @(IsEditMode ? "text-bg-primary" : "text-bg-secondary")">@(IsEditMode ? "Edit" : "Create")</span>
+        </div>
+
+        <div class="row g-2">
+            <div class="col-md-4">
+                <label class="form-label">Id (required)</label>
+                <InputText class="form-control" @bind-Value="editId" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Name (required)</label>
+                <InputText class="form-control" @bind-Value="editName" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Category (required)</label>
+                <InputText class="form-control" @bind-Value="editCategory" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Level/Threat</label>
+                <InputNumber class="form-control" @bind-Value="editLevelOrThreat" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Hit Points</label>
+                <InputNumber class="form-control" @bind-Value="editHitPoints" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Movement</label>
+                <InputNumber class="form-control" @bind-Value="editMovement" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Armor/Defense</label>
+                <InputNumber class="form-control" @bind-Value="editArmorOrDefense" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Attack Profile</label>
+                <InputText class="form-control" @bind-Value="editAttackProfile" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Source</label>
+                <InputText class="form-control" @bind-Value="editSource" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tags</label>
+                <InputText class="form-control" @bind-Value="editTags" />
+            </div>
+            <div class="col-12">
+                <label class="form-label">Description</label>
+                <InputTextArea class="form-control" @bind-Value="editDescription" rows="2" />
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">Ruleset Extensions (AD&amp;D1 / BRP)</h6>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="AddExtensionRow">Add Extension</button>
+                </div>
+                <small class="text-muted d-block mb-2">Use extensions for ruleset-specific fields that are not part of the core monster model.</small>
+
+                @if (extensionRows.Count == 0)
+                {
+                    <div class="alert alert-light border mb-0">No extensions configured. Add rows for ruleset-specific metadata.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Key (required when value set)</th>
+                                    <th>Value</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (var i = 0; i < extensionRows.Count; i++)
+                                {
+                                    var row = extensionRows[i];
+                                    <tr>
+                                        <td>
+                                            <InputText class="form-control" @bind-Value="row.Key" />
+                                        </td>
+                                        <td>
+                                            <InputText class="form-control" @bind-Value="row.Value" />
+                                        </td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveExtensionRow(i)">Remove</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-outline-secondary" @onclick="ValidateEditorForm">Validate Form</button>
+            <button class="btn btn-primary" @onclick="SaveMonster">Save</button>
+            <button class="btn btn-outline-warning" @onclick="CancelEdit">Cancel</button>
+            <button class="btn btn-outline-secondary" @onclick="StartCreateMode">New (Create Mode)</button>
+        </div>
+
+        <small class="text-muted d-block mt-2">Validate is optional pre-check. Save is the primary action for persisting changes.</small>
+        <small class="text-muted d-block">Use <strong>New</strong> to clear editor values and start a fresh entry after save/review.</small>
+        <small class="text-muted d-block">Use <strong>Cancel</strong> to leave edit mode without persisting form changes.</small>
+
+        @if (!string.IsNullOrWhiteSpace(editorValidationMessage))
+        {
+            <div class="alert @(editorValidationPassed ? "alert-success" : "alert-danger") mt-3 mb-0">
+                @editorValidationMessage
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(editorSaveMessage))
+        {
+            <div class="alert @(editorSaveSucceeded ? "alert-success" : "alert-danger") mt-2 mb-0">
+                @editorSaveMessage
+            </div>
+        }
+
+        <div class="mt-3 d-flex gap-2 flex-wrap">
+            <a class="btn btn-sm btn-outline-secondary" href="#find-monsters">Back to Find</a>
+            <a class="btn btn-sm btn-outline-secondary" href="#list-monsters">Back to List</a>
+            <a class="btn btn-sm btn-outline-secondary" href="#details-monsters">Back to Details</a>
+            <a class="btn btn-sm btn-outline-secondary" href="#top-monsters">Back to Top</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/content/import">Open Import</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/content/treasure">Next: Treasure</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/content">Open Content Hub</a>
+        </div>
     </div>
 </div>
