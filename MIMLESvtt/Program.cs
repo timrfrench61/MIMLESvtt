@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MIMLESvtt.src.Application.Authentication;
 using MIMLESvtt.src;
-using MIMLESvtt.src.Domain.Rules;
 using MIMLESvtt.src.Domain.Persistence.VttSessionNSPC;
+using MIMLESvtt.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,8 +63,14 @@ builder.Services.AddScoped(sp =>
     return new VttSessionWorkspaceService(dataRootPath);
 });
 builder.Services.AddScoped<IVttSessionCommandService>(sp => sp.GetRequiredService<VttSessionWorkspaceService>());
-builder.Services.AddScoped<IDiceRandomProvider, SystemDiceRandomProvider>();
-builder.Services.AddScoped<IDiceRandomizationService, DiceRandomizationService>();
+builder.Services.AddScoped<LoadGameService>();
+builder.Services.AddScoped<SaveGameService>();
+builder.Services.AddScoped<ModuleImportService>();
+builder.Services.AddScoped<WorkspaceSetupOptionsService>();
+builder.Services.AddScoped<SettingsPreferenceService>();
+builder.Services.AddScoped<ContentImportWorkflowService>();
+builder.Services.AddScoped<ContentManualEntryWorkflowService>();
+builder.Services.AddScoped<CheckersMoveValidationService>();
 
 var app = builder.Build();
 

@@ -19,8 +19,23 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="GameSetupUpdateTests.cs" />
     <Compile Include="GlobalUsings.cs" />
     <Compile Include="HomeGameSelectorTests.cs" />
+    <Compile Include="SaveLoadServicesTests.cs" />
+    <Compile Include="SettingsPreferenceServiceTests.cs" />
+    <Compile Include="SettingsShellClassProjectionServiceTests.cs" />
+    <Compile Include="SettingsUpdateTests.cs" />
+    <Compile Include="SetupLaunchRulesServiceTests.cs" />
+    <Compile Include="SetupNavigationRulesServiceTests.cs" />
+    <Compile Include="SetupReadinessBuilderTests.cs" />
+    <Compile Include="SetupRefreshWorkflowServiceTests.cs" />
+    <Compile Include="SetupSelectionDefaultsServiceTests.cs" />
+    <Compile Include="SetupSelectionMappingServiceTests.cs" />
+    <Compile Include="TabletopUpdateTests.cs" />
+    <Compile Include="WorkspaceLaunchServiceHydrationTests.cs" />
+    <Compile Include="WorkspaceLaunchUpdateTests.cs" />
+    <Compile Include="WorkspaceSetupOptionsServiceTests.cs" />
   </ItemGroup>
 
 </Project>

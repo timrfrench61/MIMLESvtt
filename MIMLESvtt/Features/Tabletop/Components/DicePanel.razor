@@ -1,0 +1,12 @@
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Dice</h5>
+        <div class="mb-2">Last d6 roll: <strong>@(LastRoll?.ToString() ?? "-")</strong></div>
+        <button class="btn btn-outline-secondary" @onclick="OnRoll">Roll d6</button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int? LastRoll { get; set; }
+    [Parameter] public EventCallback OnRoll { get; set; }
+}

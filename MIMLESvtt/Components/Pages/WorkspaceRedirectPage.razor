@@ -1,0 +1,30 @@
+@page "/workspace"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Navigation
+
+<PageTitle>Workspace</PageTitle>
+
+<div class="alert alert-info py-2">Redirecting to tabletop...</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        var mode = query.TryGetValue("mode", out var modeValue)
+            ? modeValue.ToString()
+            : "edit";
+
+        var source = query.TryGetValue("source", out var sourceValue)
+            ? sourceValue.ToString()
+            : null;
+
+        var launchPath = string.IsNullOrWhiteSpace(source)
+            ? $"/tabletop?mode={Uri.EscapeDataString(mode)}"
+            : $"/tabletop?mode={Uri.EscapeDataString(mode)}&source={Uri.EscapeDataString(source)}";
+
+        Navigation.NavigateTo(launchPath, replace: true);
+    }
+}

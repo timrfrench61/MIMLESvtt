@@ -22,6 +22,34 @@ public class HomeGameSelectorTests
     }
 
     [TestMethod]
+    public void SharedSetupOptionList_Wiring_IsPresentInSetupPages()
+    {
+        var root = FindRepoRoot();
+        var pagesDirectory = Path.Combine(root, "MIMLESvtt", "Components", "Pages");
+
+        var gameSetupSource = File.ReadAllText(Path.Combine(pagesDirectory, "GameSetupPage.razor"));
+        var workspaceLaunchSource = File.ReadAllText(Path.Combine(pagesDirectory, "WorkspaceLaunchPage.razor"));
+
+        StringAssert.Contains(gameSetupSource, "<SetupOptionButtonList");
+        StringAssert.Contains(gameSetupSource, "<SetupStepNavigationRow");
+        StringAssert.Contains(gameSetupSource, "DisableBack=\"DisableBack\"");
+        StringAssert.Contains(gameSetupSource, "DisableContinue=\"DisableContinue\"");
+        StringAssert.Contains(gameSetupSource, "Tone=\"SetupOptionButtonTone.Primary\"");
+        StringAssert.Contains(gameSetupSource, "Tone=\"SetupOptionButtonTone.Success\"");
+        StringAssert.Contains(gameSetupSource, "Tone=\"SetupOptionButtonTone.Secondary\"");
+        StringAssert.Contains(gameSetupSource, "EmptyMessage=\"No session sources available.\"");
+
+        StringAssert.Contains(workspaceLaunchSource, "<SetupOptionButtonList");
+        StringAssert.Contains(workspaceLaunchSource, "<SetupStepNavigationRow");
+        StringAssert.Contains(workspaceLaunchSource, "DisableBack=\"DisableBack\"");
+        StringAssert.Contains(workspaceLaunchSource, "DisableContinue=\"DisableContinue\"");
+        StringAssert.Contains(workspaceLaunchSource, "Tone=\"SetupOptionButtonTone.Primary\"");
+        StringAssert.Contains(workspaceLaunchSource, "Tone=\"SetupOptionButtonTone.Secondary\"");
+        StringAssert.Contains(workspaceLaunchSource, "Tone=\"SetupOptionButtonTone.Success\"");
+        StringAssert.Contains(workspaceLaunchSource, "EmptyMessage=\"No scenarios available for this mode.\"");
+    }
+
+    [TestMethod]
     public void OpenGameSelector_WhenNoKnownSessions_ShowsEmptyStatus()
     {
         var workspace = new VttSessionWorkspaceService();

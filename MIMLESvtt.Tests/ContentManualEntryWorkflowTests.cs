@@ -1,5 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using MIMLESvtt.src.Application.Content.ManualEntry;
+using MIMLESvtt.Services;
 
 namespace MIMLESvtt.Tests;
 
@@ -7,28 +7,26 @@ namespace MIMLESvtt.Tests;
 public class ContentManualEntryWorkflowTests
 {
     [TestMethod]
-    public void WorkflowRegistry_ContainsAdaptersForMonsterTreasureEquipmentMagicItem()
+    public void WorkflowService_ContainsOptionsForMonsterTreasureEquipmentMagicItem()
     {
-        var registry = new ContentManualEntryWorkflowRegistry();
+        var service = new ContentManualEntryWorkflowService();
 
-        var adapters = registry.ListAdapters();
+        var options = service.ListOptions();
 
-        Assert.AreEqual(4, adapters.Count);
+        Assert.AreEqual(4, options.Count);
         CollectionAssert.AreEqual(
             new[] { "/content/monsters", "/content/treasure", "/content/equipment", "/content/magic-items" },
-            adapters.Select(a => a.ListRoute).ToArray());
+            options.Select(a => a.ListRoute).ToArray());
     }
 
     [TestMethod]
-    public void WorkflowAdapter_ExposesReusableListDetailCreateEditLabels()
+    public void WorkflowOption_ExposesReusableListDetailCreateEditLabels()
     {
-        IContentManualEntryWorkflowAdapter adapter = new ContentManualEntryWorkflowAdapter
-        {
-            ContentTypeName = "Monsters",
-            ListRoute = "/content/monsters",
-            DetailLabel = "Detail / Review",
-            EntryLabel = "Create / Edit"
-        };
+        ContentManualEntryWorkflowOption adapter = new(
+            "Monsters",
+            "/content/monsters",
+            "Detail / Review",
+            "Create / Edit");
 
         Assert.AreEqual("Monsters", adapter.ContentTypeName);
         Assert.AreEqual("/content/monsters", adapter.ListRoute);

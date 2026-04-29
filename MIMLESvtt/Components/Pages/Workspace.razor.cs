@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.WebUtilities;
+using MIMLESvtt.Services.Workspace;
 using MIMLESvtt.src;
-using MIMLESvtt.src.Application.Workspace;
 using MIMLESvtt.src.Domain.Models.Pieces;
 using MIMLESvtt.src.Domain.Models.Placement;
 using MIMLESvtt.src.Domain.Models.Surfaces;
@@ -37,7 +37,6 @@ public partial class Workspace : ComponentBase
     private TabletopSurfaceState tabletopSurfaceState = TabletopSurfaceState.DefaultXyGrid;
     private WorkspacePanelTab activeWorkspacePanelTab = WorkspacePanelTab.SessionSummary;
 
-    private string? sessionPath;
     private string scenarioTitle = "Current Workspace Layout";
     private string sessionTitleInput = string.Empty;
     private string turnOrderInput = "player-1, player-2";
@@ -412,7 +411,15 @@ public partial class Workspace : ComponentBase
     {
         Execute(() =>
         {
-            WorkspaceService.OpenVttSessionFromFile(sessionPath ?? string.Empty);
+            var currentFilePath = WorkspaceService.State.CurrentFilePath;
+            if (string.IsNullOrWhiteSpace(currentFilePath))
+            {
+                WorkspaceService.State.LastOperationMessage = "No session file path is available to open.";
+                WorkspaceService.State.LastOperationSeverity = WorkspaceMessageSeverity.Info;
+                return;
+            }
+
+            WorkspaceService.OpenVttSessionFromFile(currentFilePath);
             board.EnsureActiveSurface(WorkspaceService.State.CurrentVttSession);
             selectedPieceId = WorkspaceService.State.CurrentVttSession?.Pieces.FirstOrDefault()?.Id;
             board.SelectedPieceId = selectedPieceId;

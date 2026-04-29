@@ -1,0 +1,285 @@
+@page "/game-setup"
+@attribute [Authorize]
+@using VttMvuView.GameSetup
+@using MIMLESvtt.Services
+@using MIMLESvtt.Components.Shared
+@inject WorkspaceSetupOptionsService WorkspaceSetupOptionsService
+@inject LoadGameService LoadGameService
+@inject SaveGameService SaveGameService
+@inject NavigationManager Navigation
+
+<PageTitle>Game Setup</PageTitle>
+
+<h1>Game Setup</h1>
+<p class="text-muted">MVU vertical slice: game setup flow.</p>
+
+@if (!string.IsNullOrWhiteSpace(state.ErrorMessage))
+{
+    <div class="alert alert-warning py-2">@state.ErrorMessage</div>
+}
+
+@if (state.IsLoading)
+{
+    <div class="alert alert-info py-2">Loading setup options...</div>
+}
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="mb-2"><strong>Current Step:</strong> @state.CurrentStep</div>
+
+        @if (state.CurrentStep == GameSetupStep.ChooseGameSystem)
+        {
+            <h5>Choose Game System</h5>
+            <SetupOptionButtonList Items="GameSystemButtonItems"
+                                   SelectedId="state.SelectedGameSystemId"
+                                   Tone="SetupOptionButtonTone.Primary"
+                                   OnSelect="OnSelectGameSystem" />
+        }
+        else if (state.CurrentStep == GameSetupStep.ChooseSessionMode)
+        {
+            <h5>Choose Session Type</h5>
+            <SetupOptionButtonList Items="SessionModeButtonItems"
+                                   SelectedId="state.SessionMode.ToString()"
+                                   Tone="SetupOptionButtonTone.Success"
+                                   OnSelect="OnSelectSessionMode" />
+        }
+        else if (state.CurrentStep == GameSetupStep.ChooseSessionSource)
+        {
+            <h5>Choose Session Source</h5>
+            <SetupOptionButtonList Items="SessionSourceButtonItems"
+                                   SelectedId="state.SelectedSessionSourceId"
+                                   Tone="SetupOptionButtonTone.Secondary"
+                                   EmptyMessage="No session sources available."
+                                   OnSelect="OnSelectSessionSource" />
+        }
+        else if (state.CurrentStep == GameSetupStep.ConfirmLaunch)
+        {
+            <h5>Confirm Launch</h5>
+            <div class="mb-2">Game System: <strong>@(state.SelectedGameSystemId ?? "(not selected)")</strong></div>
+            <div class="mb-2">Session Type: <strong>@state.SessionMode</strong></div>
+            <div class="mb-2">Session Source: <strong>@(state.SelectedSessionSourceId ?? "(not selected)")</strong></div>
+            <button class="btn btn-primary" @onclick="() => Dispatch(new ExecuteLaunchAction())">Open Workspace</button>
+        }
+
+        <SetupStepNavigationRow OnBack="OnBack"
+                                OnContinue="OnContinue"
+                                DisableBack="DisableBack"
+                                DisableContinue="DisableContinue" />
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<SetupOptionButtonItem> GameSystemButtonItems => state.AvailableGameSystems
+        .Select(option => new SetupOptionButtonItem(option.GameSystemId, option.Name))
+        .ToList();
+
+    private IReadOnlyList<SetupOptionButtonItem> SessionModeButtonItems =>
+    [
+        new SetupOptionButtonItem(GameSetupSessionMode.NewGame.ToString(), "New Game"),
+        new SetupOptionButtonItem(GameSetupSessionMode.LoadSavedGame.ToString(), "Load Saved Game")
+    ];
+
+    private IReadOnlyList<SetupOptionButtonItem> SessionSourceButtonItems => state.SessionSources
+        .Select(source => new SetupOptionButtonItem(source.SourceId, source.Name, string.IsNullOrWhiteSpace(source.SourceId)))
+        .ToList();
+
+    private bool DisableBack => !GameSetupNavigationRules.CanGoBack(state);
+
+    private bool DisableContinue => !GameSetupNavigationRules.CanContinue(state);
+
+    private GameSetupState state = new(
+    [
+        new GameSetupGameSystemOption("CHECKERS", "Checkers", "Checkers module"),
+        new GameSetupGameSystemOption("EMPTY", "Empty", "Blank tabletop baseline")
+    ],
+    null,
+    GameSetupSessionMode.NewGame,
+    [
+        new GameSetupSessionSourceOption("NEW-SCENARIO", "New Scenario", "Start a new scenario"),
+        new GameSetupSessionSourceOption("SAVED-ALPHA", "Saved Game Alpha", "Load an existing save")
+    ],
+    false,
+    null,
+    GameSetupStep.ChooseGameSystem,
+    null,
+    null);
+
+    protected override void OnInitialized()
+    {
+        RefreshGameSetupOptions();
+    }
+
+    private void OnSelectGameSystem(string gameSystemId)
+    {
+        Dispatch(new SelectGameSystemAction(gameSystemId));
+    }
+
+    private void OnSelectSessionMode(string mode)
+    {
+        if (!Enum.TryParse<GameSetupSessionMode>(mode, out var sessionMode))
+        {
+            return;
+        }
+
+        Dispatch(new ChooseSessionModeAction(sessionMode));
+    }
+
+    private void OnSelectSessionSource(string sourceId)
+    {
+        if (string.IsNullOrWhiteSpace(sourceId))
+        {
+            return;
+        }
+
+        Dispatch(new SelectSessionSourceAction(sourceId));
+    }
+
+    private void OnBack()
+    {
+        Dispatch(new GoBackAction());
+    }
+
+    private void OnContinue()
+    {
+        Dispatch(new ContinueAction());
+    }
+
+    private void Dispatch(IGameSetupAction action)
+    {
+        var result = GameSetupUpdate.ReduceWithEffects(state, action);
+        state = result.State;
+
+        foreach (var effect in result.Effects)
+        {
+            ApplyEffect(effect);
+        }
+
+        if (action is ChooseSessionModeAction)
+        {
+            RefreshSessionSourcesForSelectedMode();
+        }
+    }
+
+    private void RefreshGameSetupOptions()
+    {
+        state = state with { IsLoading = true };
+
+        try
+        {
+            var gameSystemSelection = SetupRefreshWorkflowService.BuildSelection(
+                WorkspaceSetupOptionsService.ListGameSystems(),
+                SetupSelectionMappingService.ToGameSetupGameSystemOptions,
+                option => option.GameSystemId,
+                state.SelectedGameSystemId,
+                () =>
+                [
+                    new GameSetupGameSystemOption("EMPTY-GAMEBOX", "EMPTY-GAMEBOX", "Fallback module.")
+                ]);
+
+            state = state with
+            {
+                AvailableGameSystems = gameSystemSelection.Options,
+                SelectedGameSystemId = gameSystemSelection.SelectedId,
+                IsLoading = false,
+                ErrorMessage = null
+            };
+
+            RefreshSessionSourcesForSelectedMode();
+        }
+        catch (Exception ex)
+        {
+            state = state with
+            {
+                IsLoading = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    private void RefreshSessionSourcesForSelectedMode()
+    {
+        if (state.SessionMode == GameSetupSessionMode.NewGame)
+        {
+            var selectedSystems = SetupGameSystemSummaryProjectionService.FromSelectedGameSystem(state.SelectedGameSystemId);
+            var selectedGameSystem = selectedSystems[0].GameSystemId;
+
+            var newScenarioSelection = SetupRefreshWorkflowService.BuildSelection(
+                WorkspaceSetupOptionsService.ListNewScenarios(selectedSystems),
+                SetupSelectionMappingService.ToGameSetupSessionSourceOptions,
+                option => option.SourceId,
+                state.SelectedSessionSourceId,
+                () =>
+                [
+                    new GameSetupSessionSourceOption(selectedGameSystem, "New Scenario", $"Create a new campaign using {selectedGameSystem}.")
+                ]);
+
+            state = state with
+            {
+                SessionSources = newScenarioSelection.Options,
+                SelectedSessionSourceId = newScenarioSelection.SelectedId
+            };
+            return;
+        }
+
+        var knownSessionOptions = WorkspaceSetupOptionsService.ListSavedScenarios()
+            .ToList();
+
+        var knownSessionSourceSelection = SetupRefreshWorkflowService.BuildSelection(
+            knownSessionOptions,
+            SetupSelectionMappingService.ToGameSetupSessionSourceOptions,
+            option => option.SourceId,
+            state.SelectedSessionSourceId);
+
+        if (knownSessionSourceSelection.Options.Count == 0)
+        {
+            state = state with
+            {
+                SessionSources =
+                [
+                    new GameSetupSessionSourceOption("", "No saved sessions found", "Add or create a session first.")
+                ],
+                SelectedSessionSourceId = null
+            };
+            return;
+        }
+
+        state = state with
+        {
+            SessionSources = knownSessionSourceSelection.Options,
+            SelectedSessionSourceId = knownSessionSourceSelection.SelectedId
+        };
+    }
+
+    private void ApplyEffect(IGameSetupEffect effect)
+    {
+        if (effect is not ExecuteLaunchEffect launchEffect)
+        {
+            return;
+        }
+
+        try
+        {
+            if (launchEffect.SessionMode == GameSetupSessionMode.NewGame)
+            {
+                var gameboxId = string.IsNullOrWhiteSpace(launchEffect.SelectedGameSystemId) ? "EMPTY-GAMEBOX" : launchEffect.SelectedGameSystemId;
+                SaveGameService.CreateNewSession(launchEffect.CampaignName, gameboxId);
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(launchEffect.SelectedSessionSourceId))
+                {
+                    state = state with { ErrorMessage = "Select a saved session before launching." };
+                    return;
+                }
+
+                LoadGameService.OpenSession(launchEffect.SelectedSessionSourceId);
+            }
+
+            Navigation.NavigateTo(launchEffect.LaunchPath);
+        }
+        catch (Exception ex)
+        {
+            state = state with { ErrorMessage = ex.Message };
+        }
+    }
+}

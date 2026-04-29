@@ -4,6 +4,63 @@
     flex-direction: column;
 }
 
+.page.theme-default {
+    background-color: #ffffff;
+    color: #212529;
+}
+
+.page.theme-dark {
+    background-color: #121212;
+    color: #e9ecef;
+}
+
+.page.theme-dark .top-row {
+    background-color: #1e1e1e;
+    border-bottom-color: #333;
+}
+
+.page.theme-dark .top-row ::deep a,
+.page.theme-dark .top-row ::deep .btn-link {
+    color: #9ecbff;
+}
+
+.page.theme-dark ::deep .card {
+    background-color: #1f1f1f;
+    color: #e9ecef;
+    border-color: #333;
+}
+
+.page.theme-high-contrast {
+    background-color: #000;
+    color: #fff;
+}
+
+.page.theme-high-contrast .top-row {
+    background-color: #000;
+    border-bottom-color: #fff;
+}
+
+.page.theme-high-contrast .top-row ::deep a,
+.page.theme-high-contrast .top-row ::deep .btn-link {
+    color: #ffff00;
+}
+
+.page.theme-high-contrast ::deep .card {
+    background-color: #000;
+    color: #fff;
+    border: 1px solid #fff;
+}
+
+.page.theme-high-contrast ::deep .btn-primary {
+    background-color: #ffff00;
+    border-color: #ffff00;
+    color: #000;
+}
+
+.content.compact-layout {
+    padding-top: 0.5rem;
+}
+
 main {
     flex: 1;
 }

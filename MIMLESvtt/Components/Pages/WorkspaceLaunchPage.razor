@@ -1,0 +1,230 @@
+@page "/workspace-launch"
+@attribute [Authorize]
+@using VttMvuView.WorkspaceLaunch
+@using MIMLESvtt.Services
+@using MIMLESvtt.Components.Shared
+@inject WorkspaceSetupOptionsService WorkspaceSetupOptionsService
+@inject NavigationManager Navigation
+
+<PageTitle>Workspace Launch</PageTitle>
+
+<h1>Workspace Launch</h1>
+<p class="text-muted">MVU vertical slice: Workspace shell navigation.</p>
+
+@if (!string.IsNullOrWhiteSpace(state.ErrorMessage))
+{
+    <div class="alert alert-warning py-2">@state.ErrorMessage</div>
+}
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="mb-2">
+            <strong>Current Step:</strong> @state.CurrentStep
+        </div>
+
+        @if (state.CurrentStep == WorkspaceLaunchStep.ChooseGameSystem)
+        {
+            <h5>Choose Game System</h5>
+            <SetupOptionButtonList Items="GameSystemButtonItems"
+                                   SelectedId="state.GameSystemPicker.SelectedGameSystemId"
+                                   Tone="SetupOptionButtonTone.Primary"
+                                   OnSelect="OnSelectGameSystem" />
+        }
+        else if (state.CurrentStep == WorkspaceLaunchStep.ChooseScenarioMode)
+        {
+            <h5>Choose Session Type</h5>
+            <SetupOptionButtonList Items="ScenarioModeButtonItems"
+                                   SelectedId="state.ScenarioPicker.Mode.ToString()"
+                                   Tone="SetupOptionButtonTone.Secondary"
+                                   OnSelect="OnSelectScenarioMode" />
+        }
+        else if (state.CurrentStep == WorkspaceLaunchStep.ChooseSavedGame || state.CurrentStep == WorkspaceLaunchStep.ChooseNewScenario)
+        {
+            <h5>@(state.CurrentStep == WorkspaceLaunchStep.ChooseSavedGame ? "Choose Saved Game" : "Choose Scenario")</h5>
+            <SetupOptionButtonList Items="ScenarioButtonItems"
+                                   SelectedId="state.ScenarioPicker.SelectedScenarioId"
+                                   Tone="SetupOptionButtonTone.Success"
+                                   EmptyMessage="No scenarios available for this mode."
+                                   OnSelect="OnSelectScenario" />
+        }
+        else if (state.CurrentStep == WorkspaceLaunchStep.ConfirmLaunch)
+        {
+            <h5>Confirm Launch</h5>
+            <div class="mb-2">Game System: <strong>@(state.GameSystemPicker.SelectedGameSystemId ?? "(not selected)")</strong></div>
+            <div class="mb-2">Scenario: <strong>@(state.ScenarioPicker.SelectedScenarioId ?? "(not selected)")</strong></div>
+            <button class="btn btn-primary" @onclick="() => Dispatch(new ExecuteLaunchAction())">Open Workspace</button>
+        }
+
+        <SetupStepNavigationRow OnBack="OnBack"
+                                OnContinue="OnContinue"
+                                DisableBack="DisableBack"
+                                DisableContinue="DisableContinue" />
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<SetupOptionButtonItem> GameSystemButtonItems => state.GameSystemPicker.AvailableGameSystems
+        .Select(system => new SetupOptionButtonItem(system.GameSystemId, system.Name))
+        .ToList();
+
+    private IReadOnlyList<SetupOptionButtonItem> ScenarioModeButtonItems =>
+    [
+        new SetupOptionButtonItem(ScenarioPickerMode.NewScenario.ToString(), "New Scenario"),
+        new SetupOptionButtonItem(ScenarioPickerMode.SavedGame.ToString(), "Saved Game")
+    ];
+
+    private IReadOnlyList<SetupOptionButtonItem> ScenarioButtonItems => state.ScenarioPicker.Scenarios
+        .Select(scenario => new SetupOptionButtonItem(scenario.ScenarioId, scenario.Name, string.IsNullOrWhiteSpace(scenario.ScenarioId)))
+        .ToList();
+
+    private bool DisableBack => !WorkspaceLaunchNavigationRules.CanGoBack(state);
+
+    private bool DisableContinue => !WorkspaceLaunchNavigationRules.CanContinue(state);
+
+    private WorkspaceLaunchViewState state = new(
+        new GameSystemPickerViewState(
+            [
+                new GameSystemCardViewModel("CHECKERS", "Checkers", "Checkers baseline module", null, true, true),
+                new GameSystemCardViewModel("EMPTY", "Empty", "Blank tabletop baseline", null, true, true)
+            ],
+            null,
+            false),
+        new ScenarioPickerViewState(
+            [
+                new ScenarioCardViewModel("SCENARIO-ALPHA", "Scenario Alpha", "Pre-alpha scenario", "Checkers", null),
+                new ScenarioCardViewModel("SCENARIO-BRAVO", "Scenario Bravo", "Saved game sample", "Empty", null)
+            ],
+            null,
+            ScenarioPickerMode.NewScenario,
+            false),
+        WorkspaceLaunchStep.ChooseGameSystem,
+        null,
+        null);
+
+    protected override void OnInitialized()
+    {
+        RefreshGameSystems();
+        RefreshScenariosForMode();
+    }
+
+    private void OnSelectGameSystem(string gameSystemId)
+    {
+        Dispatch(new SelectGameSystemAction(gameSystemId));
+    }
+
+    private void OnSelectScenarioMode(string mode)
+    {
+        if (!Enum.TryParse<ScenarioPickerMode>(mode, out var scenarioMode))
+        {
+            return;
+        }
+
+        Dispatch(new ChooseScenarioModeAction(scenarioMode));
+    }
+
+    private void OnSelectScenario(string scenarioId)
+    {
+        if (string.IsNullOrWhiteSpace(scenarioId))
+        {
+            return;
+        }
+
+        Dispatch(new SelectScenarioAction(scenarioId));
+    }
+
+    private void OnBack()
+    {
+        Dispatch(new GoBackAction());
+    }
+
+    private void OnContinue()
+    {
+        Dispatch(new ContinueAction());
+    }
+
+    private void Dispatch(IWorkspaceLaunchAction action)
+    {
+        var result = WorkspaceLaunchUpdate.ReduceWithEffects(state, action);
+        state = result.State;
+
+        foreach (var effect in result.Effects)
+        {
+            ApplyEffect(effect);
+        }
+
+        if (action is ChooseScenarioModeAction)
+        {
+            RefreshScenariosForMode();
+        }
+    }
+
+    private void RefreshGameSystems()
+    {
+        var gameSystemSelection = SetupRefreshWorkflowService.BuildSelection(
+            WorkspaceSetupOptionsService.ListGameSystems(),
+            SetupSelectionMappingService.ToWorkspaceLaunchGameSystemCards,
+            option => option.GameSystemId,
+            state.GameSystemPicker.SelectedGameSystemId,
+            () =>
+            [
+                new GameSystemCardViewModel("EMPTY-GAMEBOX", "EMPTY-GAMEBOX", "Fallback game system.", null, true, true)
+            ]);
+
+        state = state with
+        {
+            GameSystemPicker = new GameSystemPickerViewState(gameSystemSelection.Options, gameSystemSelection.SelectedId, false)
+        };
+    }
+
+    private void RefreshScenariosForMode()
+    {
+        if (state.ScenarioPicker.Mode == ScenarioPickerMode.SavedGame)
+        {
+            var savedScenarioSelection = SetupRefreshWorkflowService.BuildSelection(
+                WorkspaceSetupOptionsService.ListSavedScenarios(),
+                items => SetupSelectionMappingService.ToWorkspaceLaunchScenarioCards(items, fallbackGameSystemName: "Saved Session"),
+                option => option.ScenarioId,
+                state.ScenarioPicker.SelectedScenarioId);
+
+            state = state with
+            {
+                ScenarioPicker = state.ScenarioPicker with
+                {
+                    Scenarios = savedScenarioSelection.Options,
+                    SelectedScenarioId = savedScenarioSelection.SelectedId,
+                    IsLoading = false
+                }
+            };
+            return;
+        }
+
+        var selectedGameSystems = SetupGameSystemSummaryProjectionService.FromWorkspaceLaunchCards(
+            state.GameSystemPicker.AvailableGameSystems);
+
+        var newScenarioSelection = SetupRefreshWorkflowService.BuildSelection<VttMvuModel.Workspace.ScenarioSummary, ScenarioCardViewModel>(
+            WorkspaceSetupOptionsService.ListNewScenarios(selectedGameSystems),
+            items => SetupSelectionMappingService.ToWorkspaceLaunchScenarioCards(items),
+            option => option.ScenarioId,
+            state.ScenarioPicker.SelectedScenarioId);
+
+        state = state with
+        {
+            ScenarioPicker = state.ScenarioPicker with
+            {
+                Scenarios = newScenarioSelection.Options,
+                SelectedScenarioId = newScenarioSelection.SelectedId,
+                IsLoading = false
+            }
+        };
+    }
+
+    private void ApplyEffect(IWorkspaceLaunchEffect effect)
+    {
+        if (effect is not NavigateToWorkspaceEffect navigate)
+        {
+            return;
+        }
+
+        Navigation.NavigateTo(navigate.LaunchPath);
+    }
+}

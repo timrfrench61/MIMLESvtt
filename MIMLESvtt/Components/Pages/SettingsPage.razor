@@ -1,0 +1,168 @@
+@page "/settings"
+@attribute [Authorize]
+@using VttMvuView.Settings
+@using MIMLESvtt.Services
+@inject SettingsPreferenceService SettingsPreferenceService
+
+<PageTitle>Settings</PageTitle>
+
+<h1>Settings</h1>
+<p class="text-muted">MVU vertical slice: settings and feature toggles.</p>
+
+@if (!string.IsNullOrWhiteSpace(state.StatusMessage))
+{
+    <div class="alert alert-info py-2">@state.StatusMessage</div>
+}
+
+<div class="row g-3">
+    <div class="col-12 col-lg-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Display</h5>
+                <div class="mb-2">
+                    <label class="form-label">Theme</label>
+                    <select class="form-select" value="@state.ThemeName" @onchange="OnThemeChanged">
+                        <option value="Default">Default</option>
+                        <option value="Dark">Dark</option>
+                        <option value="HighContrast">High Contrast</option>
+                    </select>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" checked="@state.UseCompactLayout" @onchange="OnCompactLayoutChanged" />
+                    <label class="form-check-label">Use Compact Layout</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Feature Toggles</h5>
+
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" checked="@state.Toggles.Multiplayer" @onchange="OnMultiplayerChanged" />
+                    <label class="form-check-label">Multiplayer</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" checked="@state.Toggles.Chat" @onchange="OnChatChanged" />
+                    <label class="form-check-label">Chat</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" checked="@state.Toggles.FogOfWar" @onchange="OnFogOfWarChanged" />
+                    <label class="form-check-label">Fog of War</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" checked="@state.Toggles.RulesEngine" @onchange="OnRulesEngineChanged" />
+                    <label class="form-check-label">Rules Engine</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" checked="@state.Toggles.Persistence" @onchange="OnPersistenceChanged" />
+                    <label class="form-check-label">Persistence</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 d-flex gap-2 flex-wrap">
+    <button class="btn btn-primary" @onclick="() => Dispatch(new PersistSettingsAction())">Save Settings</button>
+    <button class="btn btn-outline-secondary" @onclick="() => Dispatch(new ClearStatusAction())">Clear Status</button>
+    <a class="btn btn-outline-secondary" href="/">Back to Home</a>
+</div>
+
+@code {
+    private SettingsState state = new(
+        new SettingsToggleState(
+            Multiplayer: false,
+            Chat: false,
+            FogOfWar: false,
+            RulesEngine: false,
+            Persistence: true),
+        ThemeName: "Default",
+        UseCompactLayout: false,
+        StatusMessage: null);
+
+    protected override void OnInitialized()
+    {
+        var snapshot = SettingsPreferenceService.Load();
+        state = state with
+        {
+            ThemeName = snapshot.ThemeName,
+            UseCompactLayout = snapshot.UseCompactLayout,
+            Toggles = new SettingsToggleState(
+                Multiplayer: snapshot.Multiplayer,
+                Chat: snapshot.Chat,
+                FogOfWar: snapshot.FogOfWar,
+                RulesEngine: snapshot.RulesEngine,
+                Persistence: snapshot.Persistence),
+            StatusMessage = "Loaded saved settings."
+        };
+    }
+
+    private void Dispatch(ISettingsAction action)
+    {
+        var result = SettingsUpdate.ReduceWithEffects(state, action);
+        state = result.State;
+
+        foreach (var effect in result.Effects)
+        {
+            ApplyEffect(effect);
+        }
+    }
+
+    private void ApplyEffect(ISettingsEffect effect)
+    {
+        if (effect is not PersistSettingsEffect persist)
+        {
+            return;
+        }
+
+        SettingsPreferenceService.Save(persist.Snapshot);
+    }
+
+    private void OnThemeChanged(ChangeEventArgs e)
+    {
+        Dispatch(new SetThemeAction(e.Value?.ToString() ?? "Default"));
+    }
+
+    private void OnCompactLayoutChanged(ChangeEventArgs e)
+    {
+        Dispatch(new SetCompactLayoutAction(ToBool(e.Value)));
+    }
+
+    private void OnMultiplayerChanged(ChangeEventArgs e)
+    {
+        Dispatch(new SetMultiplayerAction(ToBool(e.Value)));
+    }
+
+    private void OnChatChanged(ChangeEventArgs e)
+    {
+        Dispatch(new SetChatAction(ToBool(e.Value)));
+    }
+
+    private void OnFogOfWarChanged(ChangeEventArgs e)
+    {
+        Dispatch(new SetFogOfWarAction(ToBool(e.Value)));
+    }
+
+    private void OnRulesEngineChanged(ChangeEventArgs e)
+    {
+        Dispatch(new SetRulesEngineAction(ToBool(e.Value)));
+    }
+
+    private void OnPersistenceChanged(ChangeEventArgs e)
+    {
+        Dispatch(new SetPersistenceAction(ToBool(e.Value)));
+    }
+
+    private static bool ToBool(object? value)
+    {
+        return value switch
+        {
+            bool boolValue => boolValue,
+            string text when bool.TryParse(text, out var parsed) => parsed,
+            _ => false
+        };
+    }
+}

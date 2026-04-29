@@ -1,4 +1,4 @@
-@using MIMLESvtt.src.Application.Content.ManualEntry
+@using MIMLESvtt.Services
 
 <div class="card mb-3">
     <div class="card-body">
@@ -182,10 +182,11 @@
 </div>
 
 @code {
-    private readonly ContentManualEntryWorkflowRegistry registry = new();
-    private List<IContentManualEntryWorkflowAdapter> adapters = [];
+    [Inject] public ContentManualEntryWorkflowService ContentManualEntryWorkflowService { get; set; } = default!;
+
+    private List<ContentManualEntryWorkflowOption> adapters = [];
     private string selectedRoute = string.Empty;
-    private IContentManualEntryWorkflowAdapter? currentAdapter;
+    private ContentManualEntryWorkflowOption? currentAdapter;
     private string statusMessage = string.Empty;
     private SimulationOutcome statusOutcome = SimulationOutcome.None;
     private DateTimeOffset? lastStatusUtc;
@@ -193,7 +194,8 @@
 
     protected override void OnInitialized()
     {
-        adapters = registry.ListAdapters().ToList();
+        var workflowService = ContentManualEntryWorkflowService ?? new ContentManualEntryWorkflowService();
+        adapters = workflowService.ListOptions().ToList();
         selectedRoute = adapters.FirstOrDefault()?.ListRoute ?? string.Empty;
         ResolveAdapter();
     }

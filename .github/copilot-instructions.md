@@ -8,6 +8,8 @@
 - Maintain a clean separation where root domain classes are data models located in a root/domain models directory, not placed under persistence.
 - Consider using a more user-facing name like 'Gamebox' instead of 'VttGamebox' for content package naming.
 - Structure the domain model so that `VttSession` has a single `VttCampaign` and a `CurrentVttScenario` (scenario static once published), rather than multiple campaigns per session.
+- Adopt an MVU (Model-View-Update) design approach for the codebase and avoid Clean Architecture-style coupling for new migration work.
+- Prefer a faster migration strategy by merging `src/Domain` model contents into `Models` first (potentially in one larger pass) before reworking/refining `Models`.
 
 ## Component Refactoring
 - When refactoring a Razor component to use code-behind, move the `@code` block into a `.razor.cs` partial class instead of making unrelated fixes.

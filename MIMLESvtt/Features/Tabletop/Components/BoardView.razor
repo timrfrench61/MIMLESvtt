@@ -1,0 +1,23 @@
+@using VttMvuView.Tabletop
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Board</h5>
+        <p class="text-muted mb-2">Size: @State.BoardWidth x @State.BoardHeight</p>
+
+        <div class="d-flex gap-2 flex-wrap">
+            @foreach (var token in State.Tokens)
+            {
+                var selected = string.Equals(State.SelectedTokenId, token.TokenId, StringComparison.OrdinalIgnoreCase);
+                <button class="btn @(selected ? "btn-primary" : "btn-outline-primary")" @onclick="() => OnSelectToken.InvokeAsync(token.TokenId)">
+                    @token.Name (@token.X,@token.Y) / @token.RotationDegrees°
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public TabletopState State { get; set; } = default!;
+    [Parameter] public EventCallback<string> OnSelectToken { get; set; }
+}

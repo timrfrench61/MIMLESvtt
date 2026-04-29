@@ -1,0 +1,92 @@
+@page "/tabletop"
+@attribute [Authorize]
+@using VttMvuView.Tabletop
+@using MIMLESvtt.Features.Tabletop.Components
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Navigation
+
+<PageTitle>Tabletop</PageTitle>
+
+<h1>Tabletop</h1>
+<p class="text-muted">MVU vertical slice: tabletop basic token interaction.</p>
+
+<div class="row g-3">
+    <div class="col-12 col-lg-8">
+        <BoardView State="state" OnSelectToken="HandleSelectToken" />
+    </div>
+    <div class="col-12 col-lg-4 d-flex flex-column gap-3">
+        <ToolbarView OnSetTool="HandleSetTool"
+                     OnMove="HandleMove"
+                     OnRotate="HandleRotate"
+                     OnEndTurn="HandleEndTurn" />
+        <DicePanel LastRoll="state.LastDiceRoll" OnRoll="HandleRollDice" />
+    </div>
+</div>
+
+<div class="alert alert-info py-2 mt-3">
+    <div><strong>Launch Mode:</strong> @launchMode</div>
+    <div><strong>Launch Source:</strong> @(launchSource ?? "(none)")</div>
+    <div><strong>Selected Token:</strong> @(state.SelectedTokenId ?? "(none)")</div>
+    <div><strong>Turn:</strong> @state.TurnNumber (@state.TurnPhase)</div>
+    <div><strong>Active Tool:</strong> @state.ActiveToolId</div>
+    <div><strong>Status:</strong> @(state.StatusMessage ?? "Ready")</div>
+</div>
+
+@code {
+    private string launchMode = "edit";
+    private string? launchSource;
+
+    private TabletopState state = new(
+        BoardWidth: 8,
+        BoardHeight: 8,
+        Tokens:
+        [
+            new TabletopTokenState("T-1", "Blue Unit", 2, 2, 0),
+            new TabletopTokenState("T-2", "Red Unit", 5, 5, 180)
+        ],
+        SelectedTokenId: null,
+        TurnNumber: 1,
+        TurnPhase: "Main",
+        ActiveToolId: "Select",
+        LastDiceRoll: null,
+        StatusMessage: "Ready");
+
+    private void Dispatch(ITabletopAction action)
+    {
+        state = TabletopUpdate.Reduce(state, action);
+    }
+
+    protected override void OnInitialized()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        launchMode = query.TryGetValue("mode", out var modeValue)
+            && string.Equals(modeValue.ToString(), "play", StringComparison.OrdinalIgnoreCase)
+            ? "play"
+            : "edit";
+
+        launchSource = query.TryGetValue("source", out var sourceValue)
+            ? sourceValue.ToString()
+            : null;
+
+        state = state with
+        {
+            ActiveToolId = launchMode == "play" ? "Move" : "Select",
+            StatusMessage = BuildLaunchStatus(launchMode, launchSource)
+        };
+    }
+
+    private static string BuildLaunchStatus(string mode, string? source)
+    {
+        var sourceLabel = string.IsNullOrWhiteSpace(source) ? "default source" : source;
+        return $"Launched in {mode} mode from {sourceLabel}.";
+    }
+
+    private void HandleSelectToken(string tokenId) => Dispatch(new SelectTokenAction(tokenId));
+    private void HandleSetTool(string toolId) => Dispatch(new SetActiveToolAction(toolId));
+    private void HandleMove((int DeltaX, int DeltaY) delta) => Dispatch(new MoveSelectedTokenAction(delta.DeltaX, delta.DeltaY));
+    private void HandleRotate(int deltaDegrees) => Dispatch(new RotateSelectedTokenAction(deltaDegrees));
+    private void HandleEndTurn() => Dispatch(new EndTurnAction());
+    private void HandleRollDice() => Dispatch(new RollDiceAction());
+}

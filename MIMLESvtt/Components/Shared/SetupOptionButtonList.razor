@@ -1,0 +1,57 @@
+<div class="d-flex gap-2 flex-wrap">
+    @foreach (var item in Items)
+    {
+        var isSelected = string.Equals(SelectedId, item.Id, StringComparison.OrdinalIgnoreCase);
+        <button class="btn @(ResolveButtonClass(isSelected))" @onclick="() => OnSelect.InvokeAsync(item.Id)" disabled="@item.Disabled">@item.Name</button>
+    }
+</div>
+
+@if (Items.Count == 0 && !string.IsNullOrWhiteSpace(EmptyMessage))
+{
+    <small class="text-muted d-block mt-2">@EmptyMessage</small>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<SetupOptionButtonItem> Items { get; set; } = [];
+    [Parameter] public string? SelectedId { get; set; }
+    [Parameter] public SetupOptionButtonTone Tone { get; set; } = SetupOptionButtonTone.Primary;
+    [Parameter] public string? SelectedButtonClass { get; set; }
+    [Parameter] public string? UnselectedButtonClass { get; set; }
+    [Parameter] public string? EmptyMessage { get; set; }
+    [Parameter] public EventCallback<string> OnSelect { get; set; }
+
+    private string ResolveButtonClass(bool isSelected)
+    {
+        if (isSelected)
+        {
+            return !string.IsNullOrWhiteSpace(SelectedButtonClass)
+                ? SelectedButtonClass
+                : ResolveSelectedClassByTone();
+        }
+
+        return !string.IsNullOrWhiteSpace(UnselectedButtonClass)
+            ? UnselectedButtonClass
+            : ResolveUnselectedClassByTone();
+    }
+
+    private string ResolveSelectedClassByTone()
+    {
+        return Tone switch
+        {
+            SetupOptionButtonTone.Success => "btn-success",
+            SetupOptionButtonTone.Secondary => "btn-secondary",
+            _ => "btn-primary"
+        };
+    }
+
+    private string ResolveUnselectedClassByTone()
+    {
+        return Tone switch
+        {
+            SetupOptionButtonTone.Success => "btn-outline-success",
+            SetupOptionButtonTone.Secondary => "btn-outline-secondary",
+            _ => "btn-outline-primary"
+        };
+    }
+
+}

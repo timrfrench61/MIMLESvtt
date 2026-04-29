@@ -1,21 +1,22 @@
 using Microsoft.AspNetCore.Components;
-using MIMLESvtt.src.Domain.Models.Content;
-using MIMLESvtt.src.Domain.Models.Content.Import;
+using MIMLESvtt.Services;
 
 namespace MIMLESvtt.Components.Pages;
 
 public partial class ContentImportWorkflowShell
 {
-    private CsvImportStage currentStage = CsvImportStage.Upload;
+    [Inject] public ContentImportWorkflowService ContentImportWorkflowService { get; set; } = default!;
+
+    private ContentImportStage currentStage = ContentImportStage.Upload;
     private string selectedFilePath = string.Empty;
     private string importType = "Monster";
-    private CsvImportResult resultState = new();
-    private CsvDuplicateHandlingPolicy duplicatePolicy = CsvDuplicateHandlingPolicy.RejectDuplicate;
+    private ContentImportPreviewResult resultState = new(0, 0, 0, 0, 0, [], []);
+    private ContentImportDuplicatePolicy duplicatePolicy = ContentImportDuplicatePolicy.RejectDuplicate;
     private DateTimeOffset? lastRunUtc;
     private int validationRunCount;
     private readonly List<StageHistoryEntry> stageHistory = [];
 
-    private CsvImportStage CurrentStage => currentStage;
+    private ContentImportStage CurrentStage => currentStage;
 
     private IReadOnlyList<StageHistoryEntry> StageHistory => stageHistory;
 
@@ -23,9 +24,9 @@ public partial class ContentImportWorkflowShell
 
     private string LastRunDisplay => lastRunUtc is null ? "(not run)" : lastRunUtc.Value.ToString("u");
 
-    private int ErrorCount => resultState.Issues.Count(i => i.Severity == CsvImportIssueSeverity.Error);
+    private int ErrorCount => resultState.Issues.Count(i => i.Severity == ContentImportIssueSeverity.Error);
 
-    private int WarningCount => resultState.Issues.Count(i => i.Severity == CsvImportIssueSeverity.Warning);
+    private int WarningCount => resultState.Issues.Count(i => i.Severity == ContentImportIssueSeverity.Warning);
 
     private bool HasBlockingErrors => ErrorCount > 0;
 
@@ -33,14 +34,14 @@ public partial class ContentImportWorkflowShell
 
     private string CurrentStageGuidance => currentStage switch
     {
-        CsvImportStage.Upload => "Configure source and run validation preview.",
-        CsvImportStage.Validate => "Review validation output and continue based on issue severity.",
-        CsvImportStage.Persist => "Inspect blocking and warning issues before restarting from Upload.",
-        CsvImportStage.Summarize => "Review totals and decide whether to run another import cycle.",
+        ContentImportStage.Upload => "Configure source and run validation preview.",
+        ContentImportStage.Validate => "Review validation output and continue based on issue severity.",
+        ContentImportStage.Persist => "Inspect blocking and warning issues before restarting from Upload.",
+        ContentImportStage.Summarize => "Review totals and decide whether to run another import cycle.",
         _ => string.Empty
     };
 
-    private void SetStage(CsvImportStage stage)
+    private void SetStage(ContentImportStage stage)
     {
         currentStage = stage;
         RecordStageHistory($"Stage set to {stage}.");
@@ -49,9 +50,9 @@ public partial class ContentImportWorkflowShell
     private void ValidateImportPreview()
     {
         var request = BuildRequest();
-        var pipeline = BuildPipeline();
-        resultState = pipeline.Run(request);
-        currentStage = CsvImportStage.Validate;
+        var workflowService = ContentImportWorkflowService ?? new ContentImportWorkflowService();
+        resultState = workflowService.RunPreview(request);
+        currentStage = ContentImportStage.Validate;
         validationRunCount++;
         lastRunUtc = DateTimeOffset.UtcNow;
         RecordStageHistory($"Validation run {validationRunCount} completed. Errors={ErrorCount}, Warnings={WarningCount}.");
@@ -59,20 +60,20 @@ public partial class ContentImportWorkflowShell
 
     private void ContinueFromValidation()
     {
-        if (resultState.Issues.Any(i => i.Severity == CsvImportIssueSeverity.Error))
+        if (resultState.Issues.Any(i => i.Severity == ContentImportIssueSeverity.Error))
         {
-            currentStage = CsvImportStage.Persist;
+            currentStage = ContentImportStage.Persist;
             RecordStageHistory("Continue moved to Persist due to blocking errors.");
             return;
         }
 
-        currentStage = CsvImportStage.Summarize;
+        currentStage = ContentImportStage.Summarize;
         RecordStageHistory("Continue moved to Summary.");
     }
 
     private void RetryFromErrors()
     {
-        currentStage = CsvImportStage.Upload;
+        currentStage = ContentImportStage.Upload;
         RecordStageHistory("Workflow reset to Upload.");
     }
 
@@ -81,14 +82,14 @@ public partial class ContentImportWorkflowShell
         stageHistory.Clear();
     }
 
-    private string GetStageBadgeClass(CsvImportStage stage)
+    private string GetStageBadgeClass(ContentImportStage stage)
     {
         return stage switch
         {
-            CsvImportStage.Upload => "text-bg-secondary",
-            CsvImportStage.Validate => "text-bg-info",
-            CsvImportStage.Persist => "text-bg-warning",
-            CsvImportStage.Summarize => "text-bg-success",
+            ContentImportStage.Upload => "text-bg-secondary",
+            ContentImportStage.Validate => "text-bg-info",
+            ContentImportStage.Persist => "text-bg-warning",
+            ContentImportStage.Summarize => "text-bg-success",
             _ => "text-bg-secondary"
         };
     }
@@ -103,39 +104,25 @@ public partial class ContentImportWorkflowShell
         }
     }
 
-    private CsvImportPipelineService BuildPipeline()
+    private ContentImportPreviewRequest BuildRequest()
     {
-        return new CsvImportPipelineService(new InMemoryContentRepository(),
-        [
-            new MonsterCsvImportAdapter(),
-            new TreasureCsvImportAdapter(),
-            new EquipmentCsvImportAdapter(),
-            new MagicItemCsvImportAdapter(),
-            new UnitCounterCsvImportAdapter()
-        ]);
+        return new ContentImportPreviewRequest(
+            FileName: string.IsNullOrWhiteSpace(selectedFilePath) ? "content-import.csv" : selectedFilePath,
+            FileContent: BuildMockCsvByType(importType),
+            Category: ParseCategory(importType),
+            DuplicatePolicy: duplicatePolicy,
+            OperatorContext: "ContentImportWorkflowShell");
     }
 
-    private CsvImportRequest BuildRequest()
-    {
-        return new CsvImportRequest
-        {
-            FileName = string.IsNullOrWhiteSpace(selectedFilePath) ? "content-import.csv" : selectedFilePath,
-            FileContent = BuildMockCsvByType(importType),
-            Category = ParseCategory(importType),
-            DuplicatePolicy = duplicatePolicy,
-            OperatorContext = "ContentImportWorkflowShell"
-        };
-    }
-
-    private static ContentCategory ParseCategory(string type)
+    private static ContentImportCategory ParseCategory(string type)
     {
         return type switch
         {
-            "Treasure" => ContentCategory.Treasure,
-            "Equipment" => ContentCategory.Equipment,
-            "MagicItem" => ContentCategory.MagicItem,
-            "UnitCounter" => ContentCategory.UnitCounter,
-            _ => ContentCategory.Monster
+            "Treasure" => ContentImportCategory.Treasure,
+            "Equipment" => ContentImportCategory.Equipment,
+            "MagicItem" => ContentImportCategory.MagicItem,
+            "UnitCounter" => ContentImportCategory.UnitCounter,
+            _ => ContentImportCategory.Monster
         };
     }
 
@@ -152,15 +139,15 @@ public partial class ContentImportWorkflowShell
     }
 
     internal void TestSetImportType(string value) => importType = value;
-    internal void TestSetDuplicatePolicy(CsvDuplicateHandlingPolicy policy) => duplicatePolicy = policy;
+    internal void TestSetDuplicatePolicy(ContentImportDuplicatePolicy policy) => duplicatePolicy = policy;
     internal void TestValidateImportPreview() => ValidateImportPreview();
     internal void TestContinueFromValidation() => ContinueFromValidation();
     internal void TestRetryFromErrors() => RetryFromErrors();
     internal string TestCurrentStage => currentStage.ToString();
-    internal CsvImportResult TestResultState => resultState;
+    internal ContentImportPreviewResult TestResultState => resultState;
 
     private sealed record StageHistoryEntry(
         DateTimeOffset TimestampUtc,
-        CsvImportStage Stage,
+        ContentImportStage Stage,
         string Message);
 }

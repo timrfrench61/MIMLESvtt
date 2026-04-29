@@ -1,0 +1,2 @@
+namespace VttMvuView.Settings;
+public sealed record SettingsViewState(DisplaySettingsViewModel Display, DevelopmentSettingsViewModel Development, MultiplayerSettingsViewModel Multiplayer);

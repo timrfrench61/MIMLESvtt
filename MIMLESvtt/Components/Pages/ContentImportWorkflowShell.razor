@@ -1,4 +1,4 @@
-@using MIMLESvtt.src.Domain.Models.Content.Import
+@using MIMLESvtt.Services
 
 <div class="card mb-3">
     <div class="card-body">
@@ -35,10 +35,10 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2 mb-2">
-            <button class="btn btn-sm @(CurrentStage == CsvImportStage.Upload ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(CsvImportStage.Upload)">Upload</button>
-            <button class="btn btn-sm @(CurrentStage == CsvImportStage.Validate ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(CsvImportStage.Validate)">Validate</button>
-            <button class="btn btn-sm @(CurrentStage == CsvImportStage.Persist ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(CsvImportStage.Persist)">Persist Review</button>
-            <button class="btn btn-sm @(CurrentStage == CsvImportStage.Summarize ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(CsvImportStage.Summarize)">Summary</button>
+            <button class="btn btn-sm @(CurrentStage == ContentImportStage.Upload ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(ContentImportStage.Upload)">Upload</button>
+            <button class="btn btn-sm @(CurrentStage == ContentImportStage.Validate ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(ContentImportStage.Validate)">Validate</button>
+            <button class="btn btn-sm @(CurrentStage == ContentImportStage.Persist ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(ContentImportStage.Persist)">Persist Review</button>
+            <button class="btn btn-sm @(CurrentStage == ContentImportStage.Summarize ? "btn-primary" : "btn-outline-primary")" @onclick="() => SetStage(ContentImportStage.Summarize)">Summary</button>
             <button class="btn btn-sm btn-outline-secondary" @onclick="RetryFromErrors">Reset to Upload</button>
         </div>
         <small class="text-muted d-block mb-2">Jump directly to any stage for shell preview and documentation walkthroughs.</small>
@@ -50,7 +50,7 @@
         </div>
 
         <div id="import-stage-main">
-        @if (CurrentStage == CsvImportStage.Upload)
+        @if (CurrentStage == ContentImportStage.Upload)
         {
             <div class="row g-2">
                 <div class="col-md-6">
@@ -70,9 +70,9 @@
                 <div class="col-md-3">
                     <label class="form-label">Duplicate policy</label>
                     <InputSelect class="form-select" @bind-Value="duplicatePolicy">
-                        <option value="@CsvDuplicateHandlingPolicy.RejectDuplicate">Reject Duplicate</option>
-                        <option value="@CsvDuplicateHandlingPolicy.SkipDuplicate">Skip Duplicate</option>
-                        <option value="@CsvDuplicateHandlingPolicy.UpdateDuplicate">Update Duplicate</option>
+                        <option value="@ContentImportDuplicatePolicy.RejectDuplicate">Reject Duplicate</option>
+                        <option value="@ContentImportDuplicatePolicy.SkipDuplicate">Skip Duplicate</option>
+                        <option value="@ContentImportDuplicatePolicy.UpdateDuplicate">Update Duplicate</option>
                     </InputSelect>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
@@ -90,13 +90,13 @@
             <small class="text-muted d-block mt-2">Validate Preview runs parser/mapping checks using selected type and policy.</small>
             <small class="text-muted d-block">Reset returns to Upload and clears stage progression context for a fresh pass.</small>
         }
-        else if (CurrentStage == CsvImportStage.Validate)
+        else if (CurrentStage == ContentImportStage.Validate)
         {
             <div class="alert alert-light border mb-2">
                 <strong>Validation Preview</strong><br />
                 Rows: @resultState.TotalRows | Created: @resultState.CreatedCount | Updated: @resultState.UpdatedCount | Failed: @resultState.FailedCount
             </div>
-            @if (resultState.Issues.Any(i => i.Severity == CsvImportIssueSeverity.Error))
+            @if (resultState.Issues.Any(i => i.Severity == ContentImportIssueSeverity.Error))
             {
                 <div class="alert alert-warning mb-2">Validation found blocking errors. Continue to Persist Review for issue details.</div>
             }
@@ -127,10 +127,10 @@
             <small class="text-muted d-block">No blocking errors -> Summary; blocking errors -> Persist Review.</small>
             <small class="text-muted d-block">Back to Upload lets you adjust import type or duplicate policy before rerunning validation.</small>
         }
-        else if (CurrentStage == CsvImportStage.Persist)
+        else if (CurrentStage == ContentImportStage.Persist)
         {
-            var errorCount = resultState.Issues.Count(i => i.Severity == CsvImportIssueSeverity.Error);
-            var warningCount = resultState.Issues.Count(i => i.Severity == CsvImportIssueSeverity.Warning);
+            var errorCount = resultState.Issues.Count(i => i.Severity == ContentImportIssueSeverity.Error);
+            var warningCount = resultState.Issues.Count(i => i.Severity == ContentImportIssueSeverity.Warning);
             var persistAlertClass = errorCount > 0 ? "alert-danger" : "alert-warning";
             <div class="alert @persistAlertClass mb-2">
                 <strong>Persist / Issue Review</strong><br />
