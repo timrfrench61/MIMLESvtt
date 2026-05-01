@@ -3,7 +3,7 @@ using MIMLESvtt.Services;
 
 namespace MIMLESvtt.Components.Layout;
 
-public partial class MainLayout
+public partial class MainLayout : IDisposable
 {
     [Inject] public NavigationManager Navigation { get; set; } = default!;
     [Inject] public SettingsPreferenceService SettingsPreferenceService { get; set; } = default!;
@@ -13,10 +13,13 @@ public partial class MainLayout
 
     protected override void OnInitialized()
     {
-        var snapshot = SettingsPreferenceService.Load();
-        var classes = SettingsShellClassProjectionService.Project(snapshot);
-        _themeClass = classes.ThemeClass;
-        _contentClass = classes.ContentClass;
+        ApplyShellClasses(SettingsPreferenceService.Load());
+        SettingsPreferenceService.PreferencesChanged += OnPreferencesChanged;
+    }
+
+    public void Dispose()
+    {
+        SettingsPreferenceService.PreferencesChanged -= OnPreferencesChanged;
     }
 
     private string PageClass => string.IsNullOrWhiteSpace(_themeClass) ? "page" : $"page {_themeClass}";
@@ -42,5 +45,18 @@ public partial class MainLayout
 
             return $"Home / {string.Join(" / ", segments)}";
         }
+    }
+
+    private void OnPreferencesChanged(SettingsPreferenceSnapshot snapshot)
+    {
+        ApplyShellClasses(snapshot);
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void ApplyShellClasses(SettingsPreferenceSnapshot snapshot)
+    {
+        var classes = SettingsShellClassProjectionService.Project(snapshot);
+        _themeClass = classes.ThemeClass;
+        _contentClass = classes.ContentClass;
     }
 }

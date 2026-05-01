@@ -1,4 +1,4 @@
-namespace MIMLESvtt.src.Application.Authentication;
+namespace MIMLESvtt.Services.Authentication;
 
 public sealed class AuthSeedDefaults
 {

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace MIMLESvtt.src.Application.Authentication;
+namespace MIMLESvtt.Services.Authentication;
 
 public class AuthUser : IdentityUser
 {

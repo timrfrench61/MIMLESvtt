@@ -63,19 +63,18 @@
 </div>
 
 @code {
-    private IReadOnlyList<SetupOptionButtonItem> GameSystemButtonItems => state.GameSystemPicker.AvailableGameSystems
-        .Select(system => new SetupOptionButtonItem(system.GameSystemId, system.Name))
-        .ToList();
+    private IReadOnlyList<SetupOptionButtonItem> GameSystemButtonItems => SetupOptionButtonProjectionService.Project(
+        state.GameSystemPicker.AvailableGameSystems,
+        system => system.GameSystemId,
+        system => system.Name);
 
-    private IReadOnlyList<SetupOptionButtonItem> ScenarioModeButtonItems =>
-    [
-        new SetupOptionButtonItem(ScenarioPickerMode.NewScenario.ToString(), "New Scenario"),
-        new SetupOptionButtonItem(ScenarioPickerMode.SavedGame.ToString(), "Saved Game")
-    ];
+    private IReadOnlyList<SetupOptionButtonItem> ScenarioModeButtonItems => SetupModeOptionCatalogService.WorkspaceScenarioModes();
 
-    private IReadOnlyList<SetupOptionButtonItem> ScenarioButtonItems => state.ScenarioPicker.Scenarios
-        .Select(scenario => new SetupOptionButtonItem(scenario.ScenarioId, scenario.Name, string.IsNullOrWhiteSpace(scenario.ScenarioId)))
-        .ToList();
+    private IReadOnlyList<SetupOptionButtonItem> ScenarioButtonItems => SetupOptionButtonProjectionService.Project(
+        state.ScenarioPicker.Scenarios,
+        scenario => scenario.ScenarioId,
+        scenario => scenario.Name,
+        scenario => string.IsNullOrWhiteSpace(scenario.ScenarioId));
 
     private bool DisableBack => !WorkspaceLaunchNavigationRules.CanGoBack(state);
 
@@ -198,8 +197,8 @@
             return;
         }
 
-        var selectedGameSystems = SetupGameSystemSummaryProjectionService.FromWorkspaceLaunchCards(
-            state.GameSystemPicker.AvailableGameSystems);
+        var selectedGameSystems = SetupSelectionMappingService.ToSelectedGameSystemSummary(
+            state.GameSystemPicker.SelectedGameSystemId);
 
         var newScenarioSelection = SetupRefreshWorkflowService.BuildSelection<VttMvuModel.Workspace.ScenarioSummary, ScenarioCardViewModel>(
             WorkspaceSetupOptionsService.ListNewScenarios(selectedGameSystems),

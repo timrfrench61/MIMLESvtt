@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace MIMLESvtt.src.Application.Authentication;
+namespace MIMLESvtt.Services.Authentication;
 
 public class AuthDbContext : IdentityDbContext<AuthUser>
 {

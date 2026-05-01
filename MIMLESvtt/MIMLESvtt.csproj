@@ -5,7 +5,6 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
-    <LegacyCompileStage Condition="'$(LegacyCompileStage)' == ''">StageA</LegacyCompileStage>
   </PropertyGroup>
 
   <ItemGroup>

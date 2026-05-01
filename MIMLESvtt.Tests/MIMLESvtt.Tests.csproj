@@ -27,11 +27,14 @@
     <Compile Include="SettingsShellClassProjectionServiceTests.cs" />
     <Compile Include="SettingsUpdateTests.cs" />
     <Compile Include="SetupLaunchRulesServiceTests.cs" />
+    <Compile Include="SetupModeOptionCatalogServiceTests.cs" />
     <Compile Include="SetupNavigationRulesServiceTests.cs" />
+    <Compile Include="SetupOptionButtonProjectionServiceTests.cs" />
     <Compile Include="SetupReadinessBuilderTests.cs" />
     <Compile Include="SetupRefreshWorkflowServiceTests.cs" />
     <Compile Include="SetupSelectionDefaultsServiceTests.cs" />
     <Compile Include="SetupSelectionMappingServiceTests.cs" />
+    <Compile Include="TabletopLaunchStateFactoryTests.cs" />
     <Compile Include="TabletopUpdateTests.cs" />
     <Compile Include="WorkspaceLaunchServiceHydrationTests.cs" />
     <Compile Include="WorkspaceLaunchUpdateTests.cs" />
@@ -39,3 +42,4 @@
   </ItemGroup>
 
 </Project>
+

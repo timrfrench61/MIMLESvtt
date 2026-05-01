@@ -4,6 +4,7 @@ using MIMLESvtt.src.Domain.Models.Placement;
 using MIMLESvtt.src.Domain.Persistence.Models;
 using MIMLESvtt.src.Domain.Persistence.VttSessionNSPC;
 using MIMLESvtt.src;
+using MIMLESvtt.Services.Actions;
 
 namespace MIMLESvtt.Services.Workspace;
 
@@ -172,7 +173,7 @@ public class WorkspaceBoardState
     }
 
     public int MoveSelectedPiecesByDelta(
-        IVttSessionCommandService commandService,
+        ISessionCommandService commandService,
         float deltaX,
         float deltaY,
         bool clampToBoard,
@@ -405,13 +406,13 @@ public class WorkspaceBoardState
         return before != SelectedPieceIds.Count;
     }
 
-    public ActionRecord MoveSelectedPiece(IVttSessionCommandService commandService, float x, float y)
+    public ActionRecord MoveSelectedPiece(ISessionCommandService commandService, float x, float y)
     {
         return MoveSelectedPiece(commandService, x, y, clampToBoard: false, maxX: 0, maxY: 0);
     }
 
     public ActionRecord MoveSelectedPiece(
-        IVttSessionCommandService commandService,
+        ISessionCommandService commandService,
         float x,
         float y,
         bool clampToBoard,
@@ -444,7 +445,7 @@ public class WorkspaceBoardState
     }
 
     public bool TryHandleKeyboardInput(
-        IVttSessionCommandService commandService,
+        ISessionCommandService commandService,
         string? key,
         bool isBoardFocused,
         float moveStep,
@@ -503,7 +504,7 @@ public class WorkspaceBoardState
     }
 
     public bool TryCenterSelectedPiece(
-        IVttSessionCommandService commandService,
+        ISessionCommandService commandService,
         float centerX,
         float centerY,
         bool clampToBoard,
@@ -525,7 +526,7 @@ public class WorkspaceBoardState
     }
 
     public bool TryHandleBoardClick(
-        IVttSessionCommandService commandService,
+        ISessionCommandService commandService,
         float clickX,
         float clickY,
         bool addPieceAtBoardClickMode,
@@ -561,7 +562,7 @@ public class WorkspaceBoardState
     }
 
     public bool TryHandleBoardClick(
-        IVttSessionCommandService commandService,
+        ISessionCommandService commandService,
         float clickX,
         float clickY,
         bool addPieceAtBoardClickMode,
@@ -1268,7 +1269,7 @@ public class WorkspaceBoardState
         return RequireSelectedPiece(session);
     }
 
-    public ActionRecord RotateSelectedPiece(IVttSessionCommandService commandService, float newDegrees)
+    public ActionRecord RotateSelectedPiece(ISessionCommandService commandService, float newDegrees)
     {
         var selectedPiece = RequireSelectedPiece(commandService.CurrentVttSession);
 

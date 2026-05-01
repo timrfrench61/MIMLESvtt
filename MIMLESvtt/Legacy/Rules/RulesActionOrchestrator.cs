@@ -1,5 +1,6 @@
 using MIMLESvtt.src;
 using MIMLESvtt.src.Domain.Models;
+using MIMLESvtt.Services.Actions;
 
 namespace MIMLESvtt.src.Domain.Rules;
 
@@ -19,7 +20,7 @@ public class RulesActionOrchestrator
         _combatHookDispatcher = combatHookDispatcher ?? throw new ArgumentNullException(nameof(combatHookDispatcher));
     }
 
-    public ActionRecord Process(IVttSessionCommandService commandService, string moduleId, string moduleVersion, string scenarioMetadata, ActionRequest actionRequest)
+    public ActionRecord Process(ISessionCommandService commandService, string moduleId, string moduleVersion, string scenarioMetadata, ActionRequest actionRequest)
     {
         ArgumentNullException.ThrowIfNull(commandService);
         ArgumentNullException.ThrowIfNull(actionRequest);

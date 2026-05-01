@@ -13,7 +13,7 @@ using MIMLESvtt.src.Domain.Persistence.Workspace;
 
 namespace MIMLESvtt.src.Domain.Persistence.VttSessionNSPC
 {
-    public class VttSessionWorkspaceService : IVttSessionCommandService
+    public class VttSessionWorkspaceService : IVttSessionCommandService, MIMLESvtt.Services.Actions.ISessionCommandService
     {
         private const string MovePieceActionType = "MovePiece";
         private const string RotatePieceActionType = "RotatePiece";

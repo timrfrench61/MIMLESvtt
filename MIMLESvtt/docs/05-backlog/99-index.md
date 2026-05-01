@@ -20,6 +20,9 @@ Entry point for planning and implementation sequencing.
 - `90-master-backlog-reference.md`  
   Roll-up/reference backlog view.
 
+- `98-audit.md`  
+  Audit/reference snapshot for backlog coverage and status review.
+
 ## Category Backlogs
 
 - `04-backlog-tabletop-engine.md`
@@ -31,7 +34,17 @@ Entry point for planning and implementation sequencing.
 - `20-backlog-checkers-reference.md`
 - `60-backlog-testing-qa.md`
 
-## 00-overview 31-57 Backlog Addendum Files
+## Additional Active Backlog / QA Files
+
+- `70-backlog-testing-qa.md`
+
+## Closed Backlog Archive
+
+Closed/finished backlog slices are moved to:
+
+- `../05-backlog-closed/`
+
+Current closed archive includes:
 
 - `31-backlog-tactical-scenario-setup-ui.md`
 - `32-backlog-content-management-screen-inventory.md`
@@ -60,3 +73,15 @@ Entry point for planning and implementation sequencing.
 - `55-backlog-rpg-content-model-treasure.md`
 - `56-backlog-rpg-content-model-equipment.md`
 - `57-backlog-rpg-content-model-magic-item.md`
+- `58-backlog-unit-counter-content-model.md`
+- `59-backlog-manual-gm-entry-workflow.md`
+- `60-backlog-gm-monster-entry-screen-slice.md`
+- `61-backlog-gm-treasure-entry-screen-slice.md`
+- `62-backlog-gm-equipment-entry-screen-slice.md`
+- `63-backlog-gm-magic-item-entry-screen-slice.md`
+- `64-backlog-reusable-csv-import-pipeline.md`
+- `65-backlog-import-validation-model.md`
+- `66-backlog-test-data-packet-format.md`
+- `67-backlog-engine-test-strategy.md`
+- `68-backlog-subsystem-test-boundaries.md`
+- `80-backlog-make-playable.md`

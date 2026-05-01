@@ -11,27 +11,11 @@ public class SetupSelectionMappingServiceTests
     [TestMethod]
     public void SetupGameSystemSummaryProjection_FromSelectedGameSystem_UsesFallbackWhenMissing()
     {
-        var result = SetupGameSystemSummaryProjectionService.FromSelectedGameSystem(null);
+        var result = SetupSelectionMappingService.ToSelectedGameSystemSummary(null);
 
         Assert.AreEqual(1, result.Count);
         Assert.AreEqual("EMPTY-GAMEBOX", result[0].GameSystemId);
         Assert.AreEqual("EMPTY-GAMEBOX", result[0].Name);
-    }
-
-    [TestMethod]
-    public void SetupGameSystemSummaryProjection_FromWorkspaceLaunchCards_MapsFields()
-    {
-        var cards = new List<GameSystemCardViewModel>
-        {
-            new("CHECKERS", "Checkers", "Checkers module", null, true, true)
-        };
-
-        var result = SetupGameSystemSummaryProjectionService.FromWorkspaceLaunchCards(cards);
-
-        Assert.AreEqual(1, result.Count);
-        Assert.AreEqual("CHECKERS", result[0].GameSystemId);
-        Assert.AreEqual("Checkers", result[0].Name);
-        Assert.AreEqual("Checkers module", result[0].Description);
     }
 
     [TestMethod]

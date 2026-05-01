@@ -69,19 +69,18 @@
 </div>
 
 @code {
-    private IReadOnlyList<SetupOptionButtonItem> GameSystemButtonItems => state.AvailableGameSystems
-        .Select(option => new SetupOptionButtonItem(option.GameSystemId, option.Name))
-        .ToList();
+    private IReadOnlyList<SetupOptionButtonItem> GameSystemButtonItems => SetupOptionButtonProjectionService.Project(
+        state.AvailableGameSystems,
+        option => option.GameSystemId,
+        option => option.Name);
 
-    private IReadOnlyList<SetupOptionButtonItem> SessionModeButtonItems =>
-    [
-        new SetupOptionButtonItem(GameSetupSessionMode.NewGame.ToString(), "New Game"),
-        new SetupOptionButtonItem(GameSetupSessionMode.LoadSavedGame.ToString(), "Load Saved Game")
-    ];
+    private IReadOnlyList<SetupOptionButtonItem> SessionModeButtonItems => SetupModeOptionCatalogService.GameSetupSessionModes();
 
-    private IReadOnlyList<SetupOptionButtonItem> SessionSourceButtonItems => state.SessionSources
-        .Select(source => new SetupOptionButtonItem(source.SourceId, source.Name, string.IsNullOrWhiteSpace(source.SourceId)))
-        .ToList();
+    private IReadOnlyList<SetupOptionButtonItem> SessionSourceButtonItems => SetupOptionButtonProjectionService.Project(
+        state.SessionSources,
+        source => source.SourceId,
+        source => source.Name,
+        source => string.IsNullOrWhiteSpace(source.SourceId));
 
     private bool DisableBack => !GameSetupNavigationRules.CanGoBack(state);
 
@@ -200,7 +199,7 @@
     {
         if (state.SessionMode == GameSetupSessionMode.NewGame)
         {
-            var selectedSystems = SetupGameSystemSummaryProjectionService.FromSelectedGameSystem(state.SelectedGameSystemId);
+            var selectedSystems = SetupSelectionMappingService.ToSelectedGameSystemSummary(state.SelectedGameSystemId);
             var selectedGameSystem = selectedSystems[0].GameSystemId;
 
             var newScenarioSelection = SetupRefreshWorkflowService.BuildSelection(

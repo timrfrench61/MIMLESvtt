@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-namespace MIMLESvtt.src.Application.Authentication;
+namespace MIMLESvtt.Services.Authentication;
 
 public class AuthDataSeeder
 {

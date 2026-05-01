@@ -58,4 +58,21 @@ public class SettingsShellClassProjectionServiceTests
 
         Assert.AreEqual("theme-high-contrast", result.ThemeClass);
     }
+
+    [TestMethod]
+    public void Project_UnknownTheme_MapsToDefaultClass()
+    {
+        var snapshot = new SettingsPreferenceSnapshot(
+            ThemeName: "Neon",
+            UseCompactLayout: false,
+            Multiplayer: false,
+            Chat: false,
+            FogOfWar: false,
+            RulesEngine: false,
+            Persistence: true);
+
+        var result = SettingsShellClassProjectionService.Project(snapshot);
+
+        Assert.AreEqual("theme-default", result.ThemeClass);
+    }
 }

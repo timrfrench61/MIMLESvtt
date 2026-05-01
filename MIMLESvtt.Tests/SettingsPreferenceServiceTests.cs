@@ -27,6 +27,62 @@ public class SettingsPreferenceServiceTests
     }
 
     [TestMethod]
+    public void Save_RaisesPreferencesChanged_EachTimeSaveIsCalled()
+    {
+        var path = BuildTempSettingsPath();
+
+        try
+        {
+            var service = new SettingsPreferenceService(path);
+            var eventCount = 0;
+            service.PreferencesChanged += _ => eventCount++;
+
+            service.Save(new SettingsPreferenceSnapshot("Default", false, false, false, false, false, true));
+            service.Save(new SettingsPreferenceSnapshot("Dark", true, true, true, false, true, false));
+
+            Assert.AreEqual(2, eventCount);
+        }
+        finally
+        {
+            DeleteIfExists(path);
+        }
+    }
+
+    [TestMethod]
+    public void Save_RaisesPreferencesChanged_WithSavedSnapshot()
+    {
+        var path = BuildTempSettingsPath();
+
+        try
+        {
+            var service = new SettingsPreferenceService(path);
+            SettingsPreferenceSnapshot? captured = null;
+            service.PreferencesChanged += snapshot => captured = snapshot;
+
+            var input = new SettingsPreferenceSnapshot(
+                ThemeName: "HighContrast",
+                UseCompactLayout: true,
+                Multiplayer: true,
+                Chat: false,
+                FogOfWar: true,
+                RulesEngine: false,
+                Persistence: true);
+
+            service.Save(input);
+
+            Assert.IsNotNull(captured);
+            Assert.AreEqual("HighContrast", captured!.ThemeName);
+            Assert.IsTrue(captured.UseCompactLayout);
+            Assert.IsTrue(captured.Multiplayer);
+            Assert.IsTrue(captured.Persistence);
+        }
+        finally
+        {
+            DeleteIfExists(path);
+        }
+    }
+
+    [TestMethod]
     public void Save_ThenLoad_RoundTripsSnapshot()
     {
         var path = BuildTempSettingsPath();

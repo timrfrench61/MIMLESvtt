@@ -24,6 +24,8 @@ public class SettingsPreferenceService
 
     private readonly string _settingsFilePath;
 
+    public event Action<SettingsPreferenceSnapshot>? PreferencesChanged;
+
     public SettingsPreferenceService()
         : this(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "App_Data", "mvu-settings.json")))
     {
@@ -71,5 +73,6 @@ public class SettingsPreferenceService
         });
 
         File.WriteAllText(_settingsFilePath, json);
+        PreferencesChanged?.Invoke(snapshot);
     }
 }

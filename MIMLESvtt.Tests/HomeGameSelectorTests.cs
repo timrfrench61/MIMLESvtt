@@ -38,6 +38,8 @@ public class HomeGameSelectorTests
         StringAssert.Contains(gameSetupSource, "Tone=\"SetupOptionButtonTone.Success\"");
         StringAssert.Contains(gameSetupSource, "Tone=\"SetupOptionButtonTone.Secondary\"");
         StringAssert.Contains(gameSetupSource, "EmptyMessage=\"No session sources available.\"");
+        StringAssert.Contains(gameSetupSource, "SetupModeOptionCatalogService.GameSetupSessionModes()");
+        StringAssert.Contains(gameSetupSource, "SetupOptionButtonProjectionService.Project(");
 
         StringAssert.Contains(workspaceLaunchSource, "<SetupOptionButtonList");
         StringAssert.Contains(workspaceLaunchSource, "<SetupStepNavigationRow");
@@ -47,6 +49,8 @@ public class HomeGameSelectorTests
         StringAssert.Contains(workspaceLaunchSource, "Tone=\"SetupOptionButtonTone.Secondary\"");
         StringAssert.Contains(workspaceLaunchSource, "Tone=\"SetupOptionButtonTone.Success\"");
         StringAssert.Contains(workspaceLaunchSource, "EmptyMessage=\"No scenarios available for this mode.\"");
+        StringAssert.Contains(workspaceLaunchSource, "SetupModeOptionCatalogService.WorkspaceScenarioModes()");
+        StringAssert.Contains(workspaceLaunchSource, "SetupOptionButtonProjectionService.Project(");
     }
 
     [TestMethod]

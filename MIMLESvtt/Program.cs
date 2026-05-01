@@ -2,9 +2,9 @@ using MIMLESvtt.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using MIMLESvtt.src.Application.Authentication;
-using MIMLESvtt.src;
+using MIMLESvtt.Services.Authentication;
 using MIMLESvtt.src.Domain.Persistence.VttSessionNSPC;
+using MIMLESvtt.Services.Actions;
 using MIMLESvtt.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -62,7 +62,7 @@ builder.Services.AddScoped(sp =>
 
     return new VttSessionWorkspaceService(dataRootPath);
 });
-builder.Services.AddScoped<IVttSessionCommandService>(sp => sp.GetRequiredService<VttSessionWorkspaceService>());
+builder.Services.AddScoped<ISessionCommandService>(sp => sp.GetRequiredService<VttSessionWorkspaceService>());
 builder.Services.AddScoped<LoadGameService>();
 builder.Services.AddScoped<SaveGameService>();
 builder.Services.AddScoped<ModuleImportService>();

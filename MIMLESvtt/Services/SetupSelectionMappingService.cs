@@ -6,6 +6,18 @@ namespace MIMLESvtt.Services;
 
 public static class SetupSelectionMappingService
 {
+    public static IReadOnlyList<GameSystemSummary> ToSelectedGameSystemSummary(string? selectedGameSystemId)
+    {
+        var resolvedId = string.IsNullOrWhiteSpace(selectedGameSystemId)
+            ? "EMPTY-GAMEBOX"
+            : selectedGameSystemId;
+
+        return
+        [
+            new GameSystemSummary(resolvedId, resolvedId, "local", "Selected setup game system.")
+        ];
+    }
+
     public static IReadOnlyList<GameSetupGameSystemOption> ToGameSetupGameSystemOptions(IReadOnlyList<GameSystemSummary> gameSystems)
     {
         ArgumentNullException.ThrowIfNull(gameSystems);

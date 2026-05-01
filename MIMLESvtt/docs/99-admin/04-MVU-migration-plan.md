@@ -179,14 +179,111 @@ A slice is complete when:
 
 ---
 
-## Migration Status (Initial)
-- Phase 0: In Progress
-- Phase 1: Planned
-- Phase 2: In Progress
-- Phase 3: Planned
-- Phase 4: Planned
-- Phase 5: Planned
-- Phase 6: Planned
+## Migration Status (Current)
+- Phase 0 - Baseline and Guardrails: Completed
+- Phase 1 - Core Model Seed: Completed
+- Phase 2 - Workspace Shell and Navigation MVU: Completed
+- Phase 3 - GameSetup Feature Slice: Completed
+- Phase 4 - Tabletop Feature Slice: Completed
+- Phase 5 - Settings Feature Slice: Completed
+- Phase 6 - Services and Build Cutover: Completed
+
+### Phases Not Closed
+None.
+
+### Phase Closure Checklist (Open Phases)
+
+#### Phase 5 - Settings Feature Slice (Closure Checklist)
+- [x] Wire persisted settings into shell-level startup/hydration so selected preferences apply automatically on app load.
+- [x] Apply settings-driven theme/class output consistently across shared layout surfaces (top-level shell + key navigation surfaces).
+- [x] Validate end-to-end behavior: change settings -> persist -> reload app -> settings rehydrate and visible UI behavior matches saved values.
+- [x] Keep reducer/effect flow authoritative (no direct UI mutation bypass).
+- [x] Close with test updates for any new settings hydration/application paths.
+
+#### Phase 6 - Services and Build Cutover (Closure Checklist)
+- [x] Inventory remaining compatibility-only `MIMLESvtt.src` usage and classify each as (a) required shim or (b) removable legacy path.
+- [x] Remove or replace removable legacy compatibility usage paths with `Models/Services/Features` equivalents.
+- [x] Keep required shims isolated to `Legacy/*` with no new runtime feature development on compatibility-only contracts.
+- [x] Reconcile migration-plan language and notes to match final post-cutover state (no stale StageA/StageB migration wording).
+- [x] Final validation gate: workspace build + test suite green after each cleanup pass, then one final full verification pass when checklist items are complete.
+
+Inventory snapshot (latest pass):
+- Majority of remaining `MIMLESvtt.src` usage is concentrated in test files.
+- Runtime path still intentionally uses compatibility contracts in selected integration points (for example DI/service registration paths that preserve legacy contract names).
+- Runtime cluster classification and required-shim isolation are now completed for the tracked Phase 6 closure scope.
+
+Progress classification (current runtime clusters):
+- Required shim cluster (currently keep): persistence/session model contracts used by `VttSessionWorkspaceService`, `LoadGameService`, `SaveGameService`, `ModuleImportService`, and selected integration wiring in `Program.cs`.
+- Candidate migration cluster (next): none required for Phase 6 closure scope; remaining runtime compatibility contracts are tracked as intentional shims.
+
+Recent migration action (runtime cluster retired):
+- Moved authentication runtime namespace from `MIMLESvtt.src.Application.Authentication` to `MIMLESvtt.Services.Authentication` across `AuthUser`, `AuthDbContext`, `AuthSeedDefaults`, `AuthDataSeeder`, and `Program.cs` imports.
+- This retires one removable runtime compatibility namespace cluster without behavior changes.
+
+Recent migration action (runtime cluster reduced):
+- Added runtime service-layer session command interface `MIMLESvtt.Services.Actions.ISessionCommandService` and switched runtime consumers (`Workspace.razor`, `WorkspaceBoardState`, `RulesActionOrchestrator`) plus DI wiring to this non-compatibility interface.
+- Kept legacy `IVttSessionCommandService` registration and implementation in place for compatibility paths.
+- This reduces direct runtime coupling to root `MIMLESvtt.src` compatibility contracts while preserving behavior.
+
+Recent migration action (runtime DI cleanup):
+- Removed runtime DI registration of legacy `IVttSessionCommandService` from `Program.cs`.
+- Runtime wiring now resolves session command flow via `ISessionCommandService` only, while legacy interface/type compatibility remains available in code for shim consumers.
+
+Recent migration action (required shim isolation):
+- Moved legacy `IVttSessionCommandService` contract file from `Services/Actions` to `Legacy/IVttSessionCommandService.cs` while preserving the `MIMLESvtt.src` namespace contract.
+- This starts explicit physical isolation of required compatibility contracts under `Legacy/*`.
+
+Recent migration action (required shim isolation expansion):
+- Moved legacy action contract/processor cluster (`ActionRequest`, `ActionRecord`, `ActionValidation*`, `ActionProcessor`, payload contracts, and formatter) from `Services/Actions` to `Legacy/Actions/*`.
+- Kept runtime-only abstraction `ISessionCommandService` in `Services/Actions`.
+- This further isolates compatibility contracts under `Legacy/*` without changing runtime behavior.
+
+Recent migration action (required shim isolation completion):
+- Moved legacy rules compatibility cluster from `Services/Rules/*` to `Legacy/Rules/*`.
+- `Services/Rules` now has no compatibility-rule files remaining.
+- Combined with prior `Legacy/Actions` isolation, required compatibility clusters are now physically grouped under `Legacy/*`.
+
+### Ordered Next 3 Slices (Execution Plan)
+
+#### Slice A - Phase 5 settings shell-application closure
+Scope:
+- Apply persisted settings to shell-level startup/hydration.
+- Ensure settings-driven theme/class output is applied consistently in shared layout surfaces.
+
+Definition of done:
+- App startup reflects saved settings without manual re-selection.
+- Settings changes remain reducer/effect-driven.
+- Tests added/updated for hydration + shell application behavior.
+
+Validation:
+- Build green.
+- Full test suite green.
+
+#### Slice B - Phase 6 compatibility inventory and classification
+Scope:
+- Create a concrete inventory of remaining `MIMLESvtt.src` compatibility usage.
+- Classify each usage as required shim vs removable path.
+
+Definition of done:
+- Inventory list captured in this plan (or linked admin doc).
+- Each item has owner action: keep (isolated shim) or migrate/remove.
+
+Validation:
+- Build green.
+- Full test suite green.
+
+#### Slice C - Phase 6 compatibility retirement pass #1
+Scope:
+- Remove or replace one safe removable compatibility cluster from Slice B.
+- Keep remaining required shims isolated under `Legacy/*`.
+
+Definition of done:
+- Target cluster no longer depends on compatibility-only path.
+- Migration notes updated with what was retired and what remains.
+
+Validation:
+- Build green.
+- Full test suite green.
 
 ## Slice Progress Log
 
@@ -253,6 +350,9 @@ Next in this slice:
 Completed notes:
 - Launch routing from setup flows now targets MVU tabletop (`/tabletop?mode=...&source=...`) instead of legacy workspace route.
 - `Components/Pages/TabletopPage.razor` now hydrates launch mode/source from query and applies state initialization/status from that selected setup context.
+- Added `Services/TabletopLaunchStateFactory.cs` and moved tabletop initial state construction behind a source-aware launch-state factory.
+- `TabletopPage.razor` now initializes from `TabletopLaunchStateFactory` and hydrates play/edit mode + source-dependent token seed sets through one path.
+- Added `TabletopLaunchStateFactoryTests` coverage for play-mode tool/status projection, checkers source token seeding, and default-source fallback.
 
 ### Slice 4 - Save/load service hookup slice (In Progress)
 Implemented:
@@ -303,8 +403,7 @@ Current behavior:
 - Multiple slices now run action -> reducer -> effect -> service execution.
 - Settings persistence is validated with reducer effect tests + service round-trip tests.
 - Load/save service adapters now have direct test coverage to support staged cutover confidence.
-- StageA default keeps current compile behavior; non-StageA mode conditionally removes `src/**/*.cs` except legacy compatibility files.
-- StageB now compiles successfully using the compatibility bridge include set (trimmed to `src/Application/Authentication`, `src/Application/Workspace`, `src/Domain/Models`, `src/Domain/Persistence`, `src/Domain/Rules`, and `src/Domain/Actions`).
+- Runtime compile paths are now fully retired from `src/*`; migrated code runs from `Models`, `Services`, `Features`, and `Legacy` compatibility shims.
 
 Completed notes:
 - Added route compatibility redirect page `Components/Pages/WorkspaceRedirectPage.razor` so `/workspace` now forwards to MVU tabletop (`/tabletop`) while preserving `mode` and `source` query values.
@@ -343,9 +442,9 @@ Completed notes:
 - Rules relocation pass: moved remaining `src/Domain/Rules/**` files into `Services/Rules/**` as a fast file-location migration while keeping namespaces/behavior unchanged.
 - For StageB stability, temporarily re-enabled `src/Domain/Rules/**/*.cs` include in `MIMLESvtt.csproj` until rules namespace contract cleanup is completed in a follow-up pass.
 
-StageB validation findings (current tracked legacy dependency areas):
-- `Components/Pages/Workspace.razor` and `.razor.cs` still depend on legacy `src/*` workspace/session model and command types.
-- `Components/Pages/ContentImportWorkflowShell.razor.cs` still depends on legacy `src/*` CSV import model types.
+Legacy compatibility findings (current tracked compatibility dependency areas):
+- `Components/Pages/Workspace.razor` and `.razor.cs` still depend on legacy compatibility namespace contracts (`MIMLESvtt.src`) now hosted under `Legacy/*`.
+- `Components/Pages/ContentImportWorkflowShell.razor.cs` still depends on legacy compatibility contracts for CSV import model paths.
 
 Completed notes:
 - Added `Services/ContentImportWorkflowService.cs` and moved import workflow shell preview execution behind this service path.
@@ -437,7 +536,7 @@ Current behavior:
 - Setup refresh sequencing is now centralized and tested, reducing duplicated page-level orchestration code across setup pages.
 
 Next in this slice:
-- Evaluate extracting the selected-game-system summary projection used by both setup pages into a shared helper to reduce remaining inline projection duplication.
+- Evaluate consolidating remaining setup page-local option projection properties into a shared helper if additional duplication remains.
 
 ---
 
@@ -473,3 +572,91 @@ Next in this slice:
 - Project metadata cleanup pass (post-src retirement):
   - Removed stale `src/Legacy/` folder declaration from `MIMLESvtt.csproj` after compatibility file relocation to `Legacy/`.
   - Validation: build succeeded and tests passed (88/88).
+- Project metadata cleanup pass (legacy compile property removal):
+  - Removed obsolete `LegacyCompileStage` default property from `MIMLESvtt.csproj` after full src retirement.
+  - Validation: build succeeded and tests passed (88/88).
+- Shared setup projection consolidation pass:
+  - Updated `WorkspaceLaunchPage.razor` to use `SetupGameSystemSummaryProjectionService.FromSelectedGameSystem(...)` for new-scenario option loading, matching `GameSetupPage.razor` selected-system projection flow.
+  - Removed now-unused `FromWorkspaceLaunchCards(...)` helper from `SetupGameSystemSummaryProjectionService`.
+  - Removed obsolete projection test from `SetupSelectionMappingServiceTests`.
+  - Validation: build succeeded and tests passed (87/87).
+- Shared setup projection consolidation pass (service merge cleanup):
+  - Merged selected game-system summary projection into `SetupSelectionMappingService` as `ToSelectedGameSystemSummary(...)`.
+  - Updated `GameSetupPage.razor` and `WorkspaceLaunchPage.razor` to use the merged mapping helper.
+  - Removed redundant `Services/SetupGameSystemSummaryProjectionService.cs`.
+  - Updated `SetupSelectionMappingServiceTests` to cover the merged helper path.
+  - Validation: build succeeded and tests passed (87/87).
+- Migration plan reconciliation pass (post-src retirement):
+  - Updated stale StageA/StageB and `src/*` bridge wording in this plan to reflect current fully retired `src` compile state.
+  - Reframed tracked dependencies as `Legacy/*` compatibility contract usage instead of `src/*` file dependencies.
+  - Validation: build succeeded and tests passed (87/87).
+- Shared setup button projection consolidation pass:
+  - Added `Services/SetupOptionButtonProjectionService.cs` to centralize `SetupOptionButtonItem` projection for setup pages.
+  - Updated `GameSetupPage.razor` and `WorkspaceLaunchPage.razor` to use the shared projection helper for game-system/scenario source button lists.
+  - Added `SetupOptionButtonProjectionServiceTests` and included it in `MIMLESvtt.Tests.csproj`.
+  - Removed stale `NewFeatureTests.cs` compile include from `MIMLESvtt.Tests.csproj` found during validation.
+  - Validation: build succeeded and tests passed (89/89).
+- Shared setup button projection hardening pass:
+  - Added guard-clause tests in `SetupOptionButtonProjectionServiceTests` for null source, null id selector, and null name selector.
+  - Validation: build succeeded and tests passed (92/92).
+- Shared setup mode option catalog consolidation pass:
+  - Added `Services/SetupModeOptionCatalogService.cs` to centralize static mode option lists for setup flows.
+  - Updated `GameSetupPage.razor` to use `SetupModeOptionCatalogService.GameSetupSessionModes()`.
+  - Updated `WorkspaceLaunchPage.razor` to use `SetupModeOptionCatalogService.WorkspaceScenarioModes()`.
+  - Added `SetupModeOptionCatalogServiceTests` and included it in `MIMLESvtt.Tests.csproj`.
+  - Validation: build succeeded and tests passed (94/94).
+- Shared setup mode option catalog hardening pass:
+  - Updated `SetupModeOptionCatalogService` to return cached static readonly mode option collections (no per-call list allocations).
+  - Added test coverage for cached-reference behavior in `SetupModeOptionCatalogServiceTests`.
+  - Validation: build succeeded and tests passed (96/96).
+- Shared setup wiring assertion hardening pass:
+  - Updated `HomeGameSelectorTests.SharedSetupOptionList_Wiring_IsPresentInSetupPages` to assert both setup pages use `SetupModeOptionCatalogService` mode lists.
+  - Added source assertions that both setup pages continue using `SetupOptionButtonProjectionService.Project(...)` for projected option-button lists.
+  - Validation: build succeeded and tests passed (96/96).
+- Combined closure slice set A-C (pass 1):
+  - Added shell-reactive settings application by publishing `SettingsPreferenceService.PreferencesChanged` on save and subscribing in `MainLayout`.
+  - `MainLayout` now re-applies projected shell classes immediately after settings saves while preserving startup hydration behavior.
+  - Added notification coverage in `SettingsPreferenceServiceTests.Save_RaisesPreferencesChanged_WithSavedSnapshot`.
+  - Captured a fresh compatibility inventory snapshot for `MIMLESvtt.src` usage to support Phase 6 classification work.
+  - Validation: build succeeded and tests passed (97/97).
+- Combined closure slice set A-C (pass 2):
+  - Expanded settings hardening tests with save-notification repeat coverage and unknown-theme fallback projection coverage.
+  - Advanced Phase 6 inventory by classifying current runtime `MIMLESvtt.src` usages into required shim vs candidate migration clusters.
+  - Validation: build succeeded and tests passed (99/99).
+- Combined closure slice set A-C (pass 3):
+  - Retired the auth runtime compatibility namespace cluster by moving auth services/models to `MIMLESvtt.Services.Authentication` and updating app wiring imports.
+  - Updated Phase 6 checklist status to reflect partial progress on removable runtime compatibility paths.
+  - Validation: build succeeded and tests passed (99/99).
+- Combined closure slice set A-C (pass 4):
+  - Introduced `ISessionCommandService` runtime interface in `Services/Actions` and migrated core runtime consumers/DI wiring to use it.
+  - Preserved legacy `IVttSessionCommandService` as compatibility registration for existing shim paths.
+  - Validation: build succeeded and tests passed (99/99).
+- Combined closure slice set A-C (pass 5):
+  - Removed legacy `IVttSessionCommandService` runtime DI registration and root `MIMLESvtt.src` import from `Program.cs`.
+  - Kept runtime behavior on `ISessionCommandService` path with full build/test validation.
+  - Validation: build succeeded and tests passed (99/99).
+- Combined closure slice set A-C (pass 6):
+  - Isolated required compatibility contract `IVttSessionCommandService` into `Legacy/*` and removed duplicate file location under `Services/Actions`.
+  - Updated Phase 6 checklist progress for required shim isolation.
+  - Validation: build succeeded and tests passed (`dotnet test` 102/102).
+- Combined closure slice set A-C (pass 7):
+  - Expanded required shim isolation by relocating the legacy action contract/processor cluster from `Services/Actions` to `Legacy/Actions`.
+  - Preserved runtime service abstraction in `Services/Actions` (`ISessionCommandService`) while moving compatibility contracts/processors out of service-layer location.
+  - Validation: build succeeded and tests passed (`dotnet test` 102/102).
+- Combined closure slice set A-C (pass 8):
+  - Completed required shim isolation by relocating the legacy rules cluster from `Services/Rules` to `Legacy/Rules`.
+  - Marked Phase 6 required-shim isolation checklist item as complete.
+  - Validation: build succeeded and tests passed (`dotnet test` 102/102).
+- Combined closure slice set A-C (pass 9 - Phase 6 closeout):
+  - Reconciled Phase 6 checklist status to completed based on inventory/classification, runtime replacement passes, and required-shim isolation completion.
+  - Executed final validation gate pass (workspace build + full test run).
+  - Validation: build succeeded and tests passed (`dotnet test` 102/102).
+- Phase 5 closeout pass:
+  - Confirmed all Phase 5 closure checklist items are complete and aligned with implemented settings hydration/shell-application/test coverage work.
+  - Executed closeout validation gate pass (workspace build + full test run).
+  - Validation: build succeeded and tests passed (`dotnet test` 102/102).
+- Slice 3 tabletop launch-context consolidation pass:
+  - Added `TabletopLaunchStateFactory` to centralize launch mode/source tabletop state initialization.
+  - Updated `TabletopPage.razor` to consume the factory instead of page-local initialization/status construction.
+  - Added `TabletopLaunchStateFactoryTests` and fixed test-project compile item formatting in `MIMLESvtt.Tests.csproj`.
+  - Validation: build succeeded and tests passed (`dotnet test` 102/102).
